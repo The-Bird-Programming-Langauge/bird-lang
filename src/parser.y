@@ -1,3 +1,10 @@
+%language "C++"
+%defines
+%locations
+%require "3.2"
+
+%define api.parser.class {parser}
+
 %{
     /*
         * This is the parser specification file
@@ -20,12 +27,19 @@
     int intval;
 }
 
-%token PLUS
-%token MINUS
+%token PLUS MINUS MUL DIV
 
 %token <intval> INT_LITERAL;
 
 %type <intval> expr term primary 
+
+%{
+extern int yylex(yy::parser::semantic_type *yylval, yy::parser::location_type* yylloc);
+%}
+
+%initial-action {
+    @$.begin.filename = @$.end.filename = new std::string("../parse_test.bird");
+}
 
 %%
 expr:

@@ -15,7 +15,7 @@
 
 #include "include/visitors/code_gen.h"
 #include "binaryen-c.h"
-#include "include/parser2.hpp" // TODO: change this name
+#include "src/parser2.hpp" // TODO: change this name
 
 extern int bird_parse(const char *input);
 
@@ -26,26 +26,30 @@ std::string read_file(std::string filename);
 
 int main(int argc, char *argv[])
 {
-    if (argc == 1)
-    {
-        repl();
-    }
-    else if (argc == 2)
-    {
-        std::string filename = argv[1];
-        compile(filename);
-    }
-    else
-    {
-        if (!strcmp(argv[1], "-i"))
-        {
-            interpret(std::string(argv[2]));
-        }
-        else if (!strcmp(argv[2], "-i"))
-        {
-            interpret(std::string(argv[1]));
-        }
-    }
+
+    // if (argc == 1)
+    // {
+    //     repl();
+    // }
+    // else if (argc == 2)
+    // {
+    //     std::string filename = argv[1];
+    //     compile(filename);
+    // }
+    // else
+    // {
+    //     if (!strcmp(argv[1], "-i"))
+    //     {
+    //         interpret(std::string(argv[2]));
+    //     }
+    //     else if (!strcmp(argv[2], "-i"))
+    //     {
+    //         interpret(std::string(argv[1]));
+    //     }
+    // }
+
+    // auto code = read_file("../code.bird");
+    bird_parse("1+1");
 
     return 0;
 }
