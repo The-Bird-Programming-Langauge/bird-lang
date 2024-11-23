@@ -1,6 +1,18 @@
 #pragma once
 #include "binaryen-c.h"
 
+/*
+ * used to avoid multiple BinaryenMemorySet calls
+ * which somehow retain the information but overwrite
+ * the page bounds
+ */
+struct MemorySegment
+{
+    const char *data;
+    BinaryenIndex size;
+    BinaryenExpressionRef offset;
+};
+
 class CodeGen : public Visitor
 {
     Environment<BinaryenIndex> environment; // tracks the index of local variables
@@ -16,6 +28,11 @@ class CodeGen : public Visitor
     std::unordered_map<std::string, std::vector<BinaryenType>> function_locals;
     std::string current_function_name; // for indexing into maps
 
+    std::vector<MemorySegment> memory_segments; // store memory segments to add at once
+
+    uint32_t current_offset = 1024; // current offset is set high to allow
+                                    // js to identify a string by a higher
+                                    // offset, will fix tomorrow
     BinaryenModuleRef mod;
 
 public:
@@ -47,6 +64,53 @@ public:
             "print_f64",
             BinaryenTypeFloat64(),
             BinaryenTypeNone());
+    }
+
+    void add_memory_segment(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
+    {
+        str_offset = current_offset;
+        this->current_offset += str.size() + 1;
+
+        MemorySegment segment = {
+            str.c_str(),
+            static_cast<BinaryenIndex>(str.size() + 1), // + 1 for '\0'
+            BinaryenConst(mod, BinaryenLiteralInt32(str_offset))};
+
+        this->memory_segments.push_back(segment);
+    }
+
+    void init_static_memory(BinaryenModuleRef mod)
+    {
+        std::vector<const char *> segments;
+        std::vector<BinaryenIndex> sizes;
+        std::vector<int8_t> passive;
+        std::vector<BinaryenExpressionRef> offsets;
+
+        // add all memory segment information to
+        // vectors to set at once
+        for (const auto &segment : memory_segments)
+        {
+            segments.push_back(segment.data);
+            sizes.push_back(segment.size);
+            passive.push_back(0);
+            offsets.push_back(segment.offset);
+        }
+        // since static memory is added at once we can
+        // calculate the exact memory in pages to allocate
+        BinaryenIndex max_pages = (current_offset / 65536) + 1;
+
+        // call to create memory with all segments
+        BinaryenSetMemory(
+            mod,
+            1,         // initial pages
+            max_pages, // maximum pages
+            "memory",
+            segments.data(),
+            passive.data(),
+            offsets.data(),
+            sizes.data(),
+            segments.size(),
+            0);
     }
 
     void generate(std::vector<std::unique_ptr<Stmt>> *stmts)
@@ -148,6 +212,8 @@ public:
                 // no stack push here, only type table
             }
         }
+
+        this->init_static_memory(this->mod);
 
         BinaryenType params = BinaryenTypeNone();
         BinaryenType results = BinaryenTypeNone();
@@ -749,15 +815,12 @@ public:
 
         case Token::Type::STR_LITERAL:
         {
-            // TODO: figure out how to store strings
+            const std::string &str_value = primary->value.lexeme;
+            uint32_t str_ptr;
 
-            // const std::string &str_value = primary->value.lexeme;
-            // uint32_t str_ptr;
+            add_memory_segment(mod, str_value, str_ptr);
 
-            // create_static_memory(this->mod, str_value, str_ptr);
-
-            // this->stack.push(BinaryenConst(this->mod, BinaryenLiteralInt32(str_ptr)));
-            throw BirdException("implement strings");
+            this->stack.push(BinaryenConst(this->mod, BinaryenLiteralInt32(str_ptr)));
             break;
         }
 
@@ -867,20 +930,26 @@ public:
         auto index = 0;
         for (auto &param : func->param_list)
         {
-            this->environment.declare(param.first.lexeme, index);
-            current_function_body.push_back(
-                BinaryenLocalGet(
-                    this->mod,
-                    index++,
-                    from_bird_type(param.second)));
+            this->environment.declare(param.first.lexeme, index++);
+
+            /*
+             * this leaves values on the wasm stack if they arent used
+             * in the function body, causing compilation errors. visit
+             * primary will instead get the local variable and push to
+             * stack if it is used in the function body.
+             *
+             *      current_function_body.push_back(
+             *          BinaryenLocalGet(
+             *              this->mod,
+             *              index++,
+             *              from_bird_type(param.second)));
+             */
         }
 
-        auto found_return = false;
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts)
         {
             stmt->accept(this);
             auto result = this->stack.pop();
-
             current_function_body.push_back(result);
         }
 
@@ -1005,33 +1074,6 @@ public:
                 "BODY",
                 nullptr,
                 nullptr));
-    }
-
-    void create_static_memory(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
-    {
-        // TODO: make this work
-        // static uint32_t current_offset = 1024;
-        // str_offset = current_offset;
-
-        // const char *segments[] = {str.c_str()};
-        // BinaryenIndex segment_sizes[] = {static_cast<BinaryenIndex>(str.size() + 1)};
-        // int8_t segment_passive[] = {0};
-        // BinaryenExpressionRef segment_offsets[] = {
-        //     BinaryenConst(mod, BinaryenLiteralInt32(current_offset))};
-
-        // BinaryenSetMemory(
-        //     mod,
-        //     1,
-        //     1,
-        //     "memory",
-        //     segments,
-        //     segment_passive,
-        //     segment_offsets,
-        //     segment_sizes,
-        //     1,
-        //     0);
-
-        // current_offset += str.size() + 1;
     }
 
     void visit_type_stmt(TypeStmt *type_stmt)

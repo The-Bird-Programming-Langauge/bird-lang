@@ -1,6 +1,38 @@
-fn add(x: float, y: int) -> int {
+
+fn ret_str(s: str) -> str {
+    return s;
+}
+
+fn print_str(s: str) -> void {
+    print s;
+}
+
+var s: str = "hello, world!";
+
+print ret_str(s);
+
+print_str(s);
+
+fn add(x: int, y: int) -> int {
     return x + y;
 }
 
+fn print_add(x: int, y: int) { 
+    var z = y - x;
+    print z;
+}
 
-print add(4.5, 3.4);
+print add(1,2);
+
+print_add(1,2);
+
+
+fn fib(n: int) -> int {
+	if n <= 1 {
+		return n;
+	}
+	return fib(n - 1) + fib(n - 2);
+}
+
+print fib(10);
+						
