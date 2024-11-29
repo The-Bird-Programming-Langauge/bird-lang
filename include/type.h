@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./lexer.h"
+#include "./token.h"
 
 class Type
 {
@@ -10,7 +10,6 @@ public:
     Type() = default;
     Type(Token typeP) : type(typeP) {}
 };
-
 
 struct SemanticType
 {

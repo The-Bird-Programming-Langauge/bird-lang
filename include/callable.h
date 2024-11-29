@@ -4,7 +4,7 @@
 #include <memory>
 #include <optional>
 
-#include "./lexer.h"
+#include "./token.h"
 
 class Stmt;
 class Expr;
@@ -33,7 +33,6 @@ public:
 
     void call(Interpreter *Interpreter, std::vector<std::unique_ptr<Expr>>);
 };
-
 
 struct SemanticCallable
 {

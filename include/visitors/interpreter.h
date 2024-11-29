@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <variant>
+#include <iostream>
 
 #include "../ast_node/stmt/stmt.h"
 #include "../ast_node/expr/expr.h"

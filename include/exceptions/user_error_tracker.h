@@ -6,7 +6,7 @@
 #include <string>
 #include <tuple>
 
-#include "../lexer.h"
+#include "../token.h"
 
 class UserErrorTracker
 {

@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 #include "../node.h"
-#include "../../lexer.h"
+#include "../../token.h"
 #include "../../visitors/visitor.h"
 
 // forward declaration

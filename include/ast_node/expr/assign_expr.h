@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 #include "expr.h"
-#include "../../lexer.h"
+#include "../../token.h"
 #include "../../visitors/visitor.h"
 
 /*

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../lexer.h"
+#include "../../token.h"
 #include "../../visitors/visitor.h"
 #include "expr.h"
 
