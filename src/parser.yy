@@ -186,14 +186,34 @@ maybe_param_list
 param_list
 
 %right ASSIGN
+   EQUAL
+   PLUS_EQUAL
+   MINUS_EQUAL
+   STAR_EQUAL
+   SLASH_EQUAL
+   PERCENT_EQUAL
 %right TERNARY
+   QUESTION
 %left EQUALITY
+   EQUAL_EQUAL
+   BANG_EQUAL
 %left COMPARISON
+   GREATER
+   GREATER_EQUAL
+   LESS
+   LESS_EQUAL
 %left TERM
+   MINUS
+   PLUS
 %left FACTOR
+   STAR
+   SLASH
+   PERCENT
 %right UNARY
 %left CALL
-%nonassoc PRIMARY GROUPING
+   LPAREN
+%nonassoc GROUPING
+   INT_LITERAL FLOAT_LITERAL BOOL_LITERAL STR_LITERAL IDENTIFIER
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -296,19 +316,20 @@ maybe_expr: %empty { $$ = nullptr; }
    | expr { $$ = $1; }
 
 
-expr: assign_expr %prec ASSIGN
-   | ternary_expr %prec TERNARY
-   | equality_expr %prec EQUALITY
-   | comparison_expr %prec COMPARISON
-   | term_expr %prec TERM
-   | factor_expr %prec FACTOR
-   | unary_expr %prec UNARY
-   | call_expr %prec CALL
-   | primary %prec PRIMARY { $$ = new Primary(*$1); }
-   | grouping %prec GROUPING
+expr: 
+   assign_expr
+   | ternary_expr
+   | equality_expr
+   | comparison_expr
+   | term_expr
+   | factor_expr
+   | unary_expr
+   | call_expr
+   | primary { $$ = new Primary(*$1); }
+   | grouping
 
 
-assign_expr: expr ASSIGN_OP expr { 
+assign_expr: expr ASSIGN_OP expr %prec ASSIGN { 
    if(auto *identifier = dynamic_cast<Primary *>($1))
    {
       if (identifier->value.token_type != Token::Type::IDENTIFIER)
@@ -319,19 +340,19 @@ assign_expr: expr ASSIGN_OP expr {
    }
 }
 
-ternary_expr: expr QUESTION expr COLON expr { $$ = new Ternary($1, *$2, $3, $5); }
+ternary_expr: expr QUESTION expr COLON expr %prec TERNARY { $$ = new Ternary($1, *$2, $3, $5); }
 
-equality_expr: expr EQUALITY_OP expr { $$ = new Binary($1, *$2, $3); }
+equality_expr: expr EQUALITY_OP expr %prec EQUALITY { $$ = new Binary($1, *$2, $3); }
 
-comparison_expr: expr COMPARISON_OP expr { $$ = new Binary($1, *$2, $3); }
+comparison_expr: expr COMPARISON_OP expr %prec COMPARISON { $$ = new Binary($1, *$2, $3); }
 
-term_expr: expr TERM_OP expr { $$ = new Binary($1, *$2, $3); }
+term_expr: expr TERM_OP expr %prec TERM { $$ = new Binary($1, *$2, $3); }
 
-factor_expr: expr FACTOR_OP expr { $$ = new Binary($1, *$2, $3); }
+factor_expr: expr FACTOR_OP expr %prec FACTOR { $$ = new Binary($1, *$2, $3); }
 
-unary_expr: UNARY_OP expr { $$ = new Unary(*$1, $2); }
+unary_expr: UNARY_OP expr %prec UNARY { $$ = new Unary(*$1, $2); }
 
-call_expr: expr LPAREN maybe_arg_list RPAREN { 
+call_expr: expr LPAREN maybe_arg_list RPAREN %prec CALL { 
    if(auto *identifier = dynamic_cast<Primary *>($1))
    {
       if (identifier->value.token_type != Token::Type::IDENTIFIER)
@@ -342,13 +363,13 @@ call_expr: expr LPAREN maybe_arg_list RPAREN {
    }
 }
 
-primary: IDENTIFIER
-   | INT_LITERAL
+primary: IDENTIFIER 
+   | INT_LITERAL 
    | FLOAT_LITERAL
    | BOOL_LITERAL
    | STR_LITERAL
 
-grouping: LPAREN expr RPAREN { $$ = $2; }
+grouping: LPAREN expr RPAREN %prec GROUPING { $$ = $2; }
 
 ASSIGN_OP: EQUAL
    | PLUS_EQUAL
@@ -372,7 +393,7 @@ FACTOR_OP: STAR
 TERM_OP: PLUS
    | MINUS
 
-UNARY_OP: MINUS
+UNARY_OP: MINUS /* %prec UNARY */
 
 %%
 
