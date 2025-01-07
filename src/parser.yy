@@ -2,15 +2,13 @@
 %require  "3.2"
 %language "c++"
 %defines 
-%define api.parser.class {Parser}
+%define api.parser.class {yyParser}
 %debug
 %locations
 %define api.value.type variant
 %define parse.assert
 
 %parse-param { std::vector<std::unique_ptr<Stmt>> &stmts }
-%parse-param { yy::Parser::semantic_type *yylval }
-%parse-param { yy::Parser::location_type *yyloc }
 
 %code requires {
    #include "../build/parser.tab.hh"
@@ -47,11 +45,11 @@
 
    #include "../include/token.h"
 
-   #define YYDEBUG 1
+   // #define YYDEBUG 1
 }
 
 %code {
-   extern int yylex(yy::Parser::semantic_type *yylval, yy::Parser::location_type *yyloc);
+   extern int yylex(yy::yyParser::semantic_type *yylval, yy::yyParser::location_type *yyloc);
 }
 
 
@@ -218,7 +216,7 @@ maybe_stmts: %empty { $$ = std::vector<Stmt*>(); }
    | stmts { $$ = $1; }
 
 stmts: stmt { $$ = std::vector<Stmt*>{$1}; }
-   | stmt stmts { $2.push_back($1); $$ = $2; }
+   | stmts stmt { $1.push_back($2); $$ = $1; }
 
 stmt: decl_stmt
    | if_stmt
@@ -235,14 +233,15 @@ stmt: decl_stmt
    | type_stmt
 
 decl_stmt: VAR IDENTIFIER EQUAL expr SEMICOLON 
-      { $$ = new DeclStmt($1, std::nullopt, false, $4); }
+      { $$ = new DeclStmt($2, std::nullopt, false, $4); }
    | VAR IDENTIFIER COLON TYPE_LITERAL EQUAL expr SEMICOLON
-      { $$ = new DeclStmt($1, $2, true, $6); }
+      { $$ = new DeclStmt($2, $4, true, $6); }
    | VAR IDENTIFIER COLON IDENTIFIER EQUAL expr SEMICOLON
-      { $$ = new DeclStmt($1, $2, false, $6); }
+      { $$ = new DeclStmt($2, $4, false, $6); }
 
-if_stmt: IF expr stmt %prec THEN { $$ = new IfStmt($1, $2, $3, std::nullopt); }
-   | IF expr stmt ELSE stmt { $$ = new IfStmt($1, $2, $3, $5); }
+if_stmt: IF expr block %prec THEN { $$ = new IfStmt($1, $2, $3, std::nullopt); }
+   | IF expr block ELSE block { $$ = new IfStmt($1, $2, $3, $5); }
+   | IF expr block ELSE if_stmt { $$ = new IfStmt($1, $2, $3, $5); }
 
 const_stmt: CONST IDENTIFIER EQUAL expr SEMICOLON 
       { $$ = new ConstStmt($2, std::nullopt, false, $4); }
@@ -258,7 +257,7 @@ block: LBRACE stmts RBRACE { $$ = new Block($2); }
 func: FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
    { $$ = new Func($2, $6, $4, $7); }
 
-while_stmt: WHILE expr stmt { $$ = new WhileStmt($1, $2, $3); }
+while_stmt: WHILE expr block { $$ = new WhileStmt($1, $2, $3); }
 
 for_stmt: FOR maybe_stmt maybe_expr SEMICOLON maybe_expr DO stmt 
    { $$ = new ForStmt($1, $2, $3, $5, $7); }
@@ -279,13 +278,13 @@ maybe_arg_list: %empty { $$ = std::vector<Expr*>(); }
    | arg_list
 
 arg_list: expr { $$ = std::vector{$1}; }
-   | expr COMMA arg_list { $3.push_back($1); $$ = $3; }
+   | arg_list COMMA expr { $1.push_back($3); $$ = $1; }
 
 maybe_param_list: %empty { $$ = std::vector<std::pair<Token, Token>>{}; }
    | param_list
 
 param_list: param { $$ = std::vector{$1}; }
-   | param COMMA param_list { $3.push_back($1); $$ = $3; }
+   | param_list COMMA param { $1.push_back($3); $$ = $1; }
 
 param: IDENTIFIER COLON TYPE_LITERAL { $$ = std::pair<Token, Token>($1, $3); }
 
@@ -380,7 +379,7 @@ UNARY_OP: MINUS /* %prec UNARY */
 
 %%
 
-void yy::Parser::error( const location_type &loc, const std::string &err_message )
+void yy::yyParser::error( const location_type &loc, const std::string &err_message )
 {
    std::cerr << "Error: " << err_message << " at line " << loc << "\n";
 }

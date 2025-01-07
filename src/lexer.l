@@ -1,5 +1,4 @@
 %option noyywrap
-%option debug
 %option nodefault
 
 %{
@@ -10,12 +9,12 @@
 #include "token.h"
 
 #undef YYDECL
-#define YY_DECL int yylex(yy::Parser::semantic_type* yylval, yy::Parser::location_type* location)
+#define YY_DECL int yylex(yy::yyParser::semantic_type* yylval, yy::yyParser::location_type* location)
 
-yy::Parser::semantic_type* yylval;
-yy::Parser::location_type* location;
+yy::yyParser::semantic_type* yylval;
+yy::yyParser::location_type* location;
 
-using token = yy::Parser::token;
+using token = yy::yyParser::token;
 using T = Token::Type;
 
 #define yyterminate() return token::END
@@ -30,10 +29,6 @@ IDENT           [a-zA-Z][a-zA-Z0-9_\-]*
 TYPE_IDENT      "int"|"float"|"bool"|"string"|"void"
 
 %%
-
-%{
-    // code to run at the start of the lexer
-%}
 
 "//".*\n                { location->lines(); }
 
