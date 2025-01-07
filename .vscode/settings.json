@@ -88,6 +88,7 @@
                 "__config": "cpp",
                 "*.inc": "cpp",
                 "__availability": "cpp",
-                "format": "cpp"
+                "format": "cpp",
+                "numbers": "cpp"
         }
 }
