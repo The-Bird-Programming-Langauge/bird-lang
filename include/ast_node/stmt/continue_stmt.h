@@ -1,7 +1,7 @@
 #pragma once
 
 #include "stmt.h"
-#include "../../visitors/visitor.h"
+#include "visitors/visitor.h"
 
 /*
  * Continue statement class AST node that

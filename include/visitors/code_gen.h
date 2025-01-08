@@ -1,24 +1,83 @@
 #pragma once
 #include "binaryen-c.h"
+#include <fstream>
+#include <ios>
+
+enum CodeGenType
+{
+    CodeGenInt,
+    CodeGenFloat,
+    CodeGenBool,
+    CodeGenVoid,
+    CodeGenPtr
+};
+
+static std::string code_gen_type_to_string(CodeGenType type)
+{
+    switch (type)
+    {
+    case CodeGenInt:
+        return "int";
+    case CodeGenFloat:
+        return "float";
+    case CodeGenBool:
+        return "bool";
+    case CodeGenVoid:
+        return "void";
+    case CodeGenPtr:
+        return "ptr";
+    default:
+        return "unknown";
+    }
+}
+
+template <typename T>
+struct Tagged
+{
+    T value;
+    CodeGenType type = CodeGenVoid;
+
+    Tagged() : value(T()) {}
+    Tagged(T v) : value(v) {}
+    Tagged(T v, CodeGenType t) : value(v), type(t) {}
+};
+
+using TaggedExpression = Tagged<BinaryenExpressionRef>;
+using TaggedIndex = Tagged<BinaryenIndex>;
+using TaggedType = Tagged<BinaryenType>;
+
+/*
+ * used to avoid multiple BinaryenMemorySet calls
+ * which somehow retain the information but overwrite
+ * the page bounds
+ */
+struct MemorySegment
+{
+    const char *data;
+    BinaryenIndex size;
+    BinaryenExpressionRef offset;
+};
 
 class CodeGen : public Visitor
 {
-    Environment<BinaryenIndex> environment; // tracks the index of local variables
+public:
+    Environment<TaggedIndex> environment; // tracks the index of local variables
     Environment<Type> type_table;
-
-    Stack<BinaryenExpressionRef> stack; // for returning values
-
+    Stack<TaggedExpression> stack; // for returning values
     std::map<std::string, std::string> std_lib;
 
     // we need the function return types when calling functions
-    std::unordered_map<std::string, BinaryenType> function_return_types;
+    std::unordered_map<std::string, TaggedType> function_return_types;
     // allows us to track the local variables of a function
     std::unordered_map<std::string, std::vector<BinaryenType>> function_locals;
-    std::string current_function_name; // for indexing into maps
+    std::string current_function_name;          // for indexing into maps
+    std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
+    uint32_t current_offset = 1024; // current offset is set high to allow
+                                    // js to identify a string by a higher
+                                    // offset, will fix tomorrow
     BinaryenModuleRef mod;
 
-public:
     ~CodeGen()
     {
         BinaryenModuleDispose(this->mod);
@@ -47,6 +106,63 @@ public:
             "print_f64",
             BinaryenTypeFloat64(),
             BinaryenTypeNone());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "print_str",
+            "env",
+            "print_str",
+            BinaryenTypeInt32(),
+            BinaryenTypeNone());
+    }
+
+    void add_memory_segment(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
+    {
+        str_offset = current_offset;
+        this->current_offset += str.size() + 1;
+
+        MemorySegment segment = {
+            str.c_str(),
+            static_cast<BinaryenIndex>(str.size() + 1), // + 1 for '\0'
+            BinaryenConst(mod, BinaryenLiteralInt32(str_offset))};
+
+        this->memory_segments.push_back(segment);
+    }
+
+    void init_static_memory(BinaryenModuleRef mod)
+    {
+        std::vector<const char *> segments;
+        std::vector<BinaryenIndex> sizes;
+        bool *passive = new bool[memory_segments.size()];
+        std::vector<BinaryenExpressionRef> offsets;
+
+        // add all memory segment information to
+        // vectors to set at once
+        for (const auto &segment : memory_segments)
+        {
+            segments.push_back(segment.data);
+            sizes.push_back(segment.size);
+            passive[segments.size() - 1] = false;
+            offsets.push_back(segment.offset);
+        }
+        // since static memory is added at once we can
+        // calculate the exact memory in pages to allocate
+        BinaryenIndex max_pages = (current_offset / 65536) + 1;
+
+        // call to create memory with all segments
+        BinaryenSetMemory(
+            mod,
+            1,         // initial pages
+            max_pages, // maximum pages
+            "memory",
+            segments.data(),
+            passive,
+            offsets.data(),
+            sizes.data(),
+            segments.size(),
+            0);
+
+        delete[] passive;
     }
 
     void generate(std::vector<std::unique_ptr<Stmt>> *stmts)
@@ -69,77 +185,84 @@ public:
             {
                 decl_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
+            }
+
+            if (auto const_stmt = dynamic_cast<ConstStmt *>(stmt.get()))
+            {
+                const_stmt->accept(this);
+                auto result = this->stack.pop();
+                main_function_body.push_back(result.value);
             }
 
             if (auto print_stmt = dynamic_cast<PrintStmt *>(stmt.get()))
             {
                 print_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto if_stmt = dynamic_cast<IfStmt *>(stmt.get()))
             {
                 if_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto block = dynamic_cast<Block *>(stmt.get()))
             {
                 block->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto expr_stmt = dynamic_cast<ExprStmt *>(stmt.get()))
             {
                 expr_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto ternary_stmt = dynamic_cast<Ternary *>(stmt.get()))
             {
                 ternary_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto while_stmt = dynamic_cast<WhileStmt *>(stmt.get()))
             {
                 while_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto for_stmt = dynamic_cast<ForStmt *>(stmt.get()))
             {
                 for_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto return_stmt = dynamic_cast<ReturnStmt *>(stmt.get()))
             {
                 return_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto break_stmt = dynamic_cast<BreakStmt *>(stmt.get()))
             {
                 break_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto continue_stmt = dynamic_cast<ContinueStmt *>(stmt.get()))
             {
                 continue_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result);
+                main_function_body.push_back(result.value);
             }
 
             if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get()))
@@ -148,6 +271,8 @@ public:
                 // no stack push here, only type table
             }
         }
+
+        this->init_static_memory(this->mod);
 
         BinaryenType params = BinaryenTypeNone();
         BinaryenType results = BinaryenTypeNone();
@@ -160,15 +285,14 @@ public:
                 main_function_body.size(),
                 BinaryenTypeNone());
 
-        BinaryenFunctionRef mainFunction =
-            BinaryenAddFunction(
-                this->mod,
-                "main",
-                params,
-                results,
-                this->function_locals["main"].data(),
-                this->function_locals["main"].size(),
-                body);
+        BinaryenAddFunction(
+            this->mod,
+            "main",
+            params,
+            results,
+            this->function_locals["main"].data(),
+            this->function_locals["main"].size(),
+            body);
 
         BinaryenAddFunctionExport(
             this->mod,
@@ -201,7 +325,7 @@ public:
 
         free(result.binary);
 
-        this->environment.pop_env();
+        // this->environment.pop_env();
     }
 
     bool is_bird_type(Token token)
@@ -232,6 +356,47 @@ public:
         }
     }
 
+    CodeGenType to_code_gen_type(Token token)
+    {
+        if (token.lexeme == "bool")
+            return CodeGenBool; // bool is represented as i32
+        else if (token.lexeme == "int")
+            return CodeGenInt;
+        else if (token.lexeme == "float")
+            return CodeGenFloat;
+        else if (token.lexeme == "void")
+            return CodeGenVoid;
+        else if (token.lexeme == "str")
+            return CodeGenPtr;
+        else
+        {
+            if (this->type_table.contains(token.lexeme))
+            {
+                return to_code_gen_type(this->type_table.get(token.lexeme).type);
+            }
+
+            throw BirdException("invalid type");
+        }
+    }
+
+    BinaryenType from_codegen_type(CodeGenType token)
+    {
+        if (token == CodeGenBool)
+            return BinaryenTypeInt32();
+        else if (token == CodeGenInt)
+            return BinaryenTypeInt32();
+        else if (token == CodeGenFloat)
+            return BinaryenTypeFloat64();
+        else if (token == CodeGenVoid)
+            return BinaryenTypeNone();
+        else if (token == CodeGenPtr)
+            return BinaryenTypeInt32();
+        else
+        {
+            throw BirdException("invaid type");
+        }
+    }
+
     void visit_block(Block *block)
     {
         std::vector<BinaryenExpressionRef> children;
@@ -242,9 +407,9 @@ public:
             stmt->accept(this);
             auto result = this->stack.pop();
 
-            if (result)
+            if (result.value)
             {
-                children.push_back(result);
+                children.push_back(result.value);
             }
         }
 
@@ -264,64 +429,94 @@ public:
     void visit_decl_stmt(DeclStmt *decl_stmt)
     {
         decl_stmt->value->accept(this);
-        BinaryenExpressionRef initializer_value = this->stack.pop();
+        TaggedExpression initializer_value = this->stack.pop();
 
-        BinaryenType type;
+        CodeGenType type;
         if (decl_stmt->type_token.has_value())
         {
             if (!is_bird_type(decl_stmt->type_token.value()))
             {
-                type = from_bird_type(this->type_table.get(decl_stmt->type_token.value().lexeme).type);
+                type = to_code_gen_type(this->type_table.get(decl_stmt->type_token.value().lexeme).type);
             }
             else
             {
-                type = from_bird_type(decl_stmt->type_token.value());
+                type = to_code_gen_type(decl_stmt->type_token.value());
+            }
+
+            if (type == CodeGenInt && initializer_value.type == CodeGenFloat)
+            {
+                initializer_value =
+                    TaggedExpression(
+                        BinaryenUnary(
+                            mod,
+                            BinaryenTruncSatSFloat64ToInt32(),
+                            initializer_value.value),
+                        CodeGenInt);
+            }
+            else if (type == CodeGenFloat && initializer_value.type == CodeGenInt)
+            {
+                initializer_value =
+                    TaggedExpression(
+                        BinaryenUnary(
+                            mod,
+                            BinaryenConvertSInt32ToFloat64(),
+                            initializer_value.value),
+                        CodeGenFloat);
             }
         }
         else
         {
-            type = BinaryenExpressionGetType(initializer_value);
+            if (initializer_value.type != CodeGenVoid)
+            {
+                type = initializer_value.type;
+            }
+            else
+            {
+                BinaryenType binaryen_type = BinaryenExpressionGetType(initializer_value.value);
+                type = (binaryen_type == BinaryenTypeFloat64())
+                           ? CodeGenFloat
+                           : CodeGenInt;
+            }
         }
 
         BinaryenIndex index = this->function_locals[this->current_function_name].size();
-        this->function_locals[this->current_function_name].push_back(type);
+        this->function_locals[this->current_function_name].push_back(from_codegen_type(type));
 
-        BinaryenExpressionRef set_local = BinaryenLocalSet(this->mod, index, initializer_value);
-        environment.declare(decl_stmt->identifier.lexeme, index);
+        environment.declare(decl_stmt->identifier.lexeme, TaggedIndex(index, type));
 
-        this->stack.push(set_local);
+        BinaryenExpressionRef set_local = BinaryenLocalSet(this->mod, index, initializer_value.value);
+
+        this->stack.push(TaggedExpression(set_local, type));
     }
 
     void visit_assign_expr(AssignExpr *assign_expr)
     {
-        BinaryenIndex index = this->environment.get(assign_expr->identifier.lexeme);
+        TaggedIndex index = this->environment.get(assign_expr->identifier.lexeme);
 
         auto lhs_val = BinaryenLocalGet(
             this->mod,
-            index,
-            this->function_locals[this->current_function_name][index]);
+            index.value,
+            from_codegen_type(index.type));
 
         assign_expr->value->accept(this);
-        auto rhs_val = this->stack.pop();
+        TaggedExpression rhs_val = this->stack.pop();
 
-        bool float_flag = (BinaryenExpressionGetType(lhs_val) == BinaryenTypeFloat64() ||
-                           BinaryenExpressionGetType(rhs_val) == BinaryenTypeFloat64());
-
-        if (float_flag && BinaryenExpressionGetType(lhs_val) == BinaryenTypeInt32())
+        bool float_flag = (index.type == CodeGenFloat || rhs_val.type == CodeGenFloat);
+        if (float_flag && index.type == CodeGenInt)
         {
             rhs_val =
                 BinaryenUnary(
                     mod,
                     BinaryenTruncSatSFloat64ToInt32(),
-                    rhs_val);
+                    rhs_val.value);
         }
-        else if (float_flag && BinaryenExpressionGetType(rhs_val) == BinaryenTypeInt32())
+        else if (float_flag && rhs_val.type == CodeGenInt)
         {
             rhs_val =
                 BinaryenUnary(
                     mod,
                     BinaryenConvertSInt32ToFloat64(),
-                    rhs_val);
+                    rhs_val.value);
         }
 
         BinaryenExpressionRef result;
@@ -329,39 +524,39 @@ public:
         {
         case Token::Type::EQUAL:
         {
-            result = rhs_val;
+            result = rhs_val.value;
             break;
         }
         case Token::Type::PLUS_EQUAL:
         {
             // TODO: figure out string conatenation
             result = (float_flag)
-                         ? BinaryenBinary(this->mod, BinaryenAddFloat64(), lhs_val, rhs_val)
-                         : BinaryenBinary(this->mod, BinaryenAddInt32(), lhs_val, rhs_val);
+                         ? BinaryenBinary(this->mod, BinaryenAddFloat64(), lhs_val, rhs_val.value)
+                         : BinaryenBinary(this->mod, BinaryenAddInt32(), lhs_val, rhs_val.value);
 
             break;
         }
         case Token::Type::MINUS_EQUAL:
         {
             result = (float_flag)
-                         ? BinaryenBinary(this->mod, BinaryenSubFloat64(), lhs_val, rhs_val)
-                         : BinaryenBinary(this->mod, BinaryenSubInt32(), lhs_val, rhs_val);
+                         ? BinaryenBinary(this->mod, BinaryenSubFloat64(), lhs_val, rhs_val.value)
+                         : BinaryenBinary(this->mod, BinaryenSubInt32(), lhs_val, rhs_val.value);
 
             break;
         }
         case Token::Type::STAR_EQUAL:
         {
             result = (float_flag)
-                         ? BinaryenBinary(this->mod, BinaryenMulFloat64(), lhs_val, rhs_val)
-                         : BinaryenBinary(this->mod, BinaryenMulInt32(), lhs_val, rhs_val);
+                         ? BinaryenBinary(this->mod, BinaryenMulFloat64(), lhs_val, rhs_val.value)
+                         : BinaryenBinary(this->mod, BinaryenMulInt32(), lhs_val, rhs_val.value);
 
             break;
         }
         case Token::Type::SLASH_EQUAL:
         {
             result = (float_flag)
-                         ? BinaryenBinary(this->mod, BinaryenDivFloat64(), lhs_val, rhs_val)
-                         : BinaryenBinary(this->mod, BinaryenDivSInt32(), lhs_val, rhs_val);
+                         ? BinaryenBinary(this->mod, BinaryenDivFloat64(), lhs_val, rhs_val.value)
+                         : BinaryenBinary(this->mod, BinaryenDivSInt32(), lhs_val, rhs_val.value);
 
             break;
         }
@@ -369,7 +564,7 @@ public:
         {
             result = (float_flag)
                          ? throw BirdException("Modular operation requires integer values")
-                         : BinaryenBinary(this->mod, BinaryenRemSInt32(), lhs_val, rhs_val);
+                         : BinaryenBinary(this->mod, BinaryenRemSInt32(), lhs_val, rhs_val.value);
 
             break;
         }
@@ -380,10 +575,10 @@ public:
 
         BinaryenExpressionRef assign_stmt = BinaryenLocalSet(
             this->mod,
-            index,
+            index.value,
             result);
 
-        this->stack.push(assign_stmt);
+        this->stack.push(TaggedExpression(assign_stmt));
     }
 
     void visit_print_stmt(PrintStmt *print_stmt)
@@ -393,26 +588,54 @@ public:
             arg->accept(this);
             auto result = this->stack.pop();
 
-            // TODO: print strings
-            if (BinaryenExpressionGetType(result) == BinaryenTypeInt32())
+            if (result.type == CodeGenVoid)
+            {
+                throw BirdException("unsupported print type");
+            }
+
+            if (result.type == CodeGenInt)
             {
                 BinaryenExpressionRef consoleLogCall =
                     BinaryenCall(
                         this->mod,
                         "print_i32",
-                        &result,
+                        &result.value,
                         1,
                         BinaryenTypeNone());
 
                 this->stack.push(consoleLogCall);
             }
-            else if (BinaryenExpressionGetType(result) == BinaryenTypeFloat64())
+            else if (result.type == CodeGenBool)
+            {
+                BinaryenExpressionRef consoleLogCall =
+                    BinaryenCall(
+                        this->mod,
+                        "print_i32",
+                        &result.value,
+                        1,
+                        BinaryenTypeNone());
+
+                this->stack.push(consoleLogCall);
+            }
+            else if (result.type == CodeGenFloat)
             {
                 BinaryenExpressionRef consoleLogCall =
                     BinaryenCall(
                         this->mod,
                         "print_f64",
-                        &result,
+                        &result.value,
+                        1,
+                        BinaryenTypeNone());
+
+                this->stack.push(consoleLogCall);
+            }
+            else if (result.type == CodeGenPtr)
+            {
+                BinaryenExpressionRef consoleLogCall =
+                    BinaryenCall(
+                        this->mod,
+                        "print_str",
+                        &result.value,
                         1,
                         BinaryenTypeNone());
 
@@ -420,7 +643,7 @@ public:
             }
             else
             {
-                throw BirdException("usupported print datatype");
+                throw BirdException("Unsupported print datatype: " + code_gen_type_to_string(result.type));
             }
         }
     }
@@ -436,12 +659,12 @@ public:
         std::vector<BinaryenExpressionRef> children;
 
         while_stmt->stmt->accept(this);
-        BinaryenExpressionRef body = this->stack.pop();
+        TaggedExpression body = this->stack.pop();
 
-        children.push_back(body);
+        children.push_back(body.value);
 
         while_stmt->condition->accept(this);
-        BinaryenExpressionRef condition = this->stack.pop();
+        TaggedExpression condition = this->stack.pop();
 
         auto outer_body =
             BinaryenBlock(
@@ -456,7 +679,7 @@ public:
         while_body_children.push_back(BinaryenBreak(
             this->mod,
             "LOOP",
-            condition,
+            condition.value,
             nullptr));
 
         auto while_body =
@@ -467,17 +690,21 @@ public:
                 while_body_children.size(),
                 BinaryenTypeNone());
 
-        auto loop =
-            BinaryenLoop(
+        auto if_cond =
+            BinaryenIf(
                 this->mod,
-                "LOOP",
-                while_body);
+                condition.value,
+                BinaryenLoop(
+                    this->mod,
+                    "LOOP",
+                    while_body),
+                nullptr);
 
         this->stack.push(
             BinaryenBlock(
                 this->mod,
                 "EXIT",
-                &loop,
+                &if_cond,
                 1,
                 BinaryenTypeNone()));
     }
@@ -487,14 +714,14 @@ public:
         this->environment.push_env();
         std::vector<BinaryenExpressionRef> children;
 
-        BinaryenExpressionRef initializer;
+        TaggedExpression initializer;
         if (for_stmt->initializer.has_value())
         {
             for_stmt->initializer.value()->accept(this);
             initializer = this->stack.pop();
         }
 
-        BinaryenExpressionRef condition;
+        TaggedExpression condition;
         if (for_stmt->condition.has_value())
         {
             for_stmt->condition.value()->accept(this);
@@ -502,11 +729,11 @@ public:
         }
 
         for_stmt->body->accept(this);
-        BinaryenExpressionRef body = this->stack.pop();
+        TaggedExpression body = this->stack.pop();
 
-        children.push_back(body);
+        children.push_back(body.value);
 
-        BinaryenExpressionRef increment;
+        TaggedExpression increment;
         if (for_stmt->increment.has_value())
         {
             for_stmt->increment.value()->accept(this);
@@ -522,13 +749,30 @@ public:
 
         std::vector<BinaryenExpressionRef> body_and_increment_children;
         body_and_increment_children.push_back(body_and_condition);
-        body_and_increment_children.push_back(increment);
-        body_and_increment_children.push_back(
-            BinaryenBreak(
-                this->mod,
-                "LOOP",
-                condition,
-                nullptr));
+
+        if (increment.value)
+        {
+            body_and_increment_children.push_back(increment.value);
+        }
+
+        if (condition.value)
+        {
+            body_and_increment_children.push_back(
+                BinaryenBreak(
+                    this->mod,
+                    "LOOP",
+                    condition.value,
+                    nullptr));
+        }
+        else
+        {
+            body_and_increment_children.push_back(
+                BinaryenBreak(
+                    this->mod,
+                    "LOOP",
+                    nullptr,
+                    nullptr));
+        }
 
         auto body_and_increment = BinaryenBlock(
             this->mod,
@@ -543,20 +787,27 @@ public:
             body_and_increment);
 
         std::vector<BinaryenExpressionRef> initializer_and_loop;
-        if (initializer)
+        if (initializer.value)
         {
-            initializer_and_loop.push_back(initializer);
+            initializer_and_loop.push_back(initializer.value);
         }
 
         initializer_and_loop.push_back(for_loop);
 
+        auto block = BinaryenBlock(
+            this->mod,
+            "EXIT",
+            initializer_and_loop.data(),
+            initializer_and_loop.size(),
+            BinaryenTypeNone());
+
         this->stack.push(
-            BinaryenBlock(
-                this->mod,
-                "EXIT",
-                initializer_and_loop.data(),
-                initializer_and_loop.size(),
-                BinaryenTypeNone()));
+            condition.value ? BinaryenIf(
+                                  this->mod,
+                                  condition.value,
+                                  block,
+                                  nullptr)
+                            : block);
 
         this->environment.pop_env();
     }
@@ -569,113 +820,260 @@ public:
         auto right = this->stack.pop();
         auto left = this->stack.pop();
 
-        bool float_flag = (BinaryenExpressionGetType(left) == BinaryenTypeFloat64() ||
-                           BinaryenExpressionGetType(right) == BinaryenTypeFloat64());
+        bool float_flag = (BinaryenExpressionGetType(left.value) == BinaryenTypeFloat64() ||
+                           BinaryenExpressionGetType(right.value) == BinaryenTypeFloat64());
 
-        if (float_flag && BinaryenExpressionGetType(left) == BinaryenTypeInt32())
+        if (float_flag && BinaryenExpressionGetType(left.value) == BinaryenTypeInt32())
         {
             left =
                 BinaryenUnary(
                     mod,
                     BinaryenConvertSInt32ToFloat64(),
-                    left);
+                    left.value);
         }
-        else if (float_flag && BinaryenExpressionGetType(right) == BinaryenTypeInt32())
+        else if (float_flag && BinaryenExpressionGetType(right.value) == BinaryenTypeInt32())
         {
             right =
                 BinaryenUnary(
                     mod,
                     BinaryenConvertSInt32ToFloat64(),
-                    right);
+                    right.value);
         }
 
+        // TODO: print bool for relational operators, currently pushes them as CodeGenInt
         switch (binary->op.token_type)
         {
         case Token::Type::PLUS:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenAddFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenAddInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenAddFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenFloat))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenAddInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenInt));
 
             break;
         }
         case Token::Type::MINUS:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenSubFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenSubInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenSubFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenFloat))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenSubInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenInt));
 
             break;
         }
         case Token::Type::SLASH:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenDivFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenDivSInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenDivFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenFloat))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenDivSInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenInt));
 
             break;
         }
         case Token::Type::STAR:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenMulFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenMulInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenMulFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenFloat))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenMulInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenInt));
 
             break;
         }
         case Token::Type::GREATER:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenGtFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenGtSInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenGtFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenBool))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenGtSInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenBool));
 
             break;
         }
         case Token::Type::PERCENT:
         {
             (float_flag)
-                ? throw BirdException("Modular operation requires integer values")
-                : this->stack.push(BinaryenBinary(mod, BinaryenRemSInt32(), left, right));
+                ? throw BirdException("modular operation requires integer values")
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenRemSInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenInt));
 
             break;
         }
         case Token::Type::GREATER_EQUAL:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenGeFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenGeSInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenGeFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenBool))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenGeSInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenBool));
 
             break;
         }
         case Token::Type::LESS:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenLtFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenLtSInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod, BinaryenLtFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenBool))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenLtSInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenBool));
 
             break;
         }
         case Token::Type::LESS_EQUAL:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenLeFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenLeSInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenLeFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenBool))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenLeSInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenBool));
 
             break;
         }
         case Token::Type::EQUAL_EQUAL:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenEqFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenEqInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenEqFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenBool))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenEqInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenBool));
 
             break;
         }
         case Token::Type::BANG_EQUAL:
         {
             (float_flag)
-                ? this->stack.push(BinaryenBinary(mod, BinaryenNeFloat64(), left, right))
-                : this->stack.push(BinaryenBinary(mod, BinaryenNeInt32(), left, right));
+                ? this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenNeFloat64(),
+                              left.value,
+                              right.value),
+                          CodeGenBool))
+                : this->stack.push(
+                      TaggedExpression(
+                          BinaryenBinary(
+                              this->mod,
+                              BinaryenNeInt32(),
+                              left.value,
+                              right.value),
+                          CodeGenBool));
 
             break;
         }
@@ -696,22 +1094,30 @@ public:
         unary->expr->accept(this);
         auto expr = this->stack.pop();
 
-        BinaryenType expr_type = BinaryenExpressionGetType(expr);
+        BinaryenType expr_type = BinaryenExpressionGetType(expr.value);
 
         if (expr_type == BinaryenTypeFloat64())
         {
-            this->stack.push(BinaryenUnary(mod, BinaryenNegFloat64(), expr));
+            this->stack.push(
+                TaggedExpression(
+                    BinaryenUnary(
+                        mod,
+                        BinaryenNegFloat64(),
+                        expr.value),
+                    CodeGenFloat));
         }
         else if (expr_type == BinaryenTypeInt32())
         {
             BinaryenExpressionRef zero = BinaryenConst(mod, BinaryenLiteralInt32(0));
 
             this->stack.push(
-                BinaryenBinary(
-                    mod,
-                    BinaryenSubInt32(),
-                    zero,
-                    expr));
+                TaggedExpression(
+                    BinaryenBinary(
+                        mod,
+                        BinaryenSubInt32(),
+                        zero,
+                        expr.value),
+                    CodeGenInt));
         }
     }
 
@@ -723,7 +1129,7 @@ public:
         {
             int value = std::stoi(primary->value.lexeme);
             BinaryenExpressionRef int_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(value));
-            this->stack.push(int_literal);
+            this->stack.push(TaggedExpression(int_literal, CodeGenInt));
             break;
         }
 
@@ -731,7 +1137,7 @@ public:
         {
             double value = std::stod(primary->value.lexeme);
             BinaryenExpressionRef float_literal = BinaryenConst(this->mod, BinaryenLiteralFloat64(value));
-            this->stack.push(float_literal);
+            this->stack.push(TaggedExpression(float_literal, CodeGenFloat));
             break;
         }
 
@@ -743,33 +1149,32 @@ public:
                     ? BinaryenLiteralInt32(1)
                     : BinaryenLiteralInt32(0));
 
-            this->stack.push(bool_literal);
+            this->stack.push(TaggedExpression(bool_literal, CodeGenBool));
             break;
         }
 
         case Token::Type::STR_LITERAL:
         {
-            // TODO: figure out how to store strings
+            const std::string &str_value = primary->value.lexeme;
+            uint32_t str_ptr;
 
-            // const std::string &str_value = primary->value.lexeme;
-            // uint32_t str_ptr;
+            add_memory_segment(mod, str_value, str_ptr);
 
-            // create_static_memory(this->mod, str_value, str_ptr);
+            BinaryenExpressionRef str_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(str_ptr));
 
-            // this->stack.push(BinaryenConst(this->mod, BinaryenLiteralInt32(str_ptr)));
-            throw BirdException("implement strings");
+            this->stack.push(TaggedExpression(str_literal, CodeGenPtr));
             break;
         }
 
         case Token::Type::IDENTIFIER:
         {
-            BinaryenIndex index = this->environment.get(primary->value.lexeme);
+            TaggedIndex tagged_index = this->environment.get(primary->value.lexeme);
+            BinaryenExpressionRef local_get = BinaryenLocalGet(
+                this->mod,
+                tagged_index.value,
+                from_codegen_type(tagged_index.type));
 
-            this->stack.push(
-                BinaryenLocalGet(
-                    this->mod,
-                    index,
-                    this->function_locals[this->current_function_name][index]));
+            this->stack.push(TaggedExpression(local_get, tagged_index.type));
             break;
         }
 
@@ -792,41 +1197,70 @@ public:
         this->stack.push(
             BinaryenSelect(
                 this->mod,
-                condition,
-                true_expr,
-                false_expr,
-                BinaryenExpressionGetType(true_expr)));
+                condition.value,
+                true_expr.value,
+                false_expr.value,
+                BinaryenExpressionGetType(true_expr.value)));
     }
 
     void visit_const_stmt(ConstStmt *const_stmt)
     {
         const_stmt->value->accept(this);
-        BinaryenExpressionRef initializer_value = this->stack.pop();
+        TaggedExpression initializer = this->stack.pop();
 
-        BinaryenType type;
+        CodeGenType type;
         if (const_stmt->type_token.has_value())
         {
             if (!is_bird_type(const_stmt->type_token.value()))
             {
-                type = from_bird_type(this->type_table.get(const_stmt->type_token.value().lexeme).type);
+                type = to_code_gen_type(this->type_table.get(const_stmt->type_token.value().lexeme).type);
             }
             else
             {
-                type = from_bird_type(const_stmt->type_token.value());
+                type = to_code_gen_type(const_stmt->type_token.value());
+            }
+
+            if (type == CodeGenInt && initializer.type == CodeGenFloat)
+            {
+                initializer =
+                    TaggedExpression(
+                        BinaryenUnary(
+                            mod,
+                            BinaryenTruncSatSFloat64ToInt32(),
+                            initializer.value),
+                        CodeGenInt);
+            }
+            else if (type == CodeGenFloat && initializer.type == CodeGenInt)
+            {
+                initializer =
+                    TaggedExpression(
+                        BinaryenUnary(
+                            mod,
+                            BinaryenConvertSInt32ToFloat64(),
+                            initializer.value),
+                        CodeGenFloat);
             }
         }
         else
         {
-            type = BinaryenExpressionGetType(initializer_value);
+            if (initializer.type != CodeGenVoid)
+            {
+                type = initializer.type;
+            }
+            BinaryenType binaryen_type = BinaryenExpressionGetType(initializer.value);
+            type = (binaryen_type == BinaryenTypeFloat64())
+                       ? CodeGenFloat
+                       : CodeGenInt;
         }
 
         BinaryenIndex index = this->function_locals[this->current_function_name].size();
-        this->function_locals[this->current_function_name].push_back(type);
+        this->function_locals[this->current_function_name].push_back(from_codegen_type(type));
 
-        BinaryenExpressionRef set_local = BinaryenLocalSet(this->mod, index, initializer_value);
-        environment.declare(const_stmt->identifier.lexeme, index);
+        environment.declare(const_stmt->identifier.lexeme, TaggedIndex(index, type));
 
-        this->stack.push(set_local);
+        BinaryenExpressionRef set_local = BinaryenLocalSet(this->mod, index, initializer.value);
+
+        this->stack.push(TaggedExpression(set_local, type));
     }
 
     void visit_func(Func *func)
@@ -835,11 +1269,13 @@ public:
 
         if (func->return_type.has_value())
         {
-            this->function_return_types[func_name] = from_bird_type(func->return_type.value());
+            auto binaryen_return_type = from_bird_type(func->return_type.value());
+            auto codegen_return_type = to_code_gen_type(func->return_type.value());
+            this->function_return_types[func_name] = TaggedType(binaryen_return_type, codegen_return_type);
         }
         else
         {
-            this->function_return_types[func_name] = BinaryenTypeNone();
+            this->function_return_types[func_name] = TaggedType(BinaryenTypeNone(), CodeGenVoid);
         }
 
         auto old_function_name = this->current_function_name;
@@ -867,21 +1303,20 @@ public:
         auto index = 0;
         for (auto &param : func->param_list)
         {
-            this->environment.declare(param.first.lexeme, index);
-            current_function_body.push_back(
-                BinaryenLocalGet(
-                    this->mod,
-                    index++,
-                    from_bird_type(param.second)));
+            this->environment.declare(param.first.lexeme, TaggedIndex(index++, to_code_gen_type(param.second)));
         }
 
-        auto found_return = false;
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts)
         {
             stmt->accept(this);
             auto result = this->stack.pop();
 
-            current_function_body.push_back(result);
+            if (result_type == BinaryenTypeNone())
+            {
+                result = BinaryenDrop(this->mod, result.value);
+            }
+
+            current_function_body.push_back(result.value);
         }
 
         this->environment.pop_env();
@@ -897,7 +1332,7 @@ public:
             this->function_locals[func_name].begin() + param_types.size(),
             this->function_locals[func_name].end());
 
-        BinaryenFunctionRef func_type = BinaryenAddFunction(
+        BinaryenAddFunction(
             this->mod,
             func_name.c_str(),
             params,
@@ -933,17 +1368,17 @@ public:
             this->stack.push(
                 BinaryenIf(
                     this->mod,
-                    condition,
-                    then_branch,
-                    else_branch));
+                    condition.value,
+                    then_branch.value,
+                    else_branch.value));
         }
         else
         {
             this->stack.push(
                 BinaryenIf(
                     this->mod,
-                    condition,
-                    then_branch,
+                    condition.value,
+                    then_branch.value,
                     nullptr));
         }
     }
@@ -957,33 +1392,67 @@ public:
         for (auto &arg : call->args)
         {
             arg->accept(this);
-            args.push_back(this->stack.pop());
+            args.push_back(this->stack.pop().value);
         }
 
-        this->stack.push(BinaryenCall(
-            this->mod,
-            func_name.c_str(),
-            args.data(),
-            args.size(),
-            this->function_return_types[func_name]));
+        auto return_type = this->function_return_types[func_name];
+        this->stack.push(TaggedExpression(
+            BinaryenCall(
+                this->mod,
+                func_name.c_str(),
+                args.data(),
+                args.size(),
+                return_type.value),
+            return_type.type));
     }
 
     void visit_return_stmt(ReturnStmt *return_stmt)
     {
+        TaggedType func_return_type = this->function_return_types[this->current_function_name];
+
         if (return_stmt->expr.has_value())
         {
             return_stmt->expr.value()->accept(this);
+            auto result = this->stack.pop();
+
+            // now allows for things like fn addF(x: float, y: float) -> int {...}
+            if (result.type != func_return_type.type)
+            {
+                if (func_return_type.type == CodeGenFloat && result.type == CodeGenInt)
+                {
+                    result = TaggedExpression(
+                        BinaryenUnary(
+                            this->mod,
+                            BinaryenConvertSInt32ToFloat64(),
+                            result.value),
+                        CodeGenFloat);
+                }
+                else if (func_return_type.type == CodeGenInt && result.type == CodeGenFloat)
+                {
+                    result = TaggedExpression(
+                        BinaryenUnary(
+                            this->mod,
+                            BinaryenTruncSatSFloat64ToInt32(),
+                            result.value),
+                        CodeGenInt);
+                }
+            }
+
             this->stack.push(
-                BinaryenReturn(
-                    this->mod,
-                    this->stack.pop()));
+                TaggedExpression(
+                    BinaryenReturn(
+                        this->mod,
+                        result.value),
+                    func_return_type.type));
         }
         else
         {
             this->stack.push(
-                BinaryenReturn(
-                    this->mod,
-                    nullptr));
+                TaggedExpression(
+                    BinaryenReturn(
+                        this->mod,
+                        nullptr),
+                    CodeGenVoid));
         }
     }
 
@@ -1005,33 +1474,6 @@ public:
                 "BODY",
                 nullptr,
                 nullptr));
-    }
-
-    void create_static_memory(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
-    {
-        // TODO: make this work
-        // static uint32_t current_offset = 1024;
-        // str_offset = current_offset;
-
-        // const char *segments[] = {str.c_str()};
-        // BinaryenIndex segment_sizes[] = {static_cast<BinaryenIndex>(str.size() + 1)};
-        // int8_t segment_passive[] = {0};
-        // BinaryenExpressionRef segment_offsets[] = {
-        //     BinaryenConst(mod, BinaryenLiteralInt32(current_offset))};
-
-        // BinaryenSetMemory(
-        //     mod,
-        //     1,
-        //     1,
-        //     "memory",
-        //     segments,
-        //     segment_passive,
-        //     segment_offsets,
-        //     segment_sizes,
-        //     1,
-        //     0);
-
-        // current_offset += str.size() + 1;
     }
 
     void visit_type_stmt(TypeStmt *type_stmt)

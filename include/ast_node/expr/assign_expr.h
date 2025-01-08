@@ -4,7 +4,7 @@
 #include <memory>
 #include "expr.h"
 #include "../../token.h"
-#include "../../visitors/visitor.h"
+#include "visitors/visitor.h"
 
 /*
  * Assignment statement AST Node that represents variable assignments

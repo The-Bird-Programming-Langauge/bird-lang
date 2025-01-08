@@ -2,7 +2,7 @@
 
 #include <memory>
 #include "stmt.h"
-#include "../../visitors/visitor.h"
+#include "visitors/visitor.h"
 
 // forward declaration
 class Expr;

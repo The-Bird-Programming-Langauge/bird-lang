@@ -5,38 +5,16 @@
 #include <variant>
 #include <set>
 
-#include "../ast_node/stmt/stmt.h"
-#include "../ast_node/expr/expr.h"
+#include "ast_node/index.h"
 
-#include "../ast_node/expr/binary.h"
-#include "../ast_node/expr/unary.h"
-#include "../ast_node/expr/primary.h"
-#include "../ast_node/expr/ternary.h"
-#include "../ast_node/expr/call.h"
-
-#include "../ast_node/stmt/decl_stmt.h"
-#include "../ast_node/expr/assign_expr.h"
-#include "../ast_node/stmt/expr_stmt.h"
-#include "../ast_node/stmt/print_stmt.h"
-#include "../ast_node/stmt/const_stmt.h"
-#include "../ast_node/stmt/while_stmt.h"
-#include "../ast_node/stmt/for_stmt.h"
-#include "../ast_node/stmt/return_stmt.h"
-#include "../ast_node/stmt/if_stmt.h"
-#include "../ast_node/stmt/block.h"
-#include "../ast_node/stmt/func.h"
-#include "../ast_node/stmt/break_stmt.h"
-#include "../ast_node/stmt/continue_stmt.h"
-#include "../ast_node/stmt/type_stmt.h"
-
-#include "../sym_table.h"
-#include "../exceptions/bird_exception.h"
-#include "../exceptions/return_exception.h"
-#include "../exceptions/break_exception.h"
-#include "../exceptions/continue_exception.h"
-#include "../exceptions/user_error_tracker.h"
-#include "../value.h"
-#include "../callable.h"
+#include "sym_table.h"
+#include "exceptions/bird_exception.h"
+#include "exceptions/return_exception.h"
+#include "exceptions/break_exception.h"
+#include "exceptions/continue_exception.h"
+#include "exceptions/user_error_tracker.h"
+#include "value.h"
+#include "callable.h"
 
 /*
  * Visitor that analyzes semantics of the AST

@@ -5,39 +5,17 @@
 #include <variant>
 #include <iostream>
 
-#include "../ast_node/stmt/stmt.h"
-#include "../ast_node/expr/expr.h"
+#include "ast_node/index.h"
 
-#include "../ast_node/expr/binary.h"
-#include "../ast_node/expr/unary.h"
-#include "../ast_node/expr/primary.h"
-#include "../ast_node/expr/ternary.h"
-#include "../ast_node/expr/call.h"
-
-#include "../ast_node/stmt/decl_stmt.h"
-#include "../ast_node/expr/assign_expr.h"
-#include "../ast_node/stmt/expr_stmt.h"
-#include "../ast_node/stmt/print_stmt.h"
-#include "../ast_node/stmt/const_stmt.h"
-#include "../ast_node/stmt/while_stmt.h"
-#include "../ast_node/stmt/for_stmt.h"
-#include "../ast_node/stmt/return_stmt.h"
-#include "../ast_node/stmt/if_stmt.h"
-#include "../ast_node/stmt/block.h"
-#include "../ast_node/stmt/func.h"
-#include "../ast_node/stmt/break_stmt.h"
-#include "../ast_node/stmt/continue_stmt.h"
-#include "../ast_node/stmt/type_stmt.h"
-
-#include "../sym_table.h"
-#include "../exceptions/bird_exception.h"
-#include "../exceptions/return_exception.h"
-#include "../exceptions/break_exception.h"
-#include "../exceptions/continue_exception.h"
-#include "../value.h"
-#include "../callable.h"
-#include "../stack.h"
-#include "../type.h"
+#include "sym_table.h"
+#include "exceptions/bird_exception.h"
+#include "exceptions/return_exception.h"
+#include "exceptions/break_exception.h"
+#include "exceptions/continue_exception.h"
+#include "value.h"
+#include "callable.h"
+#include "stack.h"
+#include "type.h"
 
 /*
  * Visitor that interprets and evaluates the AST
@@ -518,11 +496,10 @@ public:
     void visit_func(Func *func)
     {
         Callable callable = Callable(func->param_list,
-                                     std::shared_ptr<Stmt>(
-                                         std::move(func->block)),
+                                     func->block,
                                      func->return_type);
 
-        this->call_table.declare(func->identifier.lexeme, std::move(callable));
+        this->call_table.declare(func->identifier.lexeme, callable);
     }
 
     void visit_if_stmt(IfStmt *if_stmt)
@@ -540,7 +517,7 @@ public:
     void visit_call(Call *call)
     {
         auto callable = this->call_table.get(call->identifier.lexeme);
-        callable.call(this, std::move(call->args));
+        callable.call(this, call->args);
     }
 
     void visit_return_stmt(ReturnStmt *return_stmt)

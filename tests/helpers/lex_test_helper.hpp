@@ -1,7 +1,8 @@
+#pragma once
 #include <vector>
-#include "../../src/lexer.cpp"
-#include "../../include/exceptions/user_error_tracker.h"
-#include "../../include/lexer.h"
+#include "../src/lexer.cpp"
+#include "exceptions/user_error_tracker.h"
+#include "lexer.h"
 
 std::vector<Token> lex_code(const std::string &code)
 {

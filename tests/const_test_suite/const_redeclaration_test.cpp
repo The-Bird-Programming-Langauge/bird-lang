@@ -1,20 +1,35 @@
 #include <gtest/gtest.h>
-#include <vector>
-#include <memory>
-#include "../../include/visitors/interpreter.h"
-#include "../../src/callable.cpp"
-#include "../helpers/parse_test_helper.hpp"
-#include "../../include/visitors/semantic_analyzer.h"
-#include "../../include/visitors/type_checker.h"
+#include "helpers/compile_helper.hpp"
 
-TEST(VarTest, VarRedeclaration)
+TEST(ConstTest, ConstRedeclaration)
 {
-    auto code = "const x = 0;"
-                "const x = 1;";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "const x = 0;"
+                   "const x = 1;";
+    options.type_check = false;
+    options.interpret = false;
+    options.compile = false;
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_TRUE(user_error_tracker.has_errors());
+    options.after_semantic_analyze = [&](UserErrorTracker &error_tracker, SemanticAnalyzer &analyzer)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
+
+        ASSERT_EQ(std::get<1>(tup).lexeme, "x");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is already declared. (line 0, character 19)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
+
+
+    options.after_semantic_analyze = [&](UserErrorTracker &error_tracker, SemanticAnalyzer &analyzer)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
+
+        ASSERT_EQ(std::get<1>(tup).lexeme, "x");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is already declared. (line 0, character 19)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
 }

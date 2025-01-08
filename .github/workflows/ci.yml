@@ -20,6 +20,7 @@ jobs:
         sudo apt-get clean 
         sudo apt-get install -y build-essential libzstd-dev libgtest-dev libgmock-dev
         sudo apt-get install binaryen
+        sudo apt-get install nodejs -y
 
     - name: Create a symlink to cmake
       run: |
@@ -28,6 +29,6 @@ jobs:
 
     - name: Build and test
       run: |
-        cmake -Bbuild -DTESTS=ON
+        cmake -Bbuild -DTESTS=ON -DRUN_WASM_FILE_LOCATION="/home/runner/work/bird-lang/bird-lang/tests/helpers/run_wasm.js"
         make -C build
-        ctest --test-dir build
+        ctest --test-dir build --verbose

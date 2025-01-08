@@ -1,106 +1,165 @@
 #include <gtest/gtest.h>
-#include <vector>
-#include <memory>
-#include "../../include/exceptions/user_error_tracker.h"
-#include "../../include/value.h"
-#include "../../include/visitors/interpreter.h"
-#include "../../src/callable.cpp"
-#include "../helpers/parse_test_helper.hpp"
-#include "../../include/visitors/semantic_analyzer.h"
-#include "../../include/visitors/type_checker.h"
+#include "helpers/compile_helper.hpp"
 
 TEST(FunctionTest, GoodFunctionCall)
 {
-    auto code = "fn function(i: int) -> int {return i;} "
-                "var result: int = function(4);";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "fn function(i: int) -> int {return i;} "
+                   "var result: int = function(4);"
+                   "print(result);";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.call_table.contains("function"));
+        ASSERT_TRUE(interpreter.env.contains("result"));
+        auto result = interpreter.env.get("result");
+        ASSERT_TRUE(is_type<int>(result));
+        EXPECT_EQ(as_type<int>(result), 4);
+    };
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_EQ(output, "4\n\n");
+    };
 
-    Interpreter interpreter;
-    interpreter.evaluate(&ast);
-
-    ASSERT_TRUE(interpreter.call_table.contains("function"));
-    ASSERT_TRUE(interpreter.env.contains("result"));
-    auto result = interpreter.env.get("result");
-    ASSERT_TRUE(is_type<int>(result));
-    EXPECT_EQ(as_type<int>(result), 4);
+    ASSERT_TRUE(BirdTest::compile(options));
 }
 
 TEST(FunctionTest, MalformedCall)
 {
-    auto code = "fn function() {} "
-                "function(;";
+    BirdTest::TestOptions options;
+    options.code = "fn function() {}"
+                   "function(;";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    parse_code_with_error_tracker(code, user_error_tracker);
+    options.after_parse = [&](UserErrorTracker &error_tracker, Parser &parser, const std::vector<std::unique_ptr<Stmt>> &ast)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
 
-    ASSERT_TRUE(user_error_tracker.has_errors());
-    auto errors = user_error_tracker.get_errors();
-    ASSERT_EQ(errors.size(), 1);
-    // TODO: fix double space
-    EXPECT_EQ(std::get<0>(errors[0]), ">>[ERROR] expected identifier or i32  (line 0, character 26)");
+        ASSERT_EQ(std::get<1>(tup).lexeme, ";");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] expected identifier or i32  (line 0, character 25)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
 }
 
 TEST(FunctionTest, CallWithIncorrectTypes)
 {
-    auto code = "fn function(i: int, j: str) {}"
-                "function(4, 6);";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "fn function(i: int, j: str) {}"
+                   "function(4, 6);";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_type_check = [&](UserErrorTracker &error_tracker, TypeChecker &type_checker)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_TRUE(user_error_tracker.has_errors());
+        ASSERT_EQ(std::get<1>(tup).lexeme, "function");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: in function call (line 0, character 38)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
 }
 
 TEST(FunctionTest, StoreReturnWithIncorrectVarType)
 {
-    auto code = "fn function() -> int {return 3;} "
-                "var result: str = function();";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "fn function() -> int {return 3;} "
+                   "var result: str = function();";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.type_check = true;
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_TRUE(user_error_tracker.has_errors());
+    options.after_type_check = [&](UserErrorTracker &error_tracker, TypeChecker &type_checker)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
+
+        ASSERT_EQ(std::get<1>(tup).lexeme, "str");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: in declaration (line 0, character 48)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
 }
 
 TEST(FunctionTest, ArityFail)
 {
-    auto code = "fn function(i: int, j: str) {}"
-                "function(4, 6, 7);";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "fn function(i: int, j: str) {}"
+                   "function(4, 6, 7);";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_TRUE(user_error_tracker.has_errors());
+    options.after_semantic_analyze = [&](UserErrorTracker &error_tracker, SemanticAnalyzer &analyzer)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
+
+        ASSERT_EQ(std::get<1>(tup).lexeme, "function");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Function call identifer 'function' does not use the correct number of arguments. (line 0, character 38)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
 }
 
 TEST(FunctionTest, FunctionRedeclaration)
 {
-    auto code = "fn x() -> int {return 3;}"
-                "fn x() -> int {return 1;}";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "fn x() -> int {return 3;}"
+                   "fn x() -> int {return 1;}";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_TRUE(user_error_tracker.has_errors());
+    options.after_semantic_analyze = [&](UserErrorTracker &error_tracker, SemanticAnalyzer &analyzer)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
+
+        ASSERT_EQ(std::get<1>(tup).lexeme, "x");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is already declared. (line 0, character 29)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
+}
+
+TEST(FunctionTest, FunctionIdentityCall)
+{
+    BirdTest::TestOptions options;
+    options.code = "fn function(y: int) -> int"
+                   "{"
+                   "return y;"
+                   "}"
+                   "var x: int = foo(2);"
+                   "print foo(x);";
+
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.env.contains("x"));
+        ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
+        ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 2);
+    };
+
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_TRUE(codegen.environment.contains("x"));
+        ASSERT_EQ(codegen.environment.get("x").type, CodeGenInt);
+        ASSERT_EQ(output, "2\n\n");
+    };
+}
+
+TEST(FunctionTest, FunctionReturnBool)
+{
+    BirdTest::TestOptions options;
+    options.code = "fn function(i: int) -> bool {return i < 0;}"
+                   "var result: bool = function(4);"
+                   "print result;";
+
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.call_table.contains("function"));
+        ASSERT_TRUE(interpreter.env.contains("result"));
+        auto result = interpreter.env.get("result");
+        ASSERT_TRUE(is_type<bool>(result));
+        EXPECT_EQ(as_type<bool>(result), false);
+    };
+
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_EQ(output, "0\n\n");
+    };
 }

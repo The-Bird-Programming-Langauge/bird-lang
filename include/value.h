@@ -35,88 +35,140 @@ public:
         if (is_matching_type<std::string>(*this, right))
             return Value(as_type<std::string>(*this) + as_type<std::string>(right));
 
-        if (is_type<int>(*this) && is_numeric(right))
-            return Value(as_type<int>(*this) + to_type<int, double>(right));
+        if (!is_numeric(*this) || !is_numeric(right))
+        {
+            throw BirdException("The '+' binary operator could not be used to interpret these values.");
+        }
 
-        if (is_type<double>(*this) && is_numeric(right))
-            return Value(as_type<double>(*this) + to_type<double, int>(right));
+        if (is_type<double>(*this) || is_type<double>(right))
+        { // result is a double
+            double left_val = to_type<double, int>(*this);
+            double right_val = to_type<double, int>(right);
 
-        throw BirdException("The '+' binary operator could not be used to interpret these values.");
+            return Value(left_val + right_val);
+        }
+
+        int left_val = as_type<int>(*this);
+        int right_val = as_type<int>(right);
+        return Value(left_val + right_val);
     }
 
     Value operator-(Value right)
     {
-        if (is_type<int>(*this) && is_numeric(right))
-            return Value(as_type<int>(*this) - to_type<int, double>(right));
+        if (!is_numeric(*this) || !is_numeric(right))
+        {
+            throw BirdException("The '-' binary operator could not be used to interpret these values.");
+        }
 
-        if (is_type<double>(*this) && is_numeric(right))
-            return Value(as_type<double>(*this) - to_type<double, int>(right));
+        if (is_type<double>(*this) || is_type<double>(right))
+        { // result is a double
+            double left_val = to_type<double, int>(*this);
+            double right_val = to_type<double, int>(right);
 
-        throw BirdException("The '-' binary operator could not be used to interpret these values.");
+            return Value(left_val - right_val);
+        }
+
+        int left_val = as_type<int>(*this);
+        int right_val = as_type<int>(right);
+        return Value(left_val - right_val);
     }
 
     Value operator*(Value right)
     {
-        if (is_type<int>(*this) && is_numeric(right))
-            return Value(as_type<int>(*this) * to_type<int, double>(right));
+        if (!is_numeric(*this) || !is_numeric(right))
+        {
+            throw BirdException("The '*' binary operator could not be used to interpret these values.");
+        }
 
-        if (is_type<double>(*this) && is_numeric(right))
-            return Value(as_type<double>(*this) * to_type<double, int>(right));
+        if (is_type<double>(*this) || is_type<double>(right))
+        { // result is a double
+            double left_val = to_type<double, int>(*this);
+            double right_val = to_type<double, int>(right);
 
-        throw BirdException("The '*' binary operator could not be used to interpret these values.");
+            return Value(left_val * right_val);
+        }
+
+        int left_val = as_type<int>(*this);
+        int right_val = as_type<int>(right);
+        return Value(left_val * right_val);
     }
 
     Value operator/(Value right)
     {
-        if (is_type<int>(right) && as_type<int>(right) == 0)
+        if (to_type<double, int>(right) == 0)
             throw BirdException("Division by zero.");
 
-        if (is_type<double>(right) && as_type<double>(right) == 0)
-            throw BirdException("Division by zero.");
+        if (!is_numeric(*this) || !is_numeric(right))
+        {
+            throw BirdException("The '/' binary operator could not be used to interpret these values.");
+        }
 
-        if (is_type<int>(*this) && is_numeric(right))
-            return Value(as_type<int>(*this) / to_type<int, double>(right));
+        if (is_type<double>(*this) || is_type<double>(right))
+        { // result is a double
+            double left_val = to_type<double, int>(*this);
+            double right_val = to_type<double, int>(right);
 
-        if (is_type<double>(*this) && is_numeric(right))
-            return Value(as_type<double>(*this) / to_type<double, int>(right));
+            return Value(left_val / right_val);
+        }
 
-        throw BirdException("The '/' binary operator could not be used to interpret these values.");
+        int left_val = as_type<int>(*this);
+        int right_val = as_type<int>(right);
+        return Value(left_val / right_val);
     }
 
     Value operator%(Value right)
     {
-        if (is_type<int>(right) && as_type<int>(right) == 0)
+        if (to_type<double, int>(right) == 0)
             throw BirdException("Modulo by zero.");
 
-        if (is_type<double>(right) && as_type<double>(right) == 0)
-            throw BirdException("Modulo by zero.");
+        if (!is_type<int>(*this) || !is_type<int>(right))
+        {
+            throw BirdException("The '%' binary operator could not be used to interpret these values.");
+        }
 
-        if (is_type<int>(*this) && is_numeric(right))
-            return Value(as_type<int>(*this) % to_type<int, double>(right));
-
-        throw BirdException("The '%' binary operator could not be used to interpret these values.");
+        int left_val = as_type<int>(*this);
+        int right_val = as_type<int>(right);
+        return Value(left_val % right_val);
     }
 
     Value operator>(Value right)
     {
-        if (is_type<int>(*this) && is_numeric(right))
-            return Value(as_type<int>(*this) > to_type<int, double>(right));
+        if (!is_numeric(*this) || !is_numeric(right))
+        {
+            throw BirdException("The '>' binary operator could not be used to interpret these values.");
+        }
 
-        if (is_type<double>(*this) && is_numeric(right))
-            return Value(as_type<double>(*this) > to_type<double, int>(right));
+        if (is_type<double>(*this) || is_type<double>(right))
+        { // result is a double
+            double left_val = to_type<double, int>(*this);
+            double right_val = to_type<double, int>(right);
 
-        throw BirdException("The '>' binary operator could not be used to interpret these values.");
+            return Value(left_val > right_val);
+        }
+
+        int left_val = as_type<int>(*this);
+        int right_val = as_type<int>(right);
+        return Value(left_val > right_val);
     }
 
     Value operator>=(Value right)
     {
-        if (is_type<int>(*this) && is_numeric(right))
-            return Value(as_type<int>(*this) >= to_type<int, double>(right));
+        if (!is_numeric(*this) || !is_numeric(right))
+        {
+            throw BirdException("The '>=' binary operator could not be used to interpret these values.");
+        }
 
-        if (is_type<double>(*this) && is_numeric(right))
-            return Value(as_type<double>(*this) >= to_type<double, int>(right));
+        if (is_type<double>(*this) || is_type<double>(right))
+        { // result is a double
+            double left_val = to_type<double, int>(*this);
+            double right_val = to_type<double, int>(right);
 
-        throw BirdException("The '>=' binary operator could not be used to interpret these values.");
+            return Value(left_val >= right_val);
+        }
+
+        int left_val = as_type<int>(*this);
+        int right_val = as_type<int>(right);
+        return Value(left_val >= right_val);
     }
 
     Value operator<(Value right)
@@ -132,7 +184,6 @@ public:
 
     Value operator<=(Value right)
     {
-
         if (is_type<int>(*this) && is_numeric(right))
             return Value(as_type<int>(*this) <= to_type<int, double>(right));
 
@@ -146,8 +197,8 @@ public:
     {
         if (is_numeric(*this) && is_numeric(right))
         {
-            double left_double = is_type<int>(*this) ? as_type<int>(*this) : as_type<double>(*this);
-            double right_double = is_type<int>(right) ? as_type<int>(right) : as_type<double>(right);
+            double left_double = to_type<double, int>(*this);
+            double right_double = to_type<double, int>(right);
 
             return Value(left_double != right_double);
         }
@@ -165,8 +216,8 @@ public:
     {
         if (is_numeric(*this) && is_numeric(right))
         {
-            double left_double = is_type<int>(*this) ? as_type<int>(*this) : as_type<double>(*this);
-            double right_double = is_type<int>(right) ? as_type<int>(right) : as_type<double>(right);
+            double left_double = to_type<double, int>(*this);
+            double right_double = to_type<double, int>(right);
 
             return Value(left_double == right_double);
         }

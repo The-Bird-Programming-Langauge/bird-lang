@@ -1,10 +1,10 @@
-#include "../include/callable.h"
-#include "../include/visitors/interpreter.h"
-#include "../include/sym_table.h"
-#include "../include/value.h"
-#include "../include/exceptions/bird_exception.h"
+#include "callable.h"
+#include "visitors/interpreter.h"
+#include "sym_table.h"
+#include "value.h"
+#include "exceptions/bird_exception.h"
 
-void Callable::call(Interpreter *interpreter, std::vector<std::unique_ptr<Expr>> args)
+void Callable::call(Interpreter *interpreter, std::vector<std::shared_ptr<Expr>> args)
 {
     // create new scope
     if (args.size() != this->param_list.size())
@@ -21,7 +21,6 @@ void Callable::call(Interpreter *interpreter, std::vector<std::unique_ptr<Expr>>
     }
 
     interpreter->env.push_env();
-    auto num_envs = interpreter->env.envs.size();
 
     for (int i = 0; i < this->param_list.size(); i++)
     {

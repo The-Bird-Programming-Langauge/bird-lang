@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "../node.h"
+#include "ast_node/node.h"
 #include "../../token.h"
-#include "../../visitors/visitor.h"
+#include "visitors/visitor.h"
 
 // forward declaration
 class Visitor;
@@ -21,7 +21,7 @@ class Call : public Expr
 {
 public:
     Token identifier;
-    std::vector<std::unique_ptr<Expr>> args;
+    std::vector<std::shared_ptr<Expr>> args;
 
     Call(Token identifier, std::vector<std::unique_ptr<Expr>> args)
         : identifier(identifier), args(std::move(args)) {};

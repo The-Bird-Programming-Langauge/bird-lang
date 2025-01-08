@@ -1,14 +1,15 @@
+#pragma once
 #include <vector>
 #include <memory>
 
-#include "../../include/exceptions/user_error_tracker.h"
-#include "../../include/parser.h"
-#include "../../include/lexer.h"
-#include "../../src/lexer.cpp"
-#include "../../src/parser.cpp"
+#include "exceptions/user_error_tracker.h"
+#include "parser.h"
+#include "lexer.h"
+#include "../src/lexer.cpp"
+#include "../src/parser.cpp"
 
-#include "../../include/ast_node/expr/binary.h"
-#include "../../include/ast_node/expr/primary.h"
+#include "ast_node/expr/binary.h"
+#include "ast_node/expr/primary.h"
 
 class Stmt;
 

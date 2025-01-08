@@ -3,16 +3,16 @@
 #include <memory>
 #include <cstring>
 
-#include "include/parser.h"
-#include "include/visitors/ast_printer.h"
-#include "include/visitors/interpreter.h"
-#include "include/visitors/semantic_analyzer.h"
-#include "include/visitors/type_checker.h"
+#include "parser.h"
+#include "visitors/ast_printer.h"
+#include "visitors/interpreter.h"
+#include "visitors/semantic_analyzer.h"
+#include "visitors/type_checker.h"
 
-#include "include/ast_node/expr/expr.h"
-#include "include/exceptions/user_error_tracker.h"
+#include "ast_node/expr/expr.h"
+#include "exceptions/user_error_tracker.h"
 
-#include "include/visitors/code_gen.h"
+#include "visitors/code_gen.h"
 
 extern int bird_parse(const char *input);
 

@@ -2,7 +2,7 @@
 
 #include <memory>
 #include "../../token.h"
-#include "../../visitors/visitor.h"
+#include "visitors/visitor.h"
 #include "expr.h"
 
 /*

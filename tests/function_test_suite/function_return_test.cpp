@@ -1,90 +1,68 @@
 #include <gtest/gtest.h>
-#include <vector>
-#include <memory>
-#include "../../include/exceptions/user_error_tracker.h"
-#include "../../include/value.h"
-#include "../../include/visitors/interpreter.h"
-#include "../../src/callable.cpp"
-#include "../helpers/parse_test_helper.hpp"
-#include "../../include/visitors/semantic_analyzer.h"
-#include "../../include/visitors/type_checker.h"
+#include "helpers/compile_helper.hpp"
 
 TEST(FunctionTest, FunctionReturnTypeInt)
 {
-    auto code = "fn function(i: int, j: int) -> int"
-                "{"
-                "return 3;"
-                "}"
-                "var result: int = function(2, 3);";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "fn function(i: int, j: int) -> int"
+                   "{"
+                   "return 3;"
+                   "}"
+                   "var result: int = function(2, 3);";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.compile = false;
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.call_table.contains("function"));
+        ASSERT_TRUE(interpreter.env.contains("result"));
+        auto result = interpreter.env.get("result");
+        ASSERT_TRUE(is_type<int>(result));
+        EXPECT_EQ(as_type<int>(result), 3);
+    };
 
-    Interpreter interpreter;
-    interpreter.evaluate(&ast);
-
-    ASSERT_TRUE(interpreter.call_table.contains("function"));
-
-    ASSERT_TRUE(interpreter.env.contains("result"));
-    auto result = interpreter.env.get("result");
-    ASSERT_TRUE(is_type<int>(result));
-    EXPECT_EQ(as_type<int>(result), 3);
+    ASSERT_TRUE(BirdTest::compile(options));
 }
 
 TEST(FunctionTest, FunctionReturnTypeString)
 {
-    auto code = "fn function(i: int, j: int) -> str"
-                "{"
-                "return \"string\";"
-                "}"
-                "var result: str = function(2, 3);";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "fn function(i: int, j: int) -> str"
+                   "{"
+                   "return \"string\";"
+                   "}"
+                   "var result: str = function(2, 3);";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.compile = false;
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.call_table.contains("function"));
+        ASSERT_TRUE(interpreter.env.contains("result"));
+        auto result = interpreter.env.get("result");
+        ASSERT_TRUE(is_type<std::string>(result));
+        EXPECT_EQ(as_type<std::string>(result), "string");
+    };
 
-    Interpreter interpreter;
-    interpreter.evaluate(&ast);
-
-    ASSERT_TRUE(interpreter.call_table.contains("function"));
-
-    ASSERT_TRUE(interpreter.env.contains("result"));
-    auto result = interpreter.env.get("result");
-    ASSERT_TRUE(is_type<std::string>(result));
-    EXPECT_EQ(as_type<std::string>(result), "string");
+    ASSERT_TRUE(BirdTest::compile(options));
 }
 
 TEST(FunctionTest, FunctionWrongReturnType)
 {
-    auto code = "fn function(i: int, j: int) -> int"
-                "{"
-                "return \"string\";"
-                "}";
+    BirdTest::TestOptions options;
+    options.code = "fn function(i: int, j: int) -> int"
+                   "{"
+                   "return \"string\";"
+                   "}";
 
-    auto ast = parse_code(code);
+    options.after_type_check = [&](UserErrorTracker &error_tracker, TypeChecker &type_checker)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+        ASSERT_EQ(std::get<1>(tup).lexeme, "return");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: in return statement (line 0, character 41)");
+    };
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-
-    ASSERT_TRUE(user_error_tracker.has_errors());
-    auto errors = user_error_tracker.get_errors();
-    EXPECT_EQ(errors.size(), 1);
+    ASSERT_FALSE(BirdTest::compile(options));
 }

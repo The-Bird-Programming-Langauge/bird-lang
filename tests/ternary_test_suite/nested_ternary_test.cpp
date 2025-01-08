@@ -1,32 +1,26 @@
 #include <gtest/gtest.h>
-#include <vector>
-#include <memory>
-#include "../../include/exceptions/user_error_tracker.h"
-#include "../../include/value.h"
-#include "../../include/visitors/interpreter.h"
-#include "../../src/callable.cpp"
-#include "../helpers/parse_test_helper.hpp"
-#include "../../include/visitors/semantic_analyzer.h"
-#include "../../include/visitors/type_checker.h"
+#include "helpers/compile_helper.hpp"
 
 TEST(TernaryTest, NestedTernary)
 {
-    auto code = "var x = true ? true ? 1 : 2 : 3;";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "var x = true ? true ? 1 : 2 : 3;"
+                   "print x;";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.type_check = false;
+    options.semantic_analyze = false;
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.env.contains("x"));
+        ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
+        ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 1);
+    };
 
-    Interpreter interpreter;
-    interpreter.evaluate(&ast);
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_EQ(output, "1\n\n");
+    };
 
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 1);
+    ASSERT_TRUE(BirdTest::compile(options));
 }

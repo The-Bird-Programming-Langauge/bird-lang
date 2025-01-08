@@ -1,108 +1,95 @@
 #include <gtest/gtest.h>
-#include "../../include/value.h"
-#include "../../include/visitors/interpreter.h"
-#include "../../src/callable.cpp"
-#include "../helpers/parse_test_helper.hpp"
-#include "../../include/visitors/semantic_analyzer.h"
-#include "../../include/visitors/type_checker.h"
+#include "helpers/compile_helper.hpp"
 
 // FLOATS
 TEST(ConstTest, ConstWithoutTypeFloat)
 {
-    auto code = "const x = 4.0;";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "const x = 4.0;"
+                   "print x;";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.env.contains("x"));
+        ASSERT_TRUE(is_type<double>(interpreter.env.get("x")));
+        ASSERT_EQ(as_type<double>(interpreter.env.get("x")), 4.0);
+    };
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_EQ(output, "4\n\n");
+    };
 
-    Interpreter interpreter;
-    interpreter.evaluate(&ast);
-
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<double>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<double>(interpreter.env.get("x")), 4.0);
+    ASSERT_TRUE(BirdTest::compile(options));
 }
 
 // INTS
 TEST(ConstTest, ConstWithoutTypeInt)
 {
-    auto code = "const x = 4;";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "const x = 4;"
+                   "print x;";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.env.contains("x"));
+        ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
+        ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 4.0);
+    };
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_EQ(output, "4\n\n");
+    };
 
-    Interpreter interpreter;
-    interpreter.evaluate(&ast);
-
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 4);
+    ASSERT_TRUE(BirdTest::compile(options));
 }
 
 // STRINGS
 TEST(ConstTest, ConstWithoutTypeString)
 {
-    auto code = "var x = \"hello\";";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "var x = \"hello\"; print x;";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.env.contains("x"));
+        ASSERT_TRUE(is_type<std::string>(interpreter.env.get("x")));
+        ASSERT_EQ(as_type<std::string>(interpreter.env.get("x")), "hello");
+    };
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_EQ(output, "hello\n\n");
+    };
 
-    Interpreter interpreter;
-    interpreter.evaluate(&ast);
-
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<std::string>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<std::string>(interpreter.env.get("x")), "hello");
+    ASSERT_TRUE(BirdTest::compile(options));
 }
 
 // BOOLS
 TEST(ConstTest, ConstWithoutTypeBool)
 {
-    auto code = "const x = true;";
-    auto ast = parse_code(code);
+    BirdTest::TestOptions options;
+    options.code = "const x = true;"
+                   "const y = false;"
+                   "print x;"
+                   "print y;";
 
-    auto user_error_tracker = UserErrorTracker(code);
-    SemanticAnalyzer analyze_semantics(&user_error_tracker);
-    analyze_semantics.analyze_semantics(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.env.contains("x"));
+        ASSERT_TRUE(is_type<bool>(interpreter.env.get("x")));
+        ASSERT_EQ(as_type<bool>(interpreter.env.get("x")), true);
+        ASSERT_TRUE(interpreter.env.contains("y"));
+        ASSERT_TRUE(is_type<bool>(interpreter.env.get("y")));
+        ASSERT_EQ(as_type<bool>(interpreter.env.get("y")), false);
+    };
 
-    TypeChecker type_checker(&user_error_tracker);
-    type_checker.check_types(&ast);
-    ASSERT_FALSE(user_error_tracker.has_errors());
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        std::cout << "AFTER COMPILE" << std::endl;
+        ASSERT_EQ(output, "1\n0\n\n");
+    };
 
-    Interpreter interpreter;
-    interpreter.evaluate(&ast);
-
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<bool>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<bool>(interpreter.env.get("x")), true);
-
-    code = "const y = false;";
-    ast = parse_code(code);
-
-    interpreter.evaluate(&ast);
-
-    ASSERT_TRUE(interpreter.env.contains("y"));
-    ASSERT_TRUE(is_type<bool>(interpreter.env.get("y")));
-    ASSERT_EQ(as_type<bool>(interpreter.env.get("y")), false);
+    ASSERT_TRUE(BirdTest::compile(options));
 }

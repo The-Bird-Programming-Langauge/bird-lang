@@ -8,7 +8,7 @@ set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread") # needed by binaryen
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall") # needed by binaryen
 
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
@@ -28,13 +28,14 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 add_executable(compiler main.cpp ${SOURCES} ${FLEX_Lexer_OUTPUTS} ${BISON_Parser_OUTPUTS})
 
-
 option(DEBUG "Build with debug flags" OFF)
 
 if (DEBUG)
   target_compile_definitions(compiler PRIVATE DEBUG)
 endif()
 
+set(RUN_WASM_FILE_LOCATION ${PROJECT_SOURCE_DIR}/tests/helpers/run_wasm.js)
+target_compile_definitions(compiler PRIVATE RUN_WASM_FILE_LOCATION)
 
 target_link_libraries(compiler binaryen)
 
@@ -53,7 +54,10 @@ if (TESTS)
       get_filename_component(test_name ${test_source} NAME_WE)
       add_executable(${test_name} ${test_source})
       target_link_libraries(${test_name} GTest::gtest GTest::gtest_main)
+      target_link_libraries(${test_name} binaryen)
       add_test(NAME ${test_name} COMMAND ${test_name})
+
+    target_compile_definitions(${test_name} PRIVATE RUN_WASM_FILE_LOCATION="${RUN_WASM_FILE_LOCATION}")
   endforeach()
 
 endif()

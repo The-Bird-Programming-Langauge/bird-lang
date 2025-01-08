@@ -1,6 +1,8 @@
-fn add(x: float, y: int) -> int {
-    return x + y;
+type t = int;
+fn foo(y: t) -> t {}
+
+var x = 0; 
+while true { 
+    x = 1; 
+    print x; 
 }
-
-
-print add(4.5, 3.4);

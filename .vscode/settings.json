@@ -87,8 +87,9 @@
                 "typeindex": "cpp",
                 "__config": "cpp",
                 "*.inc": "cpp",
-                "__availability": "cpp",
-                "format": "cpp",
-                "numbers": "cpp"
-        }
+                "codecvt": "cpp",
+                "numbers": "cpp",
+                "format": "cpp"
+        },
+        "C_Cpp.errorSquiggles": "enabled"
 }

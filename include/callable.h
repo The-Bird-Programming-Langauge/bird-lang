@@ -31,7 +31,7 @@ public:
     {
     }
 
-    void call(Interpreter *Interpreter, std::vector<std::unique_ptr<Expr>>);
+    void call(Interpreter *Interpreter, std::vector<std::shared_ptr<Expr>>);
 };
 
 struct SemanticCallable
