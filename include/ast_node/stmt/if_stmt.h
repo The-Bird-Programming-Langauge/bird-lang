@@ -54,7 +54,7 @@ public:
     {
         if (else_branch.has_value())
         {
-            this->else_branch = std::move(std::unique_ptr<Stmt>(else_branch.value()));
+            this->else_branch = std::unique_ptr<Stmt>(else_branch.value());
         }
         else
         {

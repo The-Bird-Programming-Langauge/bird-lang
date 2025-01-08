@@ -23,7 +23,7 @@ public:
     Token identifier;
     std::vector<std::shared_ptr<Expr>> args;
 
-    Call(Token identifier, std::vector<std::unique_ptr<Expr>> args)
+    Call(Token identifier, std::vector<std::shared_ptr<Expr>> args)
         : identifier(identifier), args(std::move(args)) {};
 
     Call(Token identifier, std::vector<Expr *> args)
@@ -32,7 +32,7 @@ public:
         this->args.reserve(args.size());
         for (Expr *arg : args)
         {
-            this->args.push_back(std::unique_ptr<Expr>(arg));
+            this->args.push_back(std::shared_ptr<Expr>(arg));
         }
     }
 

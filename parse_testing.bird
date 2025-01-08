@@ -1,0 +1,196 @@
+fn add(x: float, y: int) -> int {
+    return x + y;
+}
+print add(4.5, 3.4);
+
+if (false) {
+    print "if";
+} 
+print "else";
+
+if (true) {
+    print "if";
+} else {
+    print "else";
+}
+
+if (true) {
+    print "if" ;
+} else if (true) {
+    print "else if";
+} else {
+    print "else";
+}
+
+print 12;
+print 14.0;
+print true;
+print false;
+print "hello", " ", "world";
+print "world";
+
+print "print 1.3 > 2.1 ? 1 : 2;";
+print 1.3 > 2.1 ? 1 : 2;
+
+print "print 1.4 >= 3.5 ? 1 : 2;";
+print 1.4 >= 3.5 ? 1 : 2;
+
+print "print 1 < 2 ? 1 : 2;";
+print 1 < 2 ? 1 : 2;
+
+print "print 6.1 <= 4.2 ? 1 : 2;";
+print 6.1 <= 4.2 ? 1 : 2;
+
+print "print 1.4 == 5.7 ? 1 : 2;";
+print 1.4 == 5.7 ? 1 : 2;
+
+print "print 6.3 != 8.7 ? 1 : 2;";
+print 6.3 != 8.7 ? 1 : 2;
+
+fn printDoubleI(x: int) -> void {
+    print x * 2;
+}
+
+fn printDoubleF(x: float) -> void {
+    print x * 2;
+}
+
+printDoubleF(2.0);
+printDoubleF(1.2);
+
+
+fn double(x: int) -> int {
+    return x * 2;
+}
+
+fn quadruple(x: int) -> int {
+    return double(double(x));
+}
+
+print quadruple(4);
+
+
+var x = double(2);
+print double(x);
+
+print "for loop";
+var z = 0;
+
+for var y = z; y <= 5; y += 1 do {
+    z = y;
+    print "z = ", z;
+}
+
+print "result: z = ", z;
+
+print "while loop";
+while x <= 10 {
+    print "x = ", x;
+    x += 1;
+}
+
+print "result: x = ", x;
+
+print "scoped var assignment";
+var k = 1;
+{
+    k += true ? 1 : 2;
+}
+
+print "result: k = ", k;
+
+print "nested-nested scopes";
+var y = 0;
+
+{{{{ y += 1; }}}}
+print y;
+
+print "result: y = ", y;
+
+var j = 0; 
+
+print "while continue & break";
+print "j should equal 3";
+while true { 
+    j += 1; 
+    if (j <= 2) { 
+        continue; 
+    } 
+
+    break; 
+}
+
+
+
+print "j = ", j;
+
+print "while test continue";
+print "shouldnt print when o = 2";
+
+var o = 0;
+
+while (o < 5) {
+    o += 1;
+    if o == 2 {
+        continue;
+    }
+
+    print "o = ", o;
+}
+
+
+print "scope assignment";
+
+var p = 0;
+
+{ p += 1; }
+
+print p;
+
+print "for loop, print y";
+
+for var y = 0; y <= 5; y += 1 do {
+    print y;
+    p = y;
+}
+
+print "assignment in for loop";
+
+print p;
+
+print "for-loop in nested scope assignment";
+var q = 0;
+
+{
+    for var y = 0; y <= 5; y += 1 do {
+        q = y;
+    }
+}
+print q;
+
+var r = 5.0;
+
+r /= 2;
+
+print r;
+
+type new_type = int;
+
+type newer_type = new_type;
+
+y <= 5;
+
+for var y = z; y <= 5; y += 1 do {
+    z = y;
+    print "z = ", z;
+}
+
+fn id(x: int) -> int { return x; }
+var one = 1;
+var bar = true;
+fn truth(x: int) -> bool { return true; }
+
+if x + 1 == id(3+4) {print "hello";}
+if x + 1 == one {(3 + 4);}
+if bar {(3+4);}
+if truth(3+4) {print "hello";}
