@@ -19,12 +19,7 @@ public:
     std::unique_ptr<Expr> expr;
 
     ExprStmt(std::unique_ptr<Expr> expr)
-    {
-        this->expr = std::move(expr);
-    }
-
-    ExprStmt(Expr *expr)
-        : expr(expr) {}
+        : expr(std::move(expr)) {}
 
     void accept(Visitor *visitor)
     {

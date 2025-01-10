@@ -35,17 +35,6 @@ public:
           increment(std::move(increment)),
           body(std::move(body)) {}
 
-    ForStmt(Token for_token,
-            std::optional<Stmt *> initializer,
-            std::optional<Expr *> condition,
-            std::optional<Expr *> increment,
-            Stmt *body)
-        : for_token(for_token),
-          initializer(initializer),
-          condition(condition),
-          increment(increment),
-          body(body) {}
-
     void accept(Visitor *visitor)
     {
         visitor->visit_for_stmt(this);

@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "stmt.h"
-#include "../../token.h"
+#include "token.h"
 #include "visitors/visitor.h"
 
 // forward declaration
@@ -22,18 +22,7 @@ public:
     std::vector<std::unique_ptr<Expr>> args;
 
     PrintStmt(std::vector<std::unique_ptr<Expr>> args)
-    {
-        this->args = std::move(args);
-    }
-
-    PrintStmt(std::vector<Expr *> args)
-    {
-        this->args.reserve(args.size());
-        for (Expr *arg : args)
-        {
-            this->args.push_back(std::unique_ptr<Expr>(arg));
-        }
-    }
+        : args(std::move(args)) {}
 
     void accept(Visitor *visitor)
     {

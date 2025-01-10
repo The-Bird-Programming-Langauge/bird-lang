@@ -5,7 +5,7 @@
 #include <optional>
 
 #include "stmt.h"
-#include "../../token.h"
+#include "token.h"
 #include "visitors/visitor.h"
 
 // forward declaration
@@ -24,11 +24,9 @@ public:
     bool type_is_literal;
 
     TypeStmt(Token identifier, Token type_token, bool type_is_literal)
-    {
-        this->identifier = identifier;
-        this->type_token = type_token;
-        this->type_is_literal = type_is_literal;
-    }
+        : identifier(identifier),
+          type_token(type_token),
+          type_is_literal(type_is_literal) {}
 
     void accept(Visitor *visitor)
     {

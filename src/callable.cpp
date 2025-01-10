@@ -4,7 +4,7 @@
 #include "value.h"
 #include "exceptions/bird_exception.h"
 
-void Callable::call(Interpreter *interpreter, std::vector<std::shared_ptr<Expr>> args)
+void Callable::call(Interpreter *interpreter, std::vector<std::unique_ptr<Expr>> args)
 {
     // create new scope
     if (args.size() != this->param_list.size())

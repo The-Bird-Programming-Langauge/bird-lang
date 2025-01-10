@@ -11,39 +11,19 @@
 %parse-param { std::vector<std::unique_ptr<Stmt>> &stmts }
 
 %code requires {
-   #include "../build/parser.tab.hh"
    #include <iostream>
    #include <string>
    #include <vector>
    #include <memory>
-   #include <utility>
-   
-   #include "../include/ast_node/expr/binary.h"
-   #include "../include/ast_node/expr/unary.h"
-   #include "../include/ast_node/expr/primary.h"
-   #include "../include/ast_node/expr/ternary.h"
-   #include "../include/ast_node/expr/call.h"
+   #include <optional>
 
-   #include "../include/ast_node/stmt/decl_stmt.h"
-   #include "../include/ast_node/expr/assign_expr.h"
-   #include "../include/ast_node/stmt/print_stmt.h"
-   #include "../include/ast_node/stmt/if_stmt.h"
-   #include "../include/ast_node/stmt/expr_stmt.h"
-   #include "../include/ast_node/stmt/const_stmt.h"
-   #include "../include/ast_node/stmt/while_stmt.h"
-   #include "../include/ast_node/stmt/for_stmt.h"
-   #include "../include/ast_node/stmt/return_stmt.h"
-   #include "../include/ast_node/stmt/block.h"
-   #include "../include/ast_node/stmt/func.h"
-   #include "../include/ast_node/stmt/break_stmt.h"
-   #include "../include/ast_node/stmt/continue_stmt.h"
-   #include "../include/ast_node/stmt/type_stmt.h"
+   #include "ast_node/index.h"
 
    #include "../include/exceptions/bird_exception.h"
    #include "../include/exceptions/user_exception.h"
    #include "../include/exceptions/user_error_tracker.h"
 
-   #include "../include/token.h"
+   #include "token.h"
 
    // #define YYDEBUG 1
 }
@@ -108,7 +88,7 @@ BANG "!"
 ARROW "->"
 
 
-%type <Stmt*> 
+%type <std::unique_ptr<Stmt>> 
 stmt
 decl_stmt
 if_stmt
@@ -123,9 +103,8 @@ break_stmt
 continue_stmt
 expr_stmt
 type_stmt
-maybe_stmt
 
-%type <Expr*> 
+%type <std::unique_ptr<Expr>> 
 expr
 assign_expr
 ternary_expr
@@ -136,7 +115,6 @@ factor_expr
 unary_expr
 call_expr
 grouping
-maybe_expr
 
 %type <Token> 
 primary
@@ -151,11 +129,17 @@ EQUALITY_OP
 %type <std::optional<Token>>
 return_type
 
-%type <std::vector<Stmt*>>
+%type <std::optional<std::unique_ptr<Stmt>>>
+maybe_stmt
+
+%type <std::optional<std::unique_ptr<Expr>>>
+maybe_expr
+
+%type <std::vector<std::unique_ptr<Stmt>>>
 maybe_stmts
 stmts
 
-%type <std::vector<Expr*>> 
+%type <std::vector<std::unique_ptr<Expr>>> 
 maybe_arg_list
 arg_list
 
@@ -205,177 +189,266 @@ param_list
 
 %%
 
-program: maybe_stmts { 
-   for (Stmt* stmt : $1)
-   {
-      stmts.push_back(std::unique_ptr<Stmt>(stmt));
-   }
-}
+program: 
+   maybe_stmts { stmts = std::move($1); }
 
-maybe_stmts: %empty { $$ = std::vector<Stmt*>(); }
-   | stmts { $$ = $1; }
+maybe_stmts:
+    %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   | stmts { $$ = std::move($1); }
 
-stmts: stmt { $$ = std::vector<Stmt*>{$1}; }
-   | stmts stmt { $1.push_back($2); $$ = $1; }
+stmts: 
+   stmt 
+      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   | stmts stmt 
+      { $1.push_back(std::move($2)); $$ = std::move($1); }
 
-stmt: decl_stmt
-   | if_stmt
-   | const_stmt
-   | print_stmt
-   | block
-   | func
-   | while_stmt
-   | for_stmt
-   | return_stmt
-   | break_stmt
-   | continue_stmt
-   | expr_stmt
-   | type_stmt
+stmt: 
+   decl_stmt { $$ = std::move($1); }
+   | if_stmt { $$ = std::move($1); }
+   | const_stmt { $$ = std::move($1); }
+   | print_stmt { $$ = std::move($1); }
+   | block { $$ = std::move($1); }
+   | func { $$ = std::move($1); }
+   | while_stmt { $$ = std::move($1); }
+   | for_stmt { $$ = std::move($1); }
+   | return_stmt { $$ = std::move($1); }
+   | break_stmt { $$ = std::move($1); }
+   | continue_stmt { $$ = std::move($1); }
+   | expr_stmt { $$ = std::move($1); }
+   | type_stmt { $$ = std::move($1); }
 
-decl_stmt: VAR IDENTIFIER EQUAL expr SEMICOLON 
-      { $$ = new DeclStmt($2, std::nullopt, false, $4); }
+decl_stmt: 
+   VAR IDENTIFIER EQUAL expr SEMICOLON 
+      { $$ = std::make_unique<DeclStmt>($2, std::nullopt, false, std::move($4)); }
    | VAR IDENTIFIER COLON TYPE_LITERAL EQUAL expr SEMICOLON
-      { $$ = new DeclStmt($2, $4, true, $6); }
+      { $$ = std::make_unique<DeclStmt>($2, $4, true, std::move($6)); }
    | VAR IDENTIFIER COLON IDENTIFIER EQUAL expr SEMICOLON
-      { $$ = new DeclStmt($2, $4, false, $6); }
+      { $$ = std::make_unique<DeclStmt>($2, $4, false, std::move($6)); }
 
-if_stmt: IF expr block %prec THEN { $$ = new IfStmt($1, $2, $3, std::nullopt); }
-   | IF expr block ELSE block { $$ = new IfStmt($1, $2, $3, $5); }
-   | IF expr block ELSE if_stmt { $$ = new IfStmt($1, $2, $3, $5); }
+if_stmt: 
+   IF expr block %prec THEN 
+      { $$ = std::make_unique<IfStmt>(
+            $1, 
+            std::move($2), 
+            std::move($3), 
+            std::nullopt); }
+   | IF expr block ELSE block 
+      { $$ = std::make_unique<IfStmt>(
+            $1, 
+            std::move($2), 
+            std::move($3), 
+            std::move($5)); }
+   | IF expr block ELSE if_stmt 
+      { $$ = std::make_unique<IfStmt>(
+            $1, 
+            std::move($2), 
+            std::move($3), 
+            std::move($5)); }
 
-const_stmt: CONST IDENTIFIER EQUAL expr SEMICOLON 
-      { $$ = new ConstStmt($2, std::nullopt, false, $4); }
+const_stmt: 
+   CONST IDENTIFIER EQUAL expr SEMICOLON 
+      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, false, std::move($4)); }
    | CONST IDENTIFIER COLON TYPE_LITERAL PLUS expr SEMICOLON 
-      { $$ = new ConstStmt($2, $4, true, $6); }
+      { $$ = std::make_unique<ConstStmt>($2, $4, true, std::move($6)); }
    | CONST IDENTIFIER COLON IDENTIFIER PLUS expr SEMICOLON 
-      { $$ = new ConstStmt($2, $4, false, $6); }
+      { $$ = std::make_unique<ConstStmt>($2, $4, false, std::move($6)); }
 
-print_stmt: PRINT arg_list SEMICOLON { $$ = new PrintStmt($2); }
+print_stmt: 
+   PRINT arg_list SEMICOLON 
+      { $$ = std::make_unique<PrintStmt>(std::move($2)); }
 
-block: LBRACE stmts RBRACE { $$ = new Block($2); }
+block: 
+   LBRACE maybe_stmts RBRACE 
+      { $$ = std::make_unique<Block>(std::move($2)); }
 
-func: FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
-   { $$ = new Func($2, $6, $4, $7); }
+func: 
+   FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
+      { $$ = std::make_unique<Func>($2, $6, $4, std::move($7)); }
 
-while_stmt: WHILE expr block { $$ = new WhileStmt($1, $2, $3); }
+while_stmt: 
+   WHILE expr block 
+      { $$ = std::make_unique<WhileStmt>($1, std::move($2), std::move($3)); }
 
-for_stmt: FOR maybe_stmt maybe_expr SEMICOLON maybe_expr DO stmt 
-   { $$ = new ForStmt($1, $2, $3, $5, $7); }
+for_stmt: 
+   FOR maybe_stmt maybe_expr SEMICOLON maybe_expr DO stmt 
+      { $$ = std::make_unique<ForStmt>(  
+            $1, 
+            std::move($2), 
+            std::move($3), 
+            std::move($5), 
+            std::move($7)); }
 
-return_stmt: RETURN SEMICOLON { $$ = new ReturnStmt($1); }
-   | RETURN expr SEMICOLON { $$ = new ReturnStmt($1, $2); }
+return_stmt: 
+   RETURN SEMICOLON 
+      { $$ = std::make_unique<ReturnStmt>($1, std::nullopt); }
+   | RETURN expr SEMICOLON 
+      { $$ = std::make_unique<ReturnStmt>($1, std::move($2)); }
 
-break_stmt: BREAK SEMICOLON { $$ = new BreakStmt($1); }
+break_stmt: 
+   BREAK SEMICOLON 
+      { $$ = std::make_unique<BreakStmt>($1); }
 
-continue_stmt: CONTINUE SEMICOLON { $$ = new ContinueStmt($1); }
+continue_stmt: 
+   CONTINUE SEMICOLON 
+      { $$ = std::make_unique<ContinueStmt>($1); }
 
-expr_stmt: expr SEMICOLON { $$ = new ExprStmt($1); }
+expr_stmt: 
+   expr SEMICOLON 
+      { $$ = std::make_unique<ExprStmt>(std::move($1)); }
 
-type_stmt: TYPE IDENTIFIER EQUAL TYPE_LITERAL SEMICOLON { $$ =  new TypeStmt($2, $4, true); }
-   | TYPE IDENTIFIER EQUAL IDENTIFIER SEMICOLON { $$ = new TypeStmt($2, $4, false); }
+type_stmt: 
+   TYPE IDENTIFIER EQUAL TYPE_LITERAL SEMICOLON 
+      { $$ =  std::make_unique<TypeStmt>($2, $4, true); }
+   | TYPE IDENTIFIER EQUAL IDENTIFIER SEMICOLON 
+      { $$ = std::make_unique<TypeStmt>($2, $4, false); }
 
-maybe_arg_list: %empty { $$ = std::vector<Expr*>(); }
-   | arg_list
+maybe_arg_list: 
+   %empty { $$ = (std::vector<std::unique_ptr<Expr>>()); }
+   | arg_list { $$ = std::move($1); }
 
-arg_list: expr { $$ = std::vector{$1}; }
-   | arg_list COMMA expr { $1.push_back($3); $$ = $1; }
+arg_list: 
+   expr 
+      { $$ = std::vector<std::unique_ptr<Expr>>(); $$.push_back(std::move($1)); }
+   | arg_list COMMA expr 
+      { $1.push_back(std::move($3)); $$ = std::move($1); }
 
-maybe_param_list: %empty { $$ = std::vector<std::pair<Token, Token>>{}; }
+maybe_param_list: 
+   %empty { $$ = std::vector<std::pair<Token, Token>>{}; }
    | param_list
 
-param_list: param { $$ = std::vector{$1}; }
-   | param_list COMMA param { $1.push_back($3); $$ = $1; }
+param_list: 
+   param 
+      { $$ = std::vector{$1}; }
+   | param_list COMMA param 
+      { $1.push_back($3); $$ = $1; }
 
-param: IDENTIFIER COLON TYPE_LITERAL { $$ = std::pair<Token, Token>($1, $3); }
+param: 
+   IDENTIFIER COLON TYPE_LITERAL 
+      { $$ = std::pair<Token, Token>($1, $3); }
+   | IDENTIFIER COLON IDENTIFIER
+      { $$ = std::pair<Token, Token>($1, $3); }
 
-return_type: %empty { $$ = std::optional<Token>{}; }
+return_type: 
+   %empty { $$ = std::optional<Token>{}; }
    | ARROW TYPE_LITERAL { $$ = std::optional<Token>($2); }
+   | ARROW IDENTIFIER { $$ = std::optional<Token>($2); }
 
-maybe_stmt: SEMICOLON { $$ = nullptr; }
-   | stmt { $$ = $1; }
+maybe_stmt: 
+   SEMICOLON { $$ = std::nullopt; }
+   | stmt { $$ = std::move($1); }
 
-maybe_expr: %empty { $$ = nullptr; }
-   | expr { $$ = $1; }
+maybe_expr: 
+   %empty { $$ = std::nullopt; }
+   | expr { $$ = std::move($1); }
 
 
 expr: 
-   assign_expr
-   | ternary_expr
-   | equality_expr
-   | comparison_expr
-   | term_expr
-   | factor_expr
-   | unary_expr
-   | call_expr
-   | primary { $$ = new Primary($1); }
-   | grouping
+   assign_expr { $$ = std::move($1); }
+   | ternary_expr { $$ = std::move($1); }
+   | equality_expr { $$ = std::move($1); }
+   | comparison_expr { $$ = std::move($1); }
+   | term_expr { $$ = std::move($1); }
+   | factor_expr { $$ = std::move($1); }
+   | unary_expr { $$ = std::move($1); }
+   | call_expr { $$ = std::move($1); }
+   | primary { $$ = std::make_unique<Primary>($1); }
+   | grouping { $$ = std::move($1); }
 
 
-assign_expr: expr ASSIGN_OP expr %prec ASSIGN { 
-   if(auto *identifier = dynamic_cast<Primary *>($1))
-   {
-      if (identifier->value.token_type != Token::Type::IDENTIFIER)
-      {
-         // TODO: throw an error here
+assign_expr: 
+   expr ASSIGN_OP expr %prec ASSIGN 
+      { 
+         if(auto *identifier = dynamic_cast<Primary *>($1.get()))
+         {
+            if (identifier->value.token_type != Token::Type::IDENTIFIER)
+            {
+               // TODO: throw an error here
+            }
+            $$ = std::make_unique<AssignExpr>(identifier->value, $2, std::move($3));
+         }
       }
-      $$ = new AssignExpr(identifier->value, $2, $3);
-   }
-}
 
-ternary_expr: expr QUESTION expr COLON expr %prec TERNARY { $$ = new Ternary($1, $2, $3, $5); }
+ternary_expr: 
+   expr QUESTION expr COLON expr %prec TERNARY 
+      { $$ = std::make_unique<Ternary>(  
+            std::move($1), 
+            $2, 
+            std::move($3), 
+            std::move($5)); }
 
-equality_expr: expr EQUALITY_OP expr %prec EQUALITY { $$ = new Binary($1, $2, $3); }
+equality_expr: 
+   expr EQUALITY_OP expr %prec EQUALITY 
+      { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
-comparison_expr: expr COMPARISON_OP expr %prec COMPARISON { $$ = new Binary($1, $2, $3); }
+comparison_expr: 
+   expr COMPARISON_OP expr %prec COMPARISON 
+      { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
-term_expr: expr TERM_OP expr %prec TERM { $$ = new Binary($1, $2, $3); }
+term_expr: 
+   expr TERM_OP expr %prec TERM 
+      { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
-factor_expr: expr FACTOR_OP expr %prec FACTOR { $$ = new Binary($1, $2, $3); }
+factor_expr: 
+   expr FACTOR_OP expr %prec FACTOR 
+      { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
-unary_expr: UNARY_OP expr %prec UNARY { $$ = new Unary($1, $2); }
+unary_expr: 
+   UNARY_OP expr %prec UNARY 
+      { $$ = std::make_unique<Unary>($1, std::move($2)); }
 
-call_expr: expr LPAREN maybe_arg_list RPAREN %prec CALL { 
-   if(auto *identifier = dynamic_cast<Primary *>($1))
-   {
-      if (identifier->value.token_type != Token::Type::IDENTIFIER)
-      {
-         // TODO: throw an error here
+call_expr: 
+   expr LPAREN maybe_arg_list RPAREN %prec CALL 
+      { 
+         if(auto *identifier = dynamic_cast<Primary *>($1.get()))
+         {
+            if (identifier->value.token_type != Token::Type::IDENTIFIER)
+            {
+               // TODO: throw an error here
+            }
+            $$ = std::make_unique<Call>(identifier->value, std::move($3));
+         }
       }
-      $$ = new Call(identifier->value, $3);
-   }
-}
 
-primary: IDENTIFIER 
+primary: 
+   IDENTIFIER 
    | INT_LITERAL 
    | FLOAT_LITERAL
    | BOOL_LITERAL
    | STR_LITERAL
 
-grouping: LPAREN expr RPAREN %prec GROUPING { $$ = $2; }
+grouping: 
+   LPAREN expr RPAREN %prec GROUPING
+      { $$ = std::move($2); }
 
-ASSIGN_OP: EQUAL
+ASSIGN_OP: 
+   EQUAL
    | PLUS_EQUAL
    | MINUS_EQUAL
    | STAR_EQUAL
    | SLASH_EQUAL
    | PERCENT_EQUAL
 
-EQUALITY_OP: EQUAL_EQUAL
+EQUALITY_OP: 
+   EQUAL_EQUAL
    | BANG_EQUAL
 
-COMPARISON_OP: GREATER
+COMPARISON_OP: 
+   GREATER
    | GREATER_EQUAL
    | LESS
    | LESS_EQUAL
 
-FACTOR_OP: STAR
+FACTOR_OP: 
+   STAR
    | SLASH
    | PERCENT
 
-TERM_OP: PLUS
+TERM_OP: 
+   PLUS
    | MINUS
 
-UNARY_OP: MINUS /* %prec UNARY */
+UNARY_OP: 
+   MINUS
 
 %%
 

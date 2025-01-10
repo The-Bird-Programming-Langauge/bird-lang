@@ -25,13 +25,12 @@ public:
           block(std::move(block)),
           return_type(return_type) {}
     Callable() = default;
-    Callable(const Callable &other) : param_list(other.param_list),
-                                      block(std::move(other.block)),
-                                      return_type(other.return_type)
-    {
-    }
+    Callable(const Callable &other)
+        : param_list(other.param_list),
+          block(std::move(other.block)),
+          return_type(other.return_type) {}
 
-    void call(Interpreter *Interpreter, std::vector<std::shared_ptr<Expr>>);
+    void call(Interpreter *Interpreter, std::vector<std::unique_ptr<Expr>>);
 };
 
 struct SemanticCallable

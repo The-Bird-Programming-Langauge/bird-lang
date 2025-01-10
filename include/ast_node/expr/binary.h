@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "../../token.h"
+#include "token.h"
 #include "visitors/visitor.h"
 #include "expr.h"
 
@@ -21,14 +21,9 @@ public:
     std::unique_ptr<Expr> right;
 
     Binary(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
-    {
-        this->left = std::move(left);
-        this->op = op;
-        this->right = std::move(right);
-    }
-
-    Binary(Expr *left, Token op, Expr *right)
-        : left(left), op(op), right(right) {}
+        : left(std::move(left)),
+          op(op),
+          right(std::move(right)) {}
 
     void accept(Visitor *visitor)
     {

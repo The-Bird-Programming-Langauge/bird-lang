@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 #include "ast_node/node.h"
-#include "../../token.h"
+#include "token.h"
 #include "visitors/visitor.h"
 
 // forward declaration
@@ -21,20 +21,11 @@ class Call : public Expr
 {
 public:
     Token identifier;
-    std::vector<std::shared_ptr<Expr>> args;
+    std::vector<std::unique_ptr<Expr>> args;
 
-    Call(Token identifier, std::vector<std::shared_ptr<Expr>> args)
-        : identifier(identifier), args(std::move(args)) {};
-
-    Call(Token identifier, std::vector<Expr *> args)
-        : identifier(identifier)
-    {
-        this->args.reserve(args.size());
-        for (Expr *arg : args)
-        {
-            this->args.push_back(std::shared_ptr<Expr>(arg));
-        }
-    }
+    Call(Token identifier, std::vector<std::unique_ptr<Expr>> args)
+        : identifier(identifier),
+          args(std::move(args)) {};
 
     void accept(Visitor *visitor)
     {

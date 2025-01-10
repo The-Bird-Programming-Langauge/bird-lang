@@ -1,5 +1,7 @@
 %option noyywrap
 %option nodefault
+%option noinput
+%option nounput
 
 %{
 #include "./parser.tab.hh"

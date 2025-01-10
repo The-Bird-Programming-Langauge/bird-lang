@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 #include "expr.h"
-#include "../../token.h"
+#include "token.h"
 #include "visitors/visitor.h"
 
 /*
@@ -20,14 +20,9 @@ public:
     std::unique_ptr<Expr> value;
 
     AssignExpr(Token identifier, Token assign_operator, std::unique_ptr<Expr> value)
-    {
-        this->identifier = identifier;
-        this->assign_operator = assign_operator;
-        this->value = std::move(value);
-    }
-
-    AssignExpr(Token identifier, Token assign_operator, Expr *value)
-        : identifier(identifier), assign_operator(assign_operator), value(value) {}
+        : identifier(identifier),
+          assign_operator(assign_operator),
+          value(std::move(value)) {}
 
     void accept(Visitor *visitor)
     {

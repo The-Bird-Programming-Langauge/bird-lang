@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "stmt.h"
-#include "../../token.h"
+#include "token.h"
 #include "visitors/visitor.h"
 
 /*
@@ -23,18 +23,7 @@ public:
     std::vector<std::unique_ptr<Stmt>> stmts;
 
     Block(std::vector<std::unique_ptr<Stmt>> stmts)
-    {
-        this->stmts = std::move(stmts);
-    }
-
-    Block(std::vector<Stmt *> stmts)
-    {
-        this->stmts.reserve(stmts.size());
-        for (Stmt *stmt : stmts)
-        {
-            this->stmts.push_back(std::unique_ptr<Stmt>(stmt));
-        }
-    }
+        : stmts(std::move(stmts)) {}
 
     void accept(Visitor *visitor)
     {

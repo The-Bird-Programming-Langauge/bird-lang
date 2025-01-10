@@ -17,9 +17,7 @@ public:
     Token break_token;
 
     BreakStmt(Token break_token)
-    {
-        this->break_token = break_token;
-    }
+        : break_token(break_token) {}
 
     void accept(Visitor *visitor)
     {

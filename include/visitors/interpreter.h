@@ -517,7 +517,7 @@ public:
     void visit_call(Call *call)
     {
         auto callable = this->call_table.get(call->identifier.lexeme);
-        callable.call(this, call->args);
+        callable.call(this, std::move(call->args));
     }
 
     void visit_return_stmt(ReturnStmt *return_stmt)

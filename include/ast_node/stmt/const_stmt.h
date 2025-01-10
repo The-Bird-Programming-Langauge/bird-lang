@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 #include "stmt.h"
-#include "../../token.h"
+#include "token.h"
 #include "visitors/visitor.h"
 
 // forward declaration
@@ -23,15 +23,10 @@ public:
     std::unique_ptr<Expr> value;
 
     ConstStmt(Token identifier, std::optional<Token> type_token, bool type_is_literal, std::unique_ptr<Expr> value)
-    {
-        this->identifier = identifier;
-        this->type_token = type_token;
-        this->type_is_literal = type_is_literal;
-        this->value = std::move(value);
-    }
-
-    ConstStmt(Token identifier, std::optional<Token> type_token, bool type_is_literal, Expr *value)
-        : identifier(identifier), type_token(type_token), type_is_literal(type_is_literal), value(value) {}
+        : identifier(identifier),
+          type_token(type_token),
+          type_is_literal(type_is_literal),
+          value(std::move(value)) {}
 
     void accept(Visitor *visitor)
     {
