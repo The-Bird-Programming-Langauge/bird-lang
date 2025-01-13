@@ -133,7 +133,7 @@ public:
     {
         std::vector<const char *> segments;
         std::vector<BinaryenIndex> sizes;
-        bool *passive = new bool[memory_segments.size()];
+        int8_t *passive = new int8_t[memory_segments.size()];
         std::vector<BinaryenExpressionRef> offsets;
 
         // add all memory segment information to
@@ -299,7 +299,9 @@ public:
             "main",
             "main");
 
+        std::cout << "ABOUT TO PRING MODULE" << std::endl;
         BinaryenModulePrint(this->mod);
+        std::cout << "AFTER PRINT MODULE" << std::endl;
 
         BinaryenModuleAllocateAndWriteResult result =
             BinaryenModuleAllocateAndWrite(this->mod, nullptr);

@@ -18,7 +18,7 @@ class UserErrorTracker
      */
     void print_where(unsigned int line_num, unsigned int char_num)
     {
-        std::string line = this->code_lines[line_num];
+        std::string line = this->code_lines[line_num - 1];
 
         const unsigned int line_width = 100;
 
@@ -34,7 +34,7 @@ class UserErrorTracker
         }
 
         std::cout << line << std::endl;
-        for (int i = 0; i < char_num; i++)
+        for (int i = 0; i < char_num - 1; i++)
         {
             std::cout << '-';
         }
@@ -70,13 +70,10 @@ public:
         std::stringstream code_stream(code);
 
         std::string line;
-        std::vector<std::string> lines;
         while (std::getline(code_stream, line, '\n'))
         {
-            lines.push_back(line);
+            this->code_lines.push_back(line);
         }
-
-        this->code_lines = lines;
     }
 
     void add_code_line(std::string line)

@@ -24,7 +24,7 @@ public:
         yy_scan_string(this->code.c_str());
 
         std::vector<std::unique_ptr<Stmt>> stmts;
-        yy::yyParser parser(stmts);
+        yy::yyParser parser(stmts, this->error_tracker);
         parser.parse();
 
         return stmts;

@@ -9,6 +9,7 @@
 %define parse.assert
 
 %parse-param { std::vector<std::unique_ptr<Stmt>> &stmts }
+%parse-param { UserErrorTracker *user_error_tracker }
 
 %code requires {
    #include <iostream>
@@ -248,9 +249,9 @@ if_stmt:
 const_stmt: 
    CONST IDENTIFIER EQUAL expr SEMICOLON 
       { $$ = std::make_unique<ConstStmt>($2, std::nullopt, false, std::move($4)); }
-   | CONST IDENTIFIER COLON TYPE_LITERAL PLUS expr SEMICOLON 
+   | CONST IDENTIFIER COLON TYPE_LITERAL EQUAL expr SEMICOLON 
       { $$ = std::make_unique<ConstStmt>($2, $4, true, std::move($6)); }
-   | CONST IDENTIFIER COLON IDENTIFIER PLUS expr SEMICOLON 
+   | CONST IDENTIFIER COLON IDENTIFIER EQUAL expr SEMICOLON 
       { $$ = std::make_unique<ConstStmt>($2, $4, false, std::move($6)); }
 
 print_stmt: 
@@ -455,4 +456,5 @@ UNARY_OP:
 void yy::yyParser::error( const location_type &loc, const std::string &err_message )
 {
    std::cerr << "Error: " << err_message << " at line " << loc << "\n";
+   user_error_tracker->expected("something", "somewhere", Token(Token::Type::VAR, "foobar", 1, 1));
 }

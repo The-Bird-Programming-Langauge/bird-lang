@@ -52,7 +52,7 @@ TEST(ExprTest, BinaryIntString)
     options.after_type_check = [](UserErrorTracker &user_error_tracker, TypeChecker &type_checker)
     {
         ASSERT_TRUE(user_error_tracker.has_errors());
-        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 0, character 10)");
+        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 1, character 11)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -67,7 +67,7 @@ TEST(ExprTest, BinaryFloatString)
     options.after_type_check = [](UserErrorTracker &user_error_tracker, TypeChecker &type_checker)
     {
         ASSERT_TRUE(user_error_tracker.has_errors());
-        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 0, character 12)");
+        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 1, character 13)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -83,7 +83,7 @@ TEST(ExprTest, BinaryBoolInt)
     options.after_type_check = [](UserErrorTracker &user_error_tracker, TypeChecker &type_checker)
     {
         ASSERT_TRUE(user_error_tracker.has_errors());
-        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 0, character 13)");
+        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 1, character 14)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -199,7 +199,7 @@ TEST(ExprTest, CondExprBoolString)
     options.after_type_check = [](UserErrorTracker &user_error_tracker, TypeChecker &type_checker)
     {
         ASSERT_TRUE(user_error_tracker.has_errors());
-        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 0, character 13)");
+        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 1, character 14)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -214,7 +214,7 @@ TEST(ExprTest, CondExprFloatBool)
     options.after_type_check = [](UserErrorTracker &user_error_tracker, TypeChecker &type_checker)
     {
         ASSERT_TRUE(user_error_tracker.has_errors());
-        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 0, character 13)");
+        ASSERT_EQ(std::get<0>(user_error_tracker.get_errors()[0]), ">>[ERROR] type mismatch: in binary operation (line 1, character 13)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -351,7 +351,7 @@ TEST(ExprTest, UnclosedGrouping)
         ASSERT_TRUE(error_tracker.has_errors());
         auto errors = error_tracker.get_errors();
         ASSERT_EQ(errors.size(), 1);
-        EXPECT_EQ(std::get<0>(errors[0]), ">>[ERROR] expected ) after grouping (line 0, character 23)");
+        EXPECT_EQ(std::get<0>(errors[0]), ">>[ERROR] expected ) after grouping (line 1, character 24)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -368,7 +368,7 @@ TEST(ExprTest, MalformedTernaryGrouping)
         ASSERT_TRUE(error_tracker.has_errors());
         auto errors = error_tracker.get_errors();
         ASSERT_EQ(errors.size(), 1);
-        EXPECT_EQ(std::get<0>(errors[0]), ">>[ERROR] expected identifier or i32  (line 0, character 19)");
+        EXPECT_EQ(std::get<0>(errors[0]), ">>[ERROR] expected identifier or i32  (line 1, character 20)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));

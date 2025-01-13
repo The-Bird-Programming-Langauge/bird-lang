@@ -7,6 +7,7 @@
 #include "./parser.tab.hh"
 #include <string>
 #include <unistd.h>
+#include <cstring>
 
 #include "token.h"
 
@@ -28,7 +29,7 @@ using T = Token::Type;
 
 EXP             ([Ee][-+]?[0-9]+)
 IDENT           [a-zA-Z][a-zA-Z0-9_\-]*
-TYPE_IDENT      "int"|"float"|"bool"|"string"|"void"
+TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 %%
 
@@ -88,7 +89,10 @@ TYPE_IDENT      "int"|"float"|"bool"|"string"|"void"
 [0-9]+                  { yylval->emplace<Token>() = make_token(T::INT_LITERAL);
                           return token::INT_LITERAL;} 
 
-\".*\"                  { yylval->emplace<Token>() = make_token(T::STR_LITERAL);
+\"(\\.|[^"\\])*\"                  { 
+                          yytext = yytext + 1;
+                          yytext[yyleng - 2] = '\0';
+                          yylval->emplace<Token>() =  make_token(T::STR_LITERAL);
                           return token::STR_LITERAL;} 
 
 {IDENT}                 { yylval->emplace<Token>() = make_token(T::IDENTIFIER);

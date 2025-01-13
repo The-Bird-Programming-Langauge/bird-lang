@@ -1,8 +1,1 @@
-type t = int;
-fn foo(y: t) -> t {}
-
-var x = 0; 
-while true { 
-    x = 1; 
-    print x; 
-}
+if 1 > 2 {print 1;} else if 1 == 2 {print 2;} else {print 3;}
