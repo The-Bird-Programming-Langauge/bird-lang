@@ -11,6 +11,8 @@
 %parse-param { std::vector<std::unique_ptr<Stmt>> &stmts }
 %parse-param { UserErrorTracker *user_error_tracker }
 
+%define parse.error verbose
+
 %code requires {
    #include <iostream>
    #include <string>
@@ -33,9 +35,7 @@
    extern int yylex(yy::yyParser::semantic_type *yylval, yy::yyParser::location_type *yyloc);
 }
 
-
 %token END 0 _("end of file")
-
 
 %token <Token> 
 VAR "var"
@@ -80,8 +80,8 @@ QUESTION "?"
 %token 
 SEMICOLON ";"
 COMMA ","
-RBRACE "]"
-LBRACE "["
+RBRACE "}"
+LBRACE "{"
 RPAREN ")"
 LPAREN "("
 COLON ":"
@@ -204,26 +204,28 @@ stmts:
       { $1.push_back(std::move($2)); $$ = std::move($1); }
 
 stmt: 
-   decl_stmt { $$ = std::move($1); }
+   decl_stmt SEMICOLON { $$ = std::move($1); }
    | if_stmt { $$ = std::move($1); }
-   | const_stmt { $$ = std::move($1); }
-   | print_stmt { $$ = std::move($1); }
+   | const_stmt SEMICOLON { $$ = std::move($1); }
+   | print_stmt SEMICOLON { $$ = std::move($1); }
    | block { $$ = std::move($1); }
    | func { $$ = std::move($1); }
    | while_stmt { $$ = std::move($1); }
    | for_stmt { $$ = std::move($1); }
-   | return_stmt { $$ = std::move($1); }
-   | break_stmt { $$ = std::move($1); }
-   | continue_stmt { $$ = std::move($1); }
-   | expr_stmt { $$ = std::move($1); }
-   | type_stmt { $$ = std::move($1); }
+   | return_stmt SEMICOLON { $$ = std::move($1); }
+   | break_stmt SEMICOLON { $$ = std::move($1); }
+   | continue_stmt SEMICOLON { $$ = std::move($1); }
+   | expr_stmt SEMICOLON { $$ = std::move($1); }
+   | type_stmt SEMICOLON { $$ = std::move($1); }
+   | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
+
 
 decl_stmt: 
-   VAR IDENTIFIER EQUAL expr SEMICOLON 
+   VAR IDENTIFIER EQUAL expr 
       { $$ = std::make_unique<DeclStmt>($2, std::nullopt, false, std::move($4)); }
-   | VAR IDENTIFIER COLON TYPE_LITERAL EQUAL expr SEMICOLON
+   | VAR IDENTIFIER COLON TYPE_LITERAL EQUAL expr
       { $$ = std::make_unique<DeclStmt>($2, $4, true, std::move($6)); }
-   | VAR IDENTIFIER COLON IDENTIFIER EQUAL expr SEMICOLON
+   | VAR IDENTIFIER COLON IDENTIFIER EQUAL expr
       { $$ = std::make_unique<DeclStmt>($2, $4, false, std::move($6)); }
 
 if_stmt: 
@@ -247,15 +249,15 @@ if_stmt:
             std::move($5)); }
 
 const_stmt: 
-   CONST IDENTIFIER EQUAL expr SEMICOLON 
+   CONST IDENTIFIER EQUAL expr 
       { $$ = std::make_unique<ConstStmt>($2, std::nullopt, false, std::move($4)); }
-   | CONST IDENTIFIER COLON TYPE_LITERAL EQUAL expr SEMICOLON 
+   | CONST IDENTIFIER COLON TYPE_LITERAL EQUAL expr 
       { $$ = std::make_unique<ConstStmt>($2, $4, true, std::move($6)); }
-   | CONST IDENTIFIER COLON IDENTIFIER EQUAL expr SEMICOLON 
+   | CONST IDENTIFIER COLON IDENTIFIER EQUAL expr 
       { $$ = std::make_unique<ConstStmt>($2, $4, false, std::move($6)); }
 
 print_stmt: 
-   PRINT arg_list SEMICOLON 
+   PRINT arg_list 
       { $$ = std::make_unique<PrintStmt>(std::move($2)); }
 
 block: 
@@ -280,27 +282,27 @@ for_stmt:
             std::move($7)); }
 
 return_stmt: 
-   RETURN SEMICOLON 
+   RETURN 
       { $$ = std::make_unique<ReturnStmt>($1, std::nullopt); }
-   | RETURN expr SEMICOLON 
+   | RETURN expr 
       { $$ = std::make_unique<ReturnStmt>($1, std::move($2)); }
 
 break_stmt: 
-   BREAK SEMICOLON 
+   BREAK 
       { $$ = std::make_unique<BreakStmt>($1); }
 
 continue_stmt: 
-   CONTINUE SEMICOLON 
+   CONTINUE 
       { $$ = std::make_unique<ContinueStmt>($1); }
 
 expr_stmt: 
-   expr SEMICOLON 
+   expr 
       { $$ = std::make_unique<ExprStmt>(std::move($1)); }
 
 type_stmt: 
-   TYPE IDENTIFIER EQUAL TYPE_LITERAL SEMICOLON 
+   TYPE IDENTIFIER EQUAL TYPE_LITERAL 
       { $$ =  std::make_unique<TypeStmt>($2, $4, true); }
-   | TYPE IDENTIFIER EQUAL IDENTIFIER SEMICOLON 
+   | TYPE IDENTIFIER EQUAL IDENTIFIER 
       { $$ = std::make_unique<TypeStmt>($2, $4, false); }
 
 maybe_arg_list: 
@@ -455,6 +457,5 @@ UNARY_OP:
 
 void yy::yyParser::error( const location_type &loc, const std::string &err_message )
 {
-   std::cerr << "Error: " << err_message << " at line " << loc << "\n";
-   user_error_tracker->expected("something", "somewhere", Token(Token::Type::VAR, "foobar", 1, 1));
+   user_error_tracker->parse_error(err_message, loc.begin.line, loc.begin.column);
 }

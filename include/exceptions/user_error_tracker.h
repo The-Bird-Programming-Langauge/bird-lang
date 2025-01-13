@@ -28,9 +28,9 @@ class UserErrorTracker
         }
         std::cout << std::endl;
 
-        if (line_num > 0)
+        if (line_num > 1)
         {
-            std::cout << this->code_lines[line_num - 1] << std::endl;
+            std::cout << this->code_lines[line_num - 2] << std::endl;
         }
 
         std::cout << line << std::endl;
@@ -40,9 +40,9 @@ class UserErrorTracker
         }
         std::cout << '^' << std::endl;
 
-        if (line_num < this->code_lines.size() - 1)
+        if (line_num < this->code_lines.size())
         {
-            std::cout << this->code_lines[line_num + 1] << std::endl;
+            std::cout << this->code_lines[line_num] << std::endl;
         }
 
         std::cout << std::endl;
@@ -127,6 +127,13 @@ public:
     void expected(std::string symbol, std::string where, Token token)
     {
         this->errors.push_back(std::make_tuple(this->format_message("expected " + symbol + " " + where, token.line_num, token.char_num), token));
+    }
+
+    void parse_error(std::string message, unsigned int line_num, unsigned int char_num)
+    {
+        // token type is ignored, END is used as a placeholder
+        auto token = Token(Token::Type::END, "", line_num, char_num);
+        this->errors.push_back(std::make_tuple(this->format_message(message, line_num, char_num), token));
     }
 
     void type_mismatch(std::string where, Token token)
