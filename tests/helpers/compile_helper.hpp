@@ -16,7 +16,8 @@
 #include <functional>
 #include <filesystem>
 #include <unistd.h>
-#include <wait.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 namespace BirdTest
 {
@@ -109,46 +110,45 @@ namespace BirdTest
         {
             CodeGen code_gen;
             code_gen.generate(&ast);
+            pid_t pid = fork();
 
-            std::ifstream file(std::string("./output.wasm"));
-            file.close();
+            if (pid == -1)
+            {
+                exit(EXIT_FAILURE);
+            }
 
-            char *args[] = {(char *)"node", (char *)RUN_WASM_FILE_LOCATION, NULL};
+            if (pid == 0) // child process
+            {
+                char *args[] = {(char *)"node", (char *)RUN_WASM_FILE_LOCATION, NULL};
+                if (execvp("node", args) == -1)
+                {
+                    std::cerr << "Error running node" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else // parent process
+            {
+                waitpid(pid, nullptr, 0);
+        
+                std::ifstream output("./output.txt");
+                std::string code;
+                if (output.is_open())
+                {
+                    std::string line;
+                    while (output.good())
+                    {
+                        getline(output, line);
+                        code += line += '\n';
+                    }
+                }
 
-            //     pid_t pid = fork();
-            //     if (pid < 0)
-            //     {
-            //         std::cerr << "Fork failed" << std::endl;
-            //         exit(EXIT_FAILURE);
-            //     }
+                if (options.after_compile.has_value())
+                {
+                    options.after_compile.value()(code, code_gen);
+                }
 
-            //     if (pid == 0) // child process
-            //     {
-            //         execvp("node", args);
-            //     }
-            //     else // parent process
-            //     {
-            //         wait(NULL);
-
-            //         std::ifstream output("./output.txt");
-            //         std::string code;
-            //         if (output.is_open())
-            //         {
-            //             std::string line;
-            //             while (output.good())
-            //             {
-            //                 getline(output, line);
-            //                 code += line += '\n';
-            //             }
-            //         }
-
-            //         if (options.after_compile.has_value())
-            //         {
-            //             options.after_compile.value()(code, code_gen);
-            //         }
-
-            //         output.close();
-            //     }
+                output.close();
+            }
         }
 
         return true;

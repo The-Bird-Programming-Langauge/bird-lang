@@ -19,9 +19,9 @@ class Expr;
 class PrintStmt : public Stmt
 {
 public:
-    std::vector<std::unique_ptr<Expr>> args;
+    std::vector<std::shared_ptr<Expr>> args;
 
-    PrintStmt(std::vector<std::unique_ptr<Expr>> args)
+    PrintStmt(std::vector<std::shared_ptr<Expr>> args)
         : args(std::move(args)) {}
 
     void accept(Visitor *visitor)

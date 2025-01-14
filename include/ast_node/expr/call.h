@@ -21,9 +21,9 @@ class Call : public Expr
 {
 public:
     Token identifier;
-    std::vector<std::unique_ptr<Expr>> args;
+    std::vector<std::shared_ptr<Expr>> args;
 
-    Call(Token identifier, std::vector<std::unique_ptr<Expr>> args)
+    Call(Token identifier, std::vector<std::shared_ptr<Expr>> args)
         : identifier(identifier),
           args(std::move(args)) {};
 

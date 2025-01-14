@@ -1,6 +1,1 @@
-// hello there
-if 1 > 2 {print 1;} else if 1 == 2 {print 2;} else {print 3}
-// can you see me?
-
-// under this is another error 
-if 1 > 2 {print 1;} else if 1 == 2 {print 2;} else {print 3}
+fn function(i: int) -> int {return i;}var result: int = function(4);print(result);

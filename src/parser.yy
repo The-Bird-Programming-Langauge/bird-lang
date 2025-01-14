@@ -140,7 +140,7 @@ maybe_expr
 maybe_stmts
 stmts
 
-%type <std::vector<std::unique_ptr<Expr>>> 
+%type <std::vector<std::shared_ptr<Expr>>> 
 maybe_arg_list
 arg_list
 
@@ -306,12 +306,12 @@ type_stmt:
       { $$ = std::make_unique<TypeStmt>($2, $4, false); }
 
 maybe_arg_list: 
-   %empty { $$ = (std::vector<std::unique_ptr<Expr>>()); }
+   %empty { $$ = (std::vector<std::shared_ptr<Expr>>()); }
    | arg_list { $$ = std::move($1); }
 
 arg_list: 
    expr 
-      { $$ = std::vector<std::unique_ptr<Expr>>(); $$.push_back(std::move($1)); }
+      { $$ = std::vector<std::shared_ptr<Expr>>(); $$.push_back(std::move($1)); }
    | arg_list COMMA expr 
       { $1.push_back(std::move($3)); $$ = std::move($1); }
 
