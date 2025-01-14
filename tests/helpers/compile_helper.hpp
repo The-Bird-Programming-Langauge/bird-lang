@@ -23,7 +23,7 @@ namespace BirdTest
     struct TestOptions
     {
         std::string code;
-        bool lex = true;
+        // bool lex = true;
         bool parse = true;
         bool type_check = true;
         bool semantic_analyze = true;
