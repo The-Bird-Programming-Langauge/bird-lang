@@ -330,7 +330,7 @@ TEST(ParserTest, FunctionFailsArrowNoReturnType)
 TEST(ParserTest, ParseIfStmt)
 {
     BirdTest::TestOptions options;
-    options.code = "if 1 > 2 print 1; else if 1 == 2 print 2; else print 3;";
+    options.code = "if 1 > 2 {print 1;} else if 1 == 2 {print 2;} else {print 3;}";
 
     options.compile = false;
     options.interpret = false;
@@ -355,11 +355,13 @@ TEST(ParserTest, ParseIfStmt)
         ASSERT_NE(rhs_condition_if, nullptr);
         EXPECT_EQ(rhs_condition_if->value.lexeme, "2");
 
-        PrintStmt *then_print_stmt = dynamic_cast<PrintStmt *>(if_stmt->then_branch.get());
-        ASSERT_NE(then_print_stmt, nullptr);
-        ASSERT_EQ(then_print_stmt->args.size(), 1);
+        Block *then_block = dynamic_cast<Block *>(if_stmt->then_branch.get());
+        ASSERT_NE(then_block, nullptr);
+        ASSERT_EQ(then_block->stmts.size(), 1);
 
-        Primary *then_arg = dynamic_cast<Primary *>(then_print_stmt->args[0].get());
+        PrintStmt *print_stmt = dynamic_cast<PrintStmt *>(then_block->stmts[0].get());
+
+        Primary *then_arg = dynamic_cast<Primary *>(print_stmt->args[0].get());
         ASSERT_NE(then_arg, nullptr);
         EXPECT_EQ(then_arg->value.lexeme, "1");
 
@@ -379,18 +381,23 @@ TEST(ParserTest, ParseIfStmt)
         ASSERT_NE(rhs_condition_else_if, nullptr);
         EXPECT_EQ(rhs_condition_else_if->value.lexeme, "2");
 
-        PrintStmt *else_if_print_stmt = dynamic_cast<PrintStmt *>(else_if_stmt->then_branch.get());
-        ASSERT_NE(else_if_print_stmt, nullptr);
-        ASSERT_EQ(else_if_print_stmt->args.size(), 1);
+        Block *else_if_then_block = dynamic_cast<Block *>(else_if_stmt->then_branch.get());
+        ASSERT_NE(else_if_then_block, nullptr);
+        ASSERT_EQ(else_if_then_block->stmts.size(), 1);
+
+        PrintStmt *else_if_print_stmt = dynamic_cast<PrintStmt *>(else_if_then_block->stmts[0].get());
 
         Primary *else_if_arg = dynamic_cast<Primary *>(else_if_print_stmt->args[0].get());
         ASSERT_NE(else_if_arg, nullptr);
         EXPECT_EQ(else_if_arg->value.lexeme, "2");
 
         ASSERT_TRUE(else_if_stmt->else_branch.has_value());
-        PrintStmt *else_print_stmt = dynamic_cast<PrintStmt *>(else_if_stmt->else_branch->get());
-        ASSERT_NE(else_print_stmt, nullptr);
-        ASSERT_EQ(else_print_stmt->args.size(), 1);
+
+        Block *else_block = dynamic_cast<Block *>(else_if_stmt->else_branch->get());
+        ASSERT_NE(else_block, nullptr);
+        ASSERT_EQ(else_block->stmts.size(), 1);
+
+        PrintStmt *else_print_stmt = dynamic_cast<PrintStmt *>(else_block->stmts[0].get());
 
         Primary *else_arg = dynamic_cast<Primary *>(else_print_stmt->args[0].get());
         ASSERT_NE(else_arg, nullptr);

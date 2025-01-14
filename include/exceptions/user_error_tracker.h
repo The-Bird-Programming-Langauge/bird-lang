@@ -6,7 +6,7 @@
 #include <string>
 #include <tuple>
 
-#include "lexer.h"
+#include "../token.h"
 
 class UserErrorTracker
 {
@@ -18,7 +18,7 @@ class UserErrorTracker
      */
     void print_where(unsigned int line_num, unsigned int char_num)
     {
-        std::string line = this->code_lines[line_num];
+        std::string line = this->code_lines[line_num - 1];
 
         const unsigned int line_width = 100;
 
@@ -28,21 +28,21 @@ class UserErrorTracker
         }
         std::cout << std::endl;
 
-        if (line_num > 0)
+        if (line_num > 1)
         {
-            std::cout << this->code_lines[line_num - 1] << std::endl;
+            std::cout << this->code_lines[line_num - 2] << std::endl;
         }
 
         std::cout << line << std::endl;
-        for (int i = 0; i < char_num; i++)
+        for (int i = 0; i < char_num - 1; i++)
         {
             std::cout << '-';
         }
         std::cout << '^' << std::endl;
 
-        if (line_num < this->code_lines.size() - 1)
+        if (line_num < this->code_lines.size())
         {
-            std::cout << this->code_lines[line_num + 1] << std::endl;
+            std::cout << this->code_lines[line_num] << std::endl;
         }
 
         std::cout << std::endl;
@@ -70,13 +70,10 @@ public:
         std::stringstream code_stream(code);
 
         std::string line;
-        std::vector<std::string> lines;
         while (std::getline(code_stream, line, '\n'))
         {
-            lines.push_back(line);
+            this->code_lines.push_back(line);
         }
-
-        this->code_lines = lines;
     }
 
     void add_code_line(std::string line)
@@ -130,6 +127,13 @@ public:
     void expected(std::string symbol, std::string where, Token token)
     {
         this->errors.push_back(std::make_tuple(this->format_message("expected " + symbol + " " + where, token.line_num, token.char_num), token));
+    }
+
+    void parse_error(std::string message, unsigned int line_num, unsigned int char_num)
+    {
+        // token type is ignored, END is used as a placeholder
+        auto token = Token(Token::Type::END, "", line_num, char_num);
+        this->errors.push_back(std::make_tuple(this->format_message(message, line_num, char_num), token));
     }
 
     void type_mismatch(std::string where, Token token)

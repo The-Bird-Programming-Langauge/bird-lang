@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lexer.h"
+#include "token.h"
 #include "visitors/visitor.h"
 #include "expr.h"
 
@@ -13,11 +13,10 @@
 class Primary : public Expr
 {
 public:
-    Token value; // must be i32 literal
+    Token value;
+
     Primary(Token value)
-    {
-        this->value = value;
-    }
+        : value(value) {}
 
     void accept(Visitor *visitor)
     {

@@ -4,9 +4,8 @@
 #include "visitors/interpreter.h"
 #include "visitors/semantic_analyzer.h"
 #include "visitors/type_checker.h"
-#include "../src/parser.cpp"
-#include "../src/lexer.cpp"
-#include "../src/callable.cpp"
+#include "parser.h"
+#include "token.h"
 #include "sym_table.h"
 
 #include "binaryen-c.h"
@@ -17,21 +16,21 @@
 #include <functional>
 #include <filesystem>
 #include <unistd.h>
-#include <wait.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 namespace BirdTest
 {
     struct TestOptions
     {
         std::string code;
-        bool lex = true;
+        // bool lex = true;
         bool parse = true;
         bool type_check = true;
         bool semantic_analyze = true;
         bool interpret = true;
         bool compile = true;
 
-        std::optional<std::function<void(UserErrorTracker &, Lexer &)>> after_lex;
         std::optional<std::function<void(UserErrorTracker &, Parser &, const std::vector<std::unique_ptr<Stmt>> &)>> after_parse;
         std::optional<std::function<void(UserErrorTracker &, SemanticAnalyzer &)>> after_semantic_analyze;
         std::optional<std::function<void(UserErrorTracker &, TypeChecker &)>> after_type_check;
@@ -43,24 +42,18 @@ namespace BirdTest
 
     bool compile(const TestOptions options)
     {
-        UserErrorTracker error_tracker(options.code);
-        std::vector<Token> tokens;
-        if (options.lex)
-        {
-            Lexer lexer(options.code, &error_tracker);
-            tokens = lexer.lex();
-
-            if (options.after_lex.has_value())
-            {
-                options.after_lex.value()(error_tracker, lexer);
-            }
-        }
-
+        auto code = options.code;
+        UserErrorTracker error_tracker(code);
         std::vector<std::unique_ptr<Stmt>> ast;
         if (options.parse)
         {
-            Parser parser(tokens, &error_tracker);
+            Parser parser(code, &error_tracker);
             ast = parser.parse();
+            if (error_tracker.has_errors())
+            {
+                error_tracker.print_errors();
+                return false;
+            }
 
             if (options.after_parse.has_value())
             {
@@ -78,7 +71,7 @@ namespace BirdTest
                 options.after_semantic_analyze.value()(error_tracker, analyze_semantics);
             }
 
-            if (error_tracker.get_errors().size() > 0)
+            if (error_tracker.has_errors())
             {
                 error_tracker.print_errors();
                 return false;
@@ -95,7 +88,7 @@ namespace BirdTest
                 options.after_type_check.value()(error_tracker, type_checker);
             }
 
-            if (error_tracker.get_errors().size() > 0)
+            if (error_tracker.has_errors())
             {
                 error_tracker.print_errors();
                 return false;
@@ -117,27 +110,26 @@ namespace BirdTest
         {
             CodeGen code_gen;
             code_gen.generate(&ast);
-
-            std::ifstream file(std::string("./output.wasm"));
-            file.close();
-
-            char *args[] = {(char *)"node", (char *)RUN_WASM_FILE_LOCATION, NULL};
-
             pid_t pid = fork();
-            if (pid < 0)
+
+            if (pid == -1)
             {
-                std::cerr << "Fork failed" << std::endl;
                 exit(EXIT_FAILURE);
             }
 
             if (pid == 0) // child process
             {
-                execvp("node", args);
+                char *args[] = {(char *)"node", (char *)RUN_WASM_FILE_LOCATION, NULL};
+                if (execvp("node", args) == -1)
+                {
+                    std::cerr << "Error running node" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
             }
             else // parent process
             {
-                wait(NULL);
-
+                waitpid(pid, nullptr, 0);
+        
                 std::ifstream output("./output.txt");
                 std::string code;
                 if (output.is_open())

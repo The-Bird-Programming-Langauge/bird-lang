@@ -1,8 +1,1 @@
-type t = int;
-fn foo(y: t) -> t {}
-
-var x = 0; 
-while true { 
-    x = 1; 
-    print x; 
-}
+fn function(i: int) -> int {return i;}var result: int = function(4);print(result);

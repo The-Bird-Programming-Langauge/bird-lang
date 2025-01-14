@@ -3,7 +3,6 @@
 #include <memory>
 #include <cstring>
 
-#include "lexer.h"
 #include "parser.h"
 #include "visitors/ast_printer.h"
 #include "visitors/interpreter.h"
@@ -14,7 +13,6 @@
 #include "exceptions/user_error_tracker.h"
 
 #include "visitors/code_gen.h"
-// #include "parser2.hpp" // TODO: change this name
 
 extern int bird_parse(const char *input);
 
@@ -63,14 +61,7 @@ void repl()
 
         error_tracker.add_code_line(code);
 
-        Lexer lexer(code, &error_tracker);
-        auto tokens = lexer.lex();
-
-#ifdef DEBUG
-        lexer.print_tokens();
-#endif
-
-        Parser parser(tokens, &error_tracker);
+        Parser parser(code, &error_tracker);
         auto ast = parser.parse();
 
         if (error_tracker.has_errors())
@@ -115,14 +106,7 @@ void compile(std::string filename)
     auto code = read_file(filename);
     UserErrorTracker error_tracker(code);
 
-    Lexer lexer(code, &error_tracker);
-    auto tokens = lexer.lex();
-
-#ifdef DEBUG
-    lexer.print_tokens();
-#endif
-
-    Parser parser(tokens, &error_tracker);
+    Parser parser(code, &error_tracker);
     auto ast = parser.parse();
 
     if (error_tracker.has_errors())
@@ -160,14 +144,7 @@ void interpret(std::string filename)
     auto code = read_file(filename);
     UserErrorTracker error_tracker(code);
 
-    Lexer lexer(code, &error_tracker);
-    auto tokens = lexer.lex();
-
-#ifdef DEBUG
-    lexer.print_tokens();
-#endif
-
-    Parser parser(tokens, &error_tracker);
+    Parser parser(code, &error_tracker);
     auto ast = parser.parse();
 
     if (error_tracker.has_errors())
@@ -215,15 +192,12 @@ void interpret(std::string filename)
 std::string read_file(std::string filename)
 {
     std::ifstream file(filename);
-    std::string code;
-    if (file.is_open())
+    if (!file.is_open())
     {
-        std::string line;
-        while (file.good())
-        {
-            getline(file, line);
-            code += line += '\n';
-        }
+        // TODO: handle this error
     }
+
+    std::string code((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
     return code;
 }

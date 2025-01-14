@@ -14,7 +14,7 @@ TEST(ConstTest, ConstImmutability)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, "x");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is not mutable. (line 0, character 19)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is not mutable. (line 1, character 19)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));

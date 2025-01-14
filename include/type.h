@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lexer.h"
+#include "./token.h"
 
 class Type
 {

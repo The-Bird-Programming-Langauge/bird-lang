@@ -87,7 +87,6 @@ TEST(ConstTest, ConstWithoutTypeBool)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        std::cout << "AFTER COMPILE" << std::endl;
         ASSERT_EQ(output, "1\n0\n\n");
     };
 

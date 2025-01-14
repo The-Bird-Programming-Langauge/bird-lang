@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "lexer.h"
+#include "token.h"
 #include "visitors/visitor.h"
 #include "expr.h"
 
@@ -18,10 +18,8 @@ public:
     std::unique_ptr<Expr> expr;
 
     Unary(Token op, std::unique_ptr<Expr> expr)
-    {
-        this->op = op;
-        this->expr = std::move(expr);
-    }
+        : op(op),
+          expr(std::move(expr)) {}
 
     void accept(Visitor *visitor)
     {

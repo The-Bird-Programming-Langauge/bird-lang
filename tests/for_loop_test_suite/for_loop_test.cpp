@@ -36,7 +36,7 @@ TEST(ForLoopTest, BreakOutsideLoop)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, "break");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Break statement is declared outside of a loop. (line 0, character 5)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Break statement is declared outside of a loop. (line 1, character 1)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -56,7 +56,7 @@ TEST(ForLoopTest, ContinueOutsideLoop)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, "continue");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Continue statement is declared outside of a loop. (line 0, character 8)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Continue statement is declared outside of a loop. (line 1, character 1)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -157,12 +157,12 @@ TEST(ForLoopTest, EmptyForLoop)
     ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ForLoopTest, FalseForLoop) 
+TEST(ForLoopTest, FalseForLoop)
 {
     BirdTest::TestOptions options;
     options.code = "var x = 0;"
                    "for ; false; do {"
-                    "    x = 1;"
+                   "    x = 1;"
                    "    print x;"
                    "}";
 

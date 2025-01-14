@@ -37,7 +37,7 @@ TEST(FunctionTest, MalformedCall)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, ";");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] expected identifier or i32  (line 0, character 25)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] expected identifier or i32  (line 1, character 25)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -55,7 +55,7 @@ TEST(FunctionTest, CallWithIncorrectTypes)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, "function");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: in function call (line 0, character 38)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: in function call (line 1, character 31)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -75,7 +75,7 @@ TEST(FunctionTest, StoreReturnWithIncorrectVarType)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, "str");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: in declaration (line 0, character 48)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: in declaration (line 1, character 46)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -93,7 +93,7 @@ TEST(FunctionTest, ArityFail)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, "function");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Function call identifer 'function' does not use the correct number of arguments. (line 0, character 38)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Function call identifer 'function' does not use the correct number of arguments. (line 1, character 31)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -111,7 +111,7 @@ TEST(FunctionTest, FunctionRedeclaration)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, "x");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is already declared. (line 0, character 29)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is already declared. (line 1, character 29)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));

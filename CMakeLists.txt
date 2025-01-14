@@ -13,8 +13,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall") # needed by binaryen
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
-BISON_TARGET(Parser ${PROJECT_SOURCE_DIR}/src/parser.y ${PROJECT_SOURCE_DIR}/src/parser2.cpp DEFINES_FILE ${PROJECT_SOURCE_DIR}/include/parser2.hpp)
-FLEX_TARGET(Lexer ${PROJECT_SOURCE_DIR}/src/lexer.l ${PROJECT_SOURCE_DIR}/src/lexer2.cpp)
+BISON_TARGET(Parser ${PROJECT_SOURCE_DIR}/src/parser.yy ${PROJECT_SOURCE_DIR}/build/parser.tab.cc)
+FLEX_TARGET(Lexer ${PROJECT_SOURCE_DIR}/src/lexer.l ${PROJECT_SOURCE_DIR}/build/lexer.yy.cc)
+ADD_FLEX_BISON_DEPENDENCY(Lexer Parser)
+set_property(DIRECTORY build APPEND PROPERTY ADDITIONAL_CLEAN_FILES location.hh)
 
 include_directories("/usr/include/") # needed by binaryen, includes binaryen-c.h
 link_directories("/usr/lib/x86_64-linux-gnu/") # needed by binaryen, includes libbinaryen.so
@@ -24,7 +26,7 @@ include_directories(${PROJECT_SOURCE_DIR}/tests)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-add_executable(compiler main.cpp ${SOURCES} ${BISON_Parser_OUTPUTS} ${FLEX_Lexer_OUTPUTS})
+add_executable(compiler main.cpp ${SOURCES} ${FLEX_Lexer_OUTPUTS} ${BISON_Parser_OUTPUTS})
 
 option(DEBUG "Build with debug flags" OFF)
 
@@ -50,7 +52,7 @@ if (TESTS)
   # For each test file, create a separate test executable
   foreach(test_source ${TEST_SOURCES})
       get_filename_component(test_name ${test_source} NAME_WE)
-      add_executable(${test_name} ${test_source})
+      add_executable(${test_name} ${test_source} ${SOURCES} ${FLEX_Lexer_OUTPUTS} ${BISON_Parser_OUTPUTS})
       target_link_libraries(${test_name} GTest::gtest GTest::gtest_main)
       target_link_libraries(${test_name} binaryen)
       add_test(NAME ${test_name} COMMAND ${test_name})

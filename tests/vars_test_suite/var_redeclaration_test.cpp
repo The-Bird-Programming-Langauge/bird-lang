@@ -13,7 +13,7 @@ TEST(VarTest, VarRedeclaration)
         auto tup = error_tracker.get_errors()[0];
 
         ASSERT_EQ(std::get<1>(tup).lexeme, "x");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is already declared. (line 0, character 15)");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] semantic error: Identifier 'x' is already declared. (line 1, character 15)");
     };
 
     ASSERT_FALSE(BirdTest::compile(options));

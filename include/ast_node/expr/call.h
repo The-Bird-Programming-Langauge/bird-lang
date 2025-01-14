@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 #include "ast_node/node.h"
-#include "lexer.h"
+#include "token.h"
 #include "visitors/visitor.h"
 
 // forward declaration
@@ -23,8 +23,7 @@ public:
     Token identifier;
     std::vector<std::shared_ptr<Expr>> args;
 
-    Call(Token identifier,
-         std::vector<std::shared_ptr<Expr>> args)
+    Call(Token identifier, std::vector<std::shared_ptr<Expr>> args)
         : identifier(identifier),
           args(std::move(args)) {};
 

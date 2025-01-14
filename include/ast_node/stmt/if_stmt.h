@@ -37,17 +37,8 @@ public:
            std::optional<std::unique_ptr<Stmt>> else_branch)
         : if_token(if_token),
           condition(std::move(condition)),
-          then_branch(std::move(then_branch))
-    {
-        if (else_branch.has_value())
-        {
-            this->else_branch = std::move(else_branch);
-        }
-        else
-        {
-            this->else_branch = std::nullopt;
-        }
-    }
+          then_branch(std::move(then_branch)),
+          else_branch(std::move(else_branch)) {}
 
     void accept(Visitor *visitor)
     {
