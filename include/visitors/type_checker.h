@@ -233,48 +233,48 @@ public:
 
     void visit_decl_stmt(DeclStmt *decl_stmt)
     {
-        // decl_stmt->value->accept(this);
-        // auto result = std::move(this->stack.pop());
+        decl_stmt->value->accept(this);
+        auto result = std::move(this->stack.pop());
 
-        // if (result == BirdType::VOID)
-        // {
-        //     this->user_error_tracker->type_error("cannot declare void type", decl_stmt->identifier);
-        //     this->env.declare(decl_stmt->identifier.lexeme, BirdType::ERROR);
-        //     return;
-        // }
+        if (result == BirdType::VOID)
+        {
+            this->user_error_tracker->type_error("cannot declare void type", decl_stmt->identifier);
+            this->env.declare(decl_stmt->identifier.lexeme, BirdType::ERROR);
+            return;
+        }
 
-        // if (decl_stmt->type_token.has_value())
-        // {
-        //     BirdType type;
-        //     if (decl_stmt->type_is_literal)
-        //     {
-        //         type = this->get_type_from_token(decl_stmt->type_token.value());
-        //     }
-        //     else
-        //     {
-        //         type = this->get_type_from_token(this->type_table.get(decl_stmt->type_token.value().lexeme).type);
-        //     }
+        if (decl_stmt->type_token.has_value())
+        {
+            BirdType type;
+            if (decl_stmt->type_is_literal)
+            {
+                type = this->get_type_from_token(decl_stmt->type_token.value());
+            }
+            else
+            {
+                type = this->get_type_from_token(this->type_table.get(decl_stmt->type_token.value().lexeme).type);
+            }
 
-        //     if (type != result)
-        //     {
-        //         if (result == BirdType::INT && type == BirdType::FLOAT)
-        //         {
-        //             this->env.declare(decl_stmt->identifier.lexeme, BirdType::INT);
-        //             return;
-        //         }
-        //         if (result == BirdType::FLOAT && type == BirdType::INT)
-        //         {
-        //             this->env.declare(decl_stmt->identifier.lexeme, BirdType::FLOAT);
-        //             return;
-        //         }
-        //         this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type_token.value());
+            if (type != result)
+            {
+                if (result == BirdType::INT && type == BirdType::FLOAT)
+                {
+                    this->env.declare(decl_stmt->identifier.lexeme, BirdType::INT);
+                    return;
+                }
+                if (result == BirdType::FLOAT && type == BirdType::INT)
+                {
+                    this->env.declare(decl_stmt->identifier.lexeme, BirdType::FLOAT);
+                    return;
+                }
+                this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type_token.value());
 
-        //         this->env.declare(decl_stmt->identifier.lexeme, BirdType::ERROR);
-        //         return;
-        //     }
-        // }
+                this->env.declare(decl_stmt->identifier.lexeme, BirdType::ERROR);
+                return;
+            }
+        }
 
-        // this->env.declare(decl_stmt->identifier.lexeme, result);
+        this->env.declare(decl_stmt->identifier.lexeme, result);
     }
 
     void visit_assign_expr(AssignExpr *assign_expr)
@@ -552,10 +552,6 @@ public:
             if (this->type_table.contains(type))
             {
                 return this->get_type_from_token(this->type_table.get(type).type);
-            }
-            else
-            {
-                return BirdType::STRUCT;
             }
 
             this->user_error_tracker->type_error("unknown type", token);
