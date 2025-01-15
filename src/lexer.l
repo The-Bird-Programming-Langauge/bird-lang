@@ -35,6 +35,7 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 "//".*\n                { location->lines(); }
 
+
 "var"                   { yylval->emplace<Token>() = make_token(T::VAR);
                           return token::VAR; }
 
@@ -80,6 +81,12 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "false"                 { yylval->emplace<Token>() = make_token(T::BOOL_LITERAL);
                           return token::BOOL_LITERAL;}
 
+"struct"                { yylval->emplace<Token>() = make_token(T::STRUCT);
+                          return token::STRUCT; }
+
+"self"                 { yylval->emplace<Token>() = make_token(T::SELF);
+                          return token::SELF; }
+
 {TYPE_IDENT}            { yylval->emplace<Token>() = make_token(T::TYPE_LITERAL);
                           return token::TYPE_LITERAL;} 
 
@@ -88,6 +95,7 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 [0-9]+                  { yylval->emplace<Token>() = make_token(T::INT_LITERAL);
                           return token::INT_LITERAL;} 
+
 
 \"(\\.|[^"\\])*\"                  { 
                           yytext = yytext + 1;
@@ -99,6 +107,7 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
                           return token::IDENTIFIER;} 
 
 
+"."                     { return token::DOT; }
 "?"                     { yylval->emplace<Token>() = make_token(T::QUESTION);
                           return token::QUESTION; } 
 
@@ -159,6 +168,9 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "}"                     { return token::RBRACE; } 
 "{"                     { return token::LBRACE; } 
 ")"                     { return token::RPAREN; } 
+"["                    { yylval->emplace<Token>() = make_token(T::LBRACKET);
+                        return token::LBRACKET; }
+"]"                   { return token::RBRACKET; }
 "("                     { return token::LPAREN; }
 ";"                     { return token::SEMICOLON; } 
 "!"                     { return token::BANG; } 
@@ -166,7 +178,10 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 \n                      { location->lines(); }
 
+
 [ \t\r]*                { /* do nothing */ }
+
+.                       { std::cout << "unexpected token" << std::endl;}
 
 <<EOF>>                 { yyterminate(); }
 

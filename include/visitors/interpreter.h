@@ -123,6 +123,12 @@ public:
                 type_stmt->accept(this);
                 continue;
             }
+
+            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
+            {
+                struct_decl->accept(this);
+                continue;
+            }
         }
 
         while (!this->stack.empty())
@@ -550,5 +556,58 @@ public:
         {
             this->type_table.declare(type_stmt->identifier.lexeme, Type(this->type_table.get(type_stmt->type_token.lexeme).type));
         }
+    }
+
+    void visit_subscript(Subscript *Subscript)
+    {
+        Subscript->subscriptable->accept(this);
+        auto subscriptable = this->stack.pop();
+
+        Subscript->index->accept(this);
+        auto index = this->stack.pop();
+
+        this->stack.push(subscriptable[index]);
+    }
+
+    void visit_struct_decl(StructDecl *struct_decl)
+    {
+        std::cout << "declaring struct: " << struct_decl->identifier.lexeme << std::endl;
+        this->type_table.declare(struct_decl->identifier.lexeme, StructType(struct_decl->identifier.lexeme, struct_decl->fields));
+    }
+
+    void visit_direct_member_access(DirectMemberAccess *direct_member_access)
+    {
+        direct_member_access->accessable->accept(this);
+        auto accessable = this->stack.pop();
+
+        if (is_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable))
+        {
+            auto struct_type = as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable);
+            for (auto &field : *struct_type.get())
+            {
+                std::cout << field.first << std::endl;
+            }
+            this->stack.push((*struct_type.get())[direct_member_access->identifier.lexeme]);
+        }
+        else
+        {
+            throw BirdException("Cannot access member of non-struct type.");
+        }
+    }
+
+    void visit_struct_initialization(StructInitialization *struct_initialization)
+    {
+        std::cout << "initializing struct: " << struct_initialization->identifier.lexeme << std::endl;
+        std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance = std::make_shared<std::unordered_map<std::string, Value>>();
+
+        for (auto &field_assignment : struct_initialization->field_assignments)
+        {
+            field_assignment.second->accept(this);
+            auto result = this->stack.pop();
+
+            (*struct_instance)[field_assignment.first] = result;
+        }
+
+        this->stack.push(Value(struct_instance));
     }
 };

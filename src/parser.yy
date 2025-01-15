@@ -19,6 +19,7 @@
    #include <vector>
    #include <memory>
    #include <optional>
+   #include <utility>
 
    #include "ast_node/index.h"
 
@@ -59,6 +60,8 @@ CONTINUE "continue"
 FN "fn"
 PRINT "print"
 TYPE "type"
+STRUCT "struct"
+SELF "self"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -86,10 +89,13 @@ RBRACE "}"
 LBRACE "{"
 RPAREN ")"
 LPAREN "("
+RBRACKET "]"
+%token <Token> LBRACKET "["
+%token
 COLON ":"
 BANG "!"
 ARROW "->"
-
+DOT "."
 
 %type <std::unique_ptr<Stmt>> 
 stmt
@@ -106,6 +112,7 @@ break_stmt
 continue_stmt
 expr_stmt
 type_stmt
+struct_decl
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -117,6 +124,9 @@ term_expr
 factor_expr
 unary_expr
 call_expr
+struct_initialization
+subscript_expr
+direct_member_access
 grouping
 
 %type <Token> 
@@ -128,6 +138,11 @@ FACTOR_OP
 UNARY_OP
 EQUALITY_OP
 
+%type <std::vector<std::pair<std::string, Token>>>
+field_map
+
+%type <std::vector<std::pair<std::string, std::unique_ptr<Expr>>>>
+struct_initialization_list
 
 %type <std::optional<Token>>
 return_type
@@ -180,8 +195,12 @@ param_list
 %right UNARY
 %left CALL
    LPAREN
-%nonassoc GROUPING
-   INT_LITERAL FLOAT_LITERAL BOOL_LITERAL STR_LITERAL IDENTIFIER
+%left SUBSCRIPT
+   LBRACKET
+%left DIRECT_MEMBER_ACCESS
+   DOT
+%left STRUCT_INITIALIZATION
+   IDENTIFIER 
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -193,7 +212,7 @@ param_list
 %%
 
 program: 
-   maybe_stmts { stmts = std::move($1); }
+   maybe_stmts { std::cout << "before move program\n"; stmts = std::move($1); std::cout << "after move program\n"; }
 
 maybe_stmts:
     %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
@@ -219,8 +238,20 @@ stmt:
    | continue_stmt SEMICOLON { $$ = std::move($1); }
    | expr_stmt SEMICOLON { $$ = std::move($1); }
    | type_stmt SEMICOLON { $$ = std::move($1); }
+   | struct_decl SEMICOLON { $$ = std::move($1); }
    | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
 
+struct_decl:
+   STRUCT IDENTIFIER LBRACE field_map RBRACE {
+      $$ = std::make_unique<StructDecl>($2, $4);
+   }
+
+field_map: 
+   %empty { $$ = std::vector<std::pair<std::string, Token>>(); }
+   | IDENTIFIER COLON TYPE_LITERAL SEMICOLON
+      { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back(std::make_pair($1.lexeme, $3)); }
+   | field_map COMMA IDENTIFIER COLON TYPE_LITERAL SEMICOLON
+      { $1.push_back(std::make_pair($3.lexeme, $5)); $$ = $1; }
 
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 
@@ -356,6 +387,9 @@ expr:
    | factor_expr { $$ = std::move($1); }
    | unary_expr { $$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
+   | subscript_expr { $$ = std::move($1); }
+   | direct_member_access { $$ = std::move($1); }
+   | struct_initialization { std::cout << "moving struct" << std::endl; $$ = std::move($1); std::cout << "after move struct\n";}
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
 
@@ -414,6 +448,38 @@ call_expr:
          }
       }
 
+struct_initialization:
+   IDENTIFIER LBRACE struct_initialization_list RBRACE {
+      std::cout << "found struct initialization list\n";
+      $$ = std::make_unique<StructInitialization>($1, std::move($3));
+      std::cout << "after found struct initializtion list\n";
+   }
+
+struct_initialization_list:
+   %empty { 
+         $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>();
+      }
+   | IDENTIFIER EQUAL expr { 
+         $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>();
+         $$.push_back(std::make_pair($1.lexeme, std::move($3)));
+      }
+   | struct_initialization_list COMMA IDENTIFIER EQUAL expr { 
+      $1.push_back(std::make_pair($3.lexeme, std::move($5)));
+      $$ = std::move($1);
+      }
+
+subscript_expr:
+   expr LBRACKET expr RBRACKET %prec SUBSCRIPT
+      {
+         $$ = std::make_unique<Subscript>(std::move($1), std::move($3), $2);
+      }
+
+direct_member_access:
+   expr DOT IDENTIFIER %prec SUBSCRIPT
+   {
+      $$ = std::make_unique<DirectMemberAccess>(std::move($1), $3);
+   }
+
 primary: 
    IDENTIFIER 
    | INT_LITERAL 
@@ -422,7 +488,7 @@ primary:
    | STR_LITERAL
 
 grouping: 
-   LPAREN expr RPAREN %prec GROUPING
+   LPAREN expr RPAREN 
       { $$ = std::move($2); }
 
 ASSIGN_OP: 

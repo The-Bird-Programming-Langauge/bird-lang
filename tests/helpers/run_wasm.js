@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { off } = require("process");
 
 const outputPath = "./output.txt";
 fs.writeFileSync(outputPath, "");
@@ -21,8 +22,16 @@ const moduleOptions = {
             }
             console.log(str);
             fs.appendFileSync(outputPath, str + "\n");
-
-        }
+        },
+        mem_get: (ptr, index) => {
+            const buffer = new Uint8Array(instance.exports.memory.buffer);
+            const result = buffer[ptr + index];
+            return result;
+        },
+        mem_set: (ptr, offset, value) => {
+            const buffer = new Uint8Array(instance.exports.memory.buffer);
+            buffer[ptr + offset] = value;
+        },
     }
 };
 

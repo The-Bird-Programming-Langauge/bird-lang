@@ -89,7 +89,8 @@
                 "*.inc": "cpp",
                 "codecvt": "cpp",
                 "numbers": "cpp",
-                "format": "cpp"
+                "format": "cpp",
+                "version": "cpp"
         },
         "C_Cpp.errorSquiggles": "enabled"
 }

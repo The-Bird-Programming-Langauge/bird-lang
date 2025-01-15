@@ -356,4 +356,36 @@ public:
                this->call_table.current_contains(identifer) ||
                this->type_table.current_contains(identifer);
     }
+
+    void visit_subscript(Subscript *subscript)
+    {
+        subscript->subscriptable->accept(this);
+        subscript->index->accept(this);
+    };
+
+    void visit_struct_decl(StructDecl *struct_decl)
+    {
+        // if (this->identifer_in_any_environment(struct_decl->identifier.lexeme))
+        // {
+        //     this->user_error_tracker->semantic_error("Identifier '" + struct_decl->identifier.lexeme + "' is already declared.", struct_decl->identifier);
+        //     return;
+        // }
+
+        this->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
+
+        // do nothing
+    }
+
+    void visit_direct_member_access(DirectMemberAccess *direct_member_access)
+    {
+        direct_member_access->accessable->accept(this);
+    }
+
+    void visit_struct_initialization(StructInitialization *struct_initialization)
+    {
+        // for (auto &field_assignment : struct_initialization->field_assignments)
+        // {
+        //     field_assignment.second->accept(this);
+        // }
+    }
 };

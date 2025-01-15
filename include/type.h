@@ -1,14 +1,23 @@
 #pragma once
 
 #include "./token.h"
+#include <utility>
 
-class Type
+struct Type
 {
-public:
     Token type;
 
     Type() = default;
     Type(Token typeP) : type(typeP) {}
+};
+
+struct StructType : Type
+{
+    std::string name;
+    std::vector<std::pair<std::string, Token>> fields;
+
+    StructType() = default;
+    StructType(std::string name, std::vector<std::pair<std::string, Token>> fields) : name(name), fields(fields) {}
 };
 
 struct SemanticType

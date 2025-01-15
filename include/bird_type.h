@@ -13,6 +13,7 @@ enum class BirdType
     BOOL,
     VOID,
     ERROR,
+    STRUCT
 };
 
 // TODO: figure out how to do first class functions

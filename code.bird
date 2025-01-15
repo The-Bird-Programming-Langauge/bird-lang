@@ -1,1 +1,11 @@
-fn function(i: int) -> int {return i;}var result: int = function(4);print(result);
+struct Person {
+    age: int;
+};
+
+var foo: Person = Person{
+    age = 4,
+    name = "cole"
+};
+
+print foo.age;
+print foo.name;

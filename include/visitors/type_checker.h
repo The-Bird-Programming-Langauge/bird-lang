@@ -205,6 +205,12 @@ public:
                 type_stmt->accept(this);
                 continue;
             }
+
+            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
+            {
+                struct_decl->accept(this);
+                continue;
+            }
         }
 
         while (!this->stack.empty())
@@ -227,48 +233,48 @@ public:
 
     void visit_decl_stmt(DeclStmt *decl_stmt)
     {
-        decl_stmt->value->accept(this);
-        auto result = std::move(this->stack.pop());
+        // decl_stmt->value->accept(this);
+        // auto result = std::move(this->stack.pop());
 
-        if (result == BirdType::VOID)
-        {
-            this->user_error_tracker->type_error("cannot declare void type", decl_stmt->identifier);
-            this->env.declare(decl_stmt->identifier.lexeme, BirdType::ERROR);
-            return;
-        }
+        // if (result == BirdType::VOID)
+        // {
+        //     this->user_error_tracker->type_error("cannot declare void type", decl_stmt->identifier);
+        //     this->env.declare(decl_stmt->identifier.lexeme, BirdType::ERROR);
+        //     return;
+        // }
 
-        if (decl_stmt->type_token.has_value())
-        {
-            BirdType type;
-            if (decl_stmt->type_is_literal)
-            {
-                type = this->get_type_from_token(decl_stmt->type_token.value());
-            }
-            else
-            {
-                type = this->get_type_from_token(this->type_table.get(decl_stmt->type_token.value().lexeme).type);
-            }
+        // if (decl_stmt->type_token.has_value())
+        // {
+        //     BirdType type;
+        //     if (decl_stmt->type_is_literal)
+        //     {
+        //         type = this->get_type_from_token(decl_stmt->type_token.value());
+        //     }
+        //     else
+        //     {
+        //         type = this->get_type_from_token(this->type_table.get(decl_stmt->type_token.value().lexeme).type);
+        //     }
 
-            if (type != result)
-            {
-                if (result == BirdType::INT && type == BirdType::FLOAT)
-                {
-                    this->env.declare(decl_stmt->identifier.lexeme, BirdType::INT);
-                    return;
-                }
-                if (result == BirdType::FLOAT && type == BirdType::INT)
-                {
-                    this->env.declare(decl_stmt->identifier.lexeme, BirdType::FLOAT);
-                    return;
-                }
-                this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type_token.value());
+        //     if (type != result)
+        //     {
+        //         if (result == BirdType::INT && type == BirdType::FLOAT)
+        //         {
+        //             this->env.declare(decl_stmt->identifier.lexeme, BirdType::INT);
+        //             return;
+        //         }
+        //         if (result == BirdType::FLOAT && type == BirdType::INT)
+        //         {
+        //             this->env.declare(decl_stmt->identifier.lexeme, BirdType::FLOAT);
+        //             return;
+        //         }
+        //         this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type_token.value());
 
-                this->env.declare(decl_stmt->identifier.lexeme, BirdType::ERROR);
-                return;
-            }
-        }
+        //         this->env.declare(decl_stmt->identifier.lexeme, BirdType::ERROR);
+        //         return;
+        //     }
+        // }
 
-        this->env.declare(decl_stmt->identifier.lexeme, result);
+        // this->env.declare(decl_stmt->identifier.lexeme, result);
     }
 
     void visit_assign_expr(AssignExpr *assign_expr)
@@ -547,6 +553,10 @@ public:
             {
                 return this->get_type_from_token(this->type_table.get(type).type);
             }
+            else
+            {
+                return BirdType::STRUCT;
+            }
 
             this->user_error_tracker->type_error("unknown type", token);
             return BirdType::ERROR;
@@ -691,5 +701,85 @@ public:
         {
             this->type_table.declare(type_stmt->identifier.lexeme, Type(this->type_table.get(type_stmt->type_token.lexeme).type));
         }
+    }
+
+    void visit_subscript(Subscript *subscript)
+    {
+        subscript->subscriptable->accept(this);
+        auto subscriptable = this->stack.pop();
+
+        subscript->index->accept(this);
+        auto index = this->stack.pop();
+
+        if (subscriptable != BirdType::STRING)
+        {
+            this->user_error_tracker->type_error("expected string in subscriptable", subscript->subscript_token);
+            this->stack.push(BirdType::ERROR);
+            return;
+        }
+
+        if (index != BirdType::INT)
+        {
+            this->user_error_tracker->type_error("expected int in subscript index", subscript->subscript_token);
+            this->stack.push(BirdType::ERROR);
+            return;
+        }
+
+        this->stack.push(BirdType::INT);
+    }
+
+    void visit_struct_decl(StructDecl *struct_decl)
+    {
+        this->type_table.declare(struct_decl->identifier.lexeme, Type(struct_decl->identifier));
+    }
+
+    void visit_direct_member_access(DirectMemberAccess *direct_member_access)
+    {
+        // direct_member_access->accessable->accept(this);
+        // auto accessable = this->stack.pop();
+
+        // if (accessable == BirdType::ERROR)
+        // {
+        //     this->stack.push(BirdType::ERROR);
+        //     return;
+        // }
+
+        // if (accessable != BirdType::STRUCT)
+        // {
+        //     this->user_error_tracker->type_error("expected struct in direct member access", direct_member_access->identifier);
+        //     this->stack.push(BirdType::ERROR);
+        //     return;
+        // }
+
+        // auto struct_type = this->type_table.get(accessable.lexeme).type;
+        // auto field = struct_type.fields.find(direct_member_access->identifier.lexeme);
+
+        // if (field == struct_type.fields.end())
+        // {
+        //     this->user_error_tracker->type_error("field not found in struct", direct_member_access->identifier);
+        //     this->stack.push(BirdType::ERROR);
+        //     return;
+        // }
+
+        // this->stack.push(field->second);
+    }
+
+    void visit_struct_initialization(StructInitialization *struct_initialization)
+    {
+        // std::shared_ptr<std::unordered_map<std::string, BirdType>> struct_instance = std::make_shared<std::unordered_map<std::string, BirdType>>();
+
+        // for (auto &field_assignment : struct_initialization->field_assignments)
+        // {
+        //     field_assignment.second->accept(this);
+        //     auto result = this->stack.pop();
+
+        //     (*struct_instance)[field_assignment.first] = result;
+        // }
+
+        // this->stack.push(BirdType::STRUCT);
+        // this->stack.push(
+        //     this->type_table.get(struct_initialization->identifier.lexeme));
+
+        // this->stack.push(BirdType::STRUCT);
     }
 };

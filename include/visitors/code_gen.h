@@ -114,6 +114,16 @@ public:
             "print_str",
             BinaryenTypeInt32(),
             BinaryenTypeNone());
+
+        BinaryenType args[2] = {BinaryenTypeInt32(), BinaryenTypeInt32()};
+        BinaryenType args_type = BinaryenTypeCreate(args, 2);
+        BinaryenAddFunctionImport(
+            this->mod,
+            "mem_get",
+            "env",
+            "mem_get",
+            args_type,
+            BinaryenTypeInt32());
     }
 
     void add_memory_segment(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
@@ -268,6 +278,12 @@ public:
             if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get()))
             {
                 type_stmt->accept(this);
+                // no stack push here, only type table
+            }
+
+            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
+            {
+                struct_decl->accept(this);
                 // no stack push here, only type table
             }
         }
@@ -1486,5 +1502,41 @@ public:
         {
             this->type_table.declare(type_stmt->identifier.lexeme, Type(this->type_table.get(type_stmt->type_token.lexeme).type));
         }
+    }
+
+    void visit_subscript(Subscript *subscript)
+    {
+        subscript->subscriptable->accept(this);
+        auto subscriptable = this->stack.pop();
+
+        subscript->index->accept(this);
+        auto index = this->stack.pop();
+
+        BinaryenExpressionRef args[2] = {subscriptable.value, index.value};
+
+        this->stack.push(
+            TaggedExpression(
+                BinaryenCall(
+                    this->mod,
+                    "mem_get",
+                    args,
+                    2,
+                    BinaryenTypeInt32()),
+                CodeGenInt));
+    }
+
+    void visit_struct_decl(StructDecl *struct_decl)
+    {
+        type_table.declare(struct_decl->identifier.lexeme, StructType(struct_decl->identifier.lexeme, struct_decl->fields));
+    }
+
+    void visit_direct_member_access(DirectMemberAccess *direct_member_access)
+    {
+        throw BirdException("Direct member access not implemented");
+    }
+
+    void visit_struct_initialization(StructInitialization *struct_initialization)
+    {
+        throw BirdException("Struct initialization not implemented");
     }
 };

@@ -27,6 +27,8 @@ public:
         yy::yyParser parser(stmts, this->error_tracker);
         parser.parse();
 
+        std::cout << "after parse\n";
+
         return stmts;
     }
 };

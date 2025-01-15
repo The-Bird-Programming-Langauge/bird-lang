@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <map>
 #include "ast_node/index.h"
 
 /*
@@ -110,6 +111,13 @@ public:
             if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get()))
             {
                 type_stmt->accept(this);
+                std::cout << std::endl;
+                continue;
+            }
+
+            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
+            {
+                struct_decl->accept(this);
                 std::cout << std::endl;
                 continue;
             }
@@ -295,5 +303,41 @@ public:
     void visit_type_stmt(TypeStmt *type_stmt)
     {
         std::cout << "type " << type_stmt->identifier.lexeme << " = " << type_stmt->type_token.lexeme;
+    }
+
+    void visit_subscript(Subscript *subscript)
+    {
+        subscript->subscriptable->accept(this);
+        std::cout << "[";
+        subscript->index->accept(this);
+        std::cout << "]";
+    }
+
+    void visit_struct_decl(StructDecl *struct_decl)
+    {
+        std::cout << "struct " << struct_decl->identifier.lexeme;
+        std::cout << "{";
+        for (auto it = struct_decl->fields.begin(); it != struct_decl->fields.end(); it++)
+        {
+            std::cout << it->first << ": " << it->second.lexeme;
+        }
+        std::cout << "}";
+    }
+
+    void visit_direct_member_access(DirectMemberAccess *direct_member_access)
+    {
+        direct_member_access->accessable->accept(this);
+        std::cout << "." << direct_member_access->identifier.lexeme;
+    }
+
+    void visit_struct_initialization(StructInitialization *struct_initialization)
+    {
+        std::cout << struct_initialization->identifier.lexeme << "{";
+        // for (auto it = struct_initialization->field_assignments.begin(); it != struct_initialization->field_assignments.end(); it++)
+        // {
+        //     std::cout << it->first << ": ";
+        //     it->second->accept(this);
+        // }
+        std::cout << "}";
     }
 };
