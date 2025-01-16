@@ -212,7 +212,7 @@ param_list
 %%
 
 program: 
-   maybe_stmts { std::cout << "before move program\n"; stmts = std::move($1); std::cout << "after move program\n"; }
+   maybe_stmts { stmts = std::move($1); }
 
 maybe_stmts:
     %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
@@ -248,9 +248,9 @@ struct_decl:
 
 field_map: 
    %empty { $$ = std::vector<std::pair<std::string, Token>>(); }
-   | IDENTIFIER COLON TYPE_LITERAL SEMICOLON
+   | IDENTIFIER COLON TYPE_LITERAL 
       { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back(std::make_pair($1.lexeme, $3)); }
-   | field_map COMMA IDENTIFIER COLON TYPE_LITERAL SEMICOLON
+   | field_map COMMA IDENTIFIER COLON TYPE_LITERAL 
       { $1.push_back(std::make_pair($3.lexeme, $5)); $$ = $1; }
 
 decl_stmt: 
@@ -389,7 +389,7 @@ expr:
    | call_expr { $$ = std::move($1); }
    | subscript_expr { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
-   | struct_initialization { std::cout << "moving struct" << std::endl; $$ = std::move($1); std::cout << "after move struct\n";}
+   | struct_initialization { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
 
@@ -450,9 +450,7 @@ call_expr:
 
 struct_initialization:
    IDENTIFIER LBRACE struct_initialization_list RBRACE {
-      std::cout << "found struct initialization list\n";
       $$ = std::make_unique<StructInitialization>($1, std::move($3));
-      std::cout << "after found struct initializtion list\n";
    }
 
 struct_initialization_list:

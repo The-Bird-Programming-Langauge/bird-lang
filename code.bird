@@ -1,11 +1,31 @@
+
+type x = int;
+fn foo(y: x) -> x
+{
+return y;
+}
+
+var z: x = foo(2);
+foo(z);
+
+
 struct Person {
-    age: int;
+    age: int,
+    name: str
 };
 
-var foo: Person = Person{
-    age = 4,
-    name = "cole"
-};
+fn create_person(age: int, name: str) -> Person {
+    return Person{
+        age = age,
+        name = name
+    };
+}
 
-print foo.age;
-print foo.name;
+var me: Person = create_person(4, "cole");
+print me.age;
+print me.name[1];
+
+
+const you: Person = create_person(5, "dennis");
+print you.age;
+print you.name;

@@ -1,5 +1,6 @@
 #pragma once
 #include "binaryen-c.h"
+#include "bird_type.h"
 #include <fstream>
 #include <ios>
 
@@ -62,7 +63,7 @@ class CodeGen : public Visitor
 {
 public:
     Environment<TaggedIndex> environment; // tracks the index of local variables
-    Environment<Type> type_table;
+    Environment<std::shared_ptr<BirdType>> type_table;
     Stack<TaggedExpression> stack; // for returning values
     std::map<std::string, std::string> std_lib;
 
@@ -349,10 +350,10 @@ public:
         return token.lexeme == "bool" || token.lexeme == "int" || token.lexeme == "float" || token.lexeme == "void" || token.lexeme == "str";
     }
 
-    BinaryenType from_bird_type(Token token)
+    BinaryenType token_to_binaryen_type(Token token)
     {
         if (token.lexeme == "bool")
-            return BinaryenTypeInt32(); // bool is represented as i32
+            return BinaryenTypeInt32();
         else if (token.lexeme == "int")
             return BinaryenTypeInt32();
         else if (token.lexeme == "float")
@@ -365,17 +366,39 @@ public:
         {
             if (this->type_table.contains(token.lexeme))
             {
-                return from_bird_type(this->type_table.get(token.lexeme).type);
+                return bird_type_to_binaryen_type(this->type_table.get(token.lexeme));
             }
 
             throw BirdException("invalid type");
         }
     }
 
-    CodeGenType to_code_gen_type(Token token)
+    BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type)
+    {
+        if (bird_type->type == BirdTypeType::BOOL)
+            return BinaryenTypeInt32();
+        else if (bird_type->type == BirdTypeType::INT)
+            return BinaryenTypeInt32();
+        else if (bird_type->type == BirdTypeType::FLOAT)
+            return BinaryenTypeFloat64();
+        else if (bird_type->type == BirdTypeType::VOID)
+            return BinaryenTypeNone();
+        else if (bird_type->type == BirdTypeType::STRING)
+            return BinaryenTypeInt32();
+        else if (bird_type->type == BirdTypeType::STRUCT)
+            return BinaryenTypeInt32(); // ptr
+        else if (bird_type->type == BirdTypeType::ALIAS)
+        {
+            std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(bird_type);
+            return bird_type_to_binaryen_type(alias->alias);
+        }
+        throw BirdException("invalid type");
+    }
+
+    CodeGenType token_to_code_gen_type(Token token)
     {
         if (token.lexeme == "bool")
-            return CodeGenBool; // bool is represented as i32
+            return CodeGenBool;
         else if (token.lexeme == "int")
             return CodeGenInt;
         else if (token.lexeme == "float")
@@ -388,11 +411,34 @@ public:
         {
             if (this->type_table.contains(token.lexeme))
             {
-                return to_code_gen_type(this->type_table.get(token.lexeme).type);
+                return bird_type_to_code_gen_type(this->type_table.get(token.lexeme));
             }
 
             throw BirdException("invalid type");
         }
+    }
+
+    CodeGenType bird_type_to_code_gen_type(std::shared_ptr<BirdType> bird_type)
+    {
+        BirdTypeType type = bird_type->type;
+        if (type == BirdTypeType::BOOL)
+            return CodeGenBool; // bool is represented as i32
+        else if (type == BirdTypeType::INT)
+            return CodeGenInt;
+        else if (type == BirdTypeType::FLOAT)
+            return CodeGenFloat;
+        else if (type == BirdTypeType::VOID)
+            return CodeGenVoid;
+        else if (type == BirdTypeType::STRING)
+            return CodeGenPtr;
+        else if (type == BirdTypeType::STRUCT)
+            return CodeGenPtr;
+        else if (type == BirdTypeType::ALIAS)
+        {
+            std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(bird_type);
+            return bird_type_to_code_gen_type(alias->alias);
+        }
+        throw BirdException("invalid type");
     }
 
     BinaryenType from_codegen_type(CodeGenType token)
@@ -448,16 +494,9 @@ public:
         TaggedExpression initializer_value = this->stack.pop();
 
         CodeGenType type;
-        if (decl_stmt->type_token.has_value())
+        if (decl_stmt->type_token.has_value()) // not inferred
         {
-            if (!is_bird_type(decl_stmt->type_token.value()))
-            {
-                type = to_code_gen_type(this->type_table.get(decl_stmt->type_token.value().lexeme).type);
-            }
-            else
-            {
-                type = to_code_gen_type(decl_stmt->type_token.value());
-            }
+            type = token_to_code_gen_type(decl_stmt->type_token.value());
 
             if (type == CodeGenInt && initializer_value.type == CodeGenFloat)
             {
@@ -1229,11 +1268,11 @@ public:
         {
             if (!is_bird_type(const_stmt->type_token.value()))
             {
-                type = to_code_gen_type(this->type_table.get(const_stmt->type_token.value().lexeme).type);
+                type = bird_type_to_code_gen_type(this->type_table.get(const_stmt->type_token.value().lexeme));
             }
             else
             {
-                type = to_code_gen_type(const_stmt->type_token.value());
+                type = token_to_code_gen_type(const_stmt->type_token.value());
             }
 
             if (type == CodeGenInt && initializer.type == CodeGenFloat)
@@ -1285,8 +1324,8 @@ public:
 
         if (func->return_type.has_value())
         {
-            auto binaryen_return_type = from_bird_type(func->return_type.value());
-            auto codegen_return_type = to_code_gen_type(func->return_type.value());
+            auto binaryen_return_type = token_to_binaryen_type(func->return_type.value());
+            auto codegen_return_type = token_to_code_gen_type(func->return_type.value());
             this->function_return_types[func_name] = TaggedType(binaryen_return_type, codegen_return_type);
         }
         else
@@ -1304,14 +1343,14 @@ public:
 
         for (auto &param : func->param_list)
         {
-            param_types.push_back(from_bird_type(param.second));
-            this->function_locals[func_name].push_back(from_bird_type(param.second));
+            param_types.push_back(token_to_binaryen_type(param.second));
+            this->function_locals[func_name].push_back(token_to_binaryen_type(param.second));
         }
 
         BinaryenType params = BinaryenTypeCreate(param_types.data(), param_types.size());
 
         BinaryenType result_type = func->return_type.has_value()
-                                       ? from_bird_type(func->return_type.value())
+                                       ? token_to_binaryen_type(func->return_type.value())
                                        : BinaryenTypeNone();
 
         this->environment.push_env();
@@ -1319,7 +1358,7 @@ public:
         auto index = 0;
         for (auto &param : func->param_list)
         {
-            this->environment.declare(param.first.lexeme, TaggedIndex(index++, to_code_gen_type(param.second)));
+            this->environment.declare(param.first.lexeme, TaggedIndex(index++, token_to_code_gen_type(param.second)));
         }
 
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts)
@@ -1494,14 +1533,21 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
+        std::shared_ptr<AliasType> alias;
         if (type_stmt->type_is_literal)
         {
-            this->type_table.declare(type_stmt->identifier.lexeme, Type(type_stmt->type_token));
+            alias = std::make_shared<AliasType>(
+                type_stmt->identifier.lexeme,
+                token_to_bird_type(type_stmt->type_token));
         }
         else
         {
-            this->type_table.declare(type_stmt->identifier.lexeme, Type(this->type_table.get(type_stmt->type_token.lexeme).type));
+            alias = std::make_shared<AliasType>(
+                type_stmt->identifier.lexeme,
+                this->type_table.get(type_stmt->type_token.lexeme));
         }
+
+        this->type_table.declare(type_stmt->identifier.lexeme, alias);
     }
 
     void visit_subscript(Subscript *subscript)
@@ -1527,7 +1573,22 @@ public:
 
     void visit_struct_decl(StructDecl *struct_decl)
     {
-        type_table.declare(struct_decl->identifier.lexeme, StructType(struct_decl->identifier.lexeme, struct_decl->fields));
+        std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
+        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
+                       { 
+                        if (is_bird_type(field.second))
+                        {
+                            return std::make_pair(field.first, token_to_bird_type(field.second));
+                        }
+
+                        if (this->type_table.contains(field.second.lexeme))
+                        {
+                            return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
+                        } 
+
+                        throw BirdException("invalid type"); });
+
+        type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, struct_fields));
     }
 
     void visit_direct_member_access(DirectMemberAccess *direct_member_access)

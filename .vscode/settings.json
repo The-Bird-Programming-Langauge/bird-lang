@@ -90,7 +90,8 @@
                 "codecvt": "cpp",
                 "numbers": "cpp",
                 "format": "cpp",
-                "version": "cpp"
+                "version": "cpp",
+                "bird_type.h": "c"
         },
         "C_Cpp.errorSquiggles": "enabled"
 }

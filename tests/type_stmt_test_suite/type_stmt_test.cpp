@@ -27,13 +27,13 @@ TEST(TypeStmtTest, TypeStmtWithTypeLiteral)
     options.after_interpret = [&](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.type_table.contains("x"));
-        ASSERT_EQ(interpreter.type_table.get("x").type.lexeme, "int");
+        ASSERT_EQ(interpreter.type_table.get("x")->type, BirdTypeType::ALIAS);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.type_table.contains("x"));
-        ASSERT_EQ(codegen.type_table.get("x").type.lexeme, "int");
+        ASSERT_EQ(codegen.type_table.get("x")->type, BirdTypeType::ALIAS);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -48,13 +48,13 @@ TEST(TypeStmtTest, TypeStmtWithTypeIdentifier)
     options.after_interpret = [&](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.type_table.contains("y"));
-        ASSERT_EQ(interpreter.type_table.get("y").type.lexeme, "int");
+        ASSERT_EQ(interpreter.type_table.get("y")->type, BirdTypeType::ALIAS);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.type_table.contains("x"));
-        ASSERT_EQ(codegen.type_table.get("y").type.lexeme, "int");
+        ASSERT_EQ(codegen.type_table.get("y")->type, BirdTypeType::ALIAS);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -118,7 +118,7 @@ TEST(TypeStmtTest, FuncWithTypeIdentifier)
                    "{"
                    "return y;"
                    "}"
-                   "var z: int = foo(2);"
+                   "var z: x = foo(2);"
                    "print foo(z);";
 
     options.after_interpret = [&](Interpreter &interpreter)

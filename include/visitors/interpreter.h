@@ -4,6 +4,7 @@
 #include <vector>
 #include <variant>
 #include <iostream>
+#include <algorithm>
 
 #include "ast_node/index.h"
 
@@ -16,6 +17,7 @@
 #include "callable.h"
 #include "stack.h"
 #include "type.h"
+#include "bird_type.h"
 
 /*
  * Visitor that interprets and evaluates the AST
@@ -26,7 +28,7 @@ class Interpreter : public Visitor
 public:
     Environment<Value> env;
     Environment<Callable> call_table;
-    Environment<Type> type_table;
+    Environment<std::shared_ptr<BirdType>> type_table;
     Stack<Value> stack;
 
     Interpreter()
@@ -157,23 +159,18 @@ public:
 
         if (decl_stmt->type_token.has_value())
         {
-            std::string type_lexeme;
             if (decl_stmt->type_is_literal)
             {
-                type_lexeme = decl_stmt->type_token.value().lexeme;
-            }
-            else
-            {
-                type_lexeme = this->type_table.get(decl_stmt->type_token.value().lexeme).type.lexeme;
-            }
+                auto type_lexeme = decl_stmt->type_token.value().lexeme;
 
-            if (type_lexeme == "int")
-            {
-                result.data = to_type<int, double>(result);
-            }
-            else if (type_lexeme == "float")
-            {
-                result.data = to_type<double, int>(result);
+                if (type_lexeme == "int")
+                {
+                    result.data = to_type<int, double>(result);
+                }
+                else if (type_lexeme == "float")
+                {
+                    result.data = to_type<double, int>(result);
+                }
             }
         }
 
@@ -251,23 +248,18 @@ public:
 
         if (const_stmt->type_token.has_value())
         {
-            std::string type_lexeme;
             if (const_stmt->type_is_literal)
             {
-                type_lexeme = const_stmt->type_token.value().lexeme;
-            }
-            else
-            {
-                type_lexeme = this->type_table.get(const_stmt->type_token.value().lexeme).type.lexeme;
-            }
+                auto type_lexeme = const_stmt->type_token.value().lexeme;
 
-            if (type_lexeme == "int")
-            {
-                result.data = to_type<int, double>(result);
-            }
-            else if (type_lexeme == "float")
-            {
-                result.data = to_type<double, int>(result);
+                if (type_lexeme == "int")
+                {
+                    result.data = to_type<int, double>(result);
+                }
+                else if (type_lexeme == "float")
+                {
+                    result.data = to_type<double, int>(result);
+                }
             }
         }
 
@@ -550,11 +542,13 @@ public:
     {
         if (type_stmt->type_is_literal)
         {
-            this->type_table.declare(type_stmt->identifier.lexeme, Type(type_stmt->type_token));
+            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, token_to_bird_type(type_stmt->type_token));
+            this->type_table.declare(type_stmt->identifier.lexeme, std::move(alias));
         }
         else
         {
-            this->type_table.declare(type_stmt->identifier.lexeme, Type(this->type_table.get(type_stmt->type_token.lexeme).type));
+            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, this->type_table.get(type_stmt->type_token.lexeme));
+            this->type_table.declare(type_stmt->identifier.lexeme, std::move(alias));
         }
     }
 
@@ -571,8 +565,17 @@ public:
 
     void visit_struct_decl(StructDecl *struct_decl)
     {
-        std::cout << "declaring struct: " << struct_decl->identifier.lexeme << std::endl;
-        this->type_table.declare(struct_decl->identifier.lexeme, StructType(struct_decl->identifier.lexeme, struct_decl->fields));
+        std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
+        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
+                       { 
+                        if (this->type_table.contains(field.second.lexeme))
+                        {
+                            return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
+                        } else {
+                            return std::make_pair(field.first, token_to_bird_type(field.second));
+                        } });
+
+        this->type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, std::move(struct_fields)));
     }
 
     void visit_direct_member_access(DirectMemberAccess *direct_member_access)
@@ -583,10 +586,6 @@ public:
         if (is_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable))
         {
             auto struct_type = as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable);
-            for (auto &field : *struct_type.get())
-            {
-                std::cout << field.first << std::endl;
-            }
             this->stack.push((*struct_type.get())[direct_member_access->identifier.lexeme]);
         }
         else
@@ -597,7 +596,6 @@ public:
 
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
-        std::cout << "initializing struct: " << struct_initialization->identifier.lexeme << std::endl;
         std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance = std::make_shared<std::unordered_map<std::string, Value>>();
 
         for (auto &field_assignment : struct_initialization->field_assignments)

@@ -129,7 +129,7 @@ namespace BirdTest
             else // parent process
             {
                 waitpid(pid, nullptr, 0);
-        
+
                 std::ifstream output("./output.txt");
                 std::string code;
                 if (output.is_open())
