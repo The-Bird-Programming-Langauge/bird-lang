@@ -15,7 +15,7 @@ struct Person {
 };
 
 fn create_person(age: int, name: str) -> Person {
-    return Person{
+    return Person {
         age = age,
         name = name
     };
@@ -23,9 +23,11 @@ fn create_person(age: int, name: str) -> Person {
 
 var me: Person = create_person(4, "cole");
 print me.age;
-print me.name[1];
+print me.name;
 
 
 const you: Person = create_person(5, "dennis");
 print you.age;
 print you.name;
+
+

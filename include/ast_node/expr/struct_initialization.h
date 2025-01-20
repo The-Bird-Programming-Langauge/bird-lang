@@ -27,10 +27,7 @@ public:
     std::vector<std::pair<std::string, std::unique_ptr<Expr>>> field_assignments;
 
     StructInitialization(Token identifier, std::vector<std::pair<std::string, std::unique_ptr<Expr>>> field_assignments)
-        : identifier(identifier), field_assignments(std::move(field_assignments))
-    {
-        std::cout << "StructInitialization" << std::endl;
-    };
+        : identifier(identifier), field_assignments(std::move(field_assignments)) {};
 
     void accept(Visitor *visitor)
     {
