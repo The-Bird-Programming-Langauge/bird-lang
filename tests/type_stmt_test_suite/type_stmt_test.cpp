@@ -77,7 +77,7 @@ TEST(TypeStmtTest, DeclStmtWithTypeIdentifer)
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.environment.contains("y"));
-        ASSERT_EQ(codegen.environment.get("y").type, CodeGenInt);
+        ASSERT_EQ(codegen.environment.get("y").type->type, BirdTypeType::ALIAS);
         ASSERT_EQ(codegen.environment.get("y").value, 0);
         ASSERT_EQ(output, "2\n\n");
     };
@@ -102,7 +102,7 @@ TEST(TypeStmtTest, ConstStmtWithTypeIdentifer)
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.environment.contains("y"));
-        ASSERT_EQ(codegen.environment.get("y").type, CodeGenInt);
+        ASSERT_EQ(codegen.environment.get("y").type->type, BirdTypeType::ALIAS);
         ASSERT_EQ(codegen.environment.get("y").value, 0);
         ASSERT_EQ(output, "2\n\n");
     };
@@ -131,7 +131,7 @@ TEST(TypeStmtTest, FuncWithTypeIdentifier)
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.environment.contains("z"));
-        ASSERT_EQ(codegen.environment.get("z").type, CodeGenInt);
+        ASSERT_EQ(codegen.environment.get("z").type->type, BirdTypeType::ALIAS);
         ASSERT_EQ(output, "2\n\n");
     };
 

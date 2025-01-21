@@ -4,29 +4,22 @@
 #include <fstream>
 #include <ios>
 
-enum CodeGenType
+static std::string bird_type_to_string(std::shared_ptr<BirdType> type)
 {
-    CodeGenInt,
-    CodeGenFloat,
-    CodeGenBool,
-    CodeGenVoid,
-    CodeGenPtr
-};
-
-static std::string code_gen_type_to_string(CodeGenType type)
-{
-    switch (type)
+    switch (type->type)
     {
-    case CodeGenInt:
+    case BirdTypeType::INT:
         return "int";
-    case CodeGenFloat:
+    case BirdTypeType::FLOAT:
         return "float";
-    case CodeGenBool:
+    case BirdTypeType::BOOL:
         return "bool";
-    case CodeGenVoid:
+    case BirdTypeType::VOID:
         return "void";
-    case CodeGenPtr:
-        return "ptr";
+    case BirdTypeType::STRING:
+        return "string";
+    case BirdTypeType::STRUCT:
+        return "struct";
     default:
         return "unknown";
     }
@@ -36,11 +29,11 @@ template <typename T>
 struct Tagged
 {
     T value;
-    CodeGenType type = CodeGenVoid;
+    std::shared_ptr<BirdType> type = std::shared_ptr<BirdType>(new VoidType());
 
     Tagged() : value(T()) {}
     Tagged(T v) : value(v) {}
-    Tagged(T v, CodeGenType t) : value(v), type(t) {}
+    Tagged(T v, std::shared_ptr<BirdType> t) : value(v), type(t) {}
 };
 
 using TaggedExpression = Tagged<BinaryenExpressionRef>;
@@ -116,7 +109,7 @@ public:
             BinaryenTypeInt32(),
             BinaryenTypeNone());
 
-        BinaryenType args[2] = {BinaryenTypeInt32(), BinaryenTypeInt32()};
+        BinaryenType args[2] = {BinaryenTypeInt32(), BinaryenTypeInt32()}; // pointer and index
         BinaryenType args_type = BinaryenTypeCreate(args, 2);
         BinaryenAddFunctionImport(
             this->mod,
@@ -369,6 +362,7 @@ public:
                 return bird_type_to_binaryen_type(this->type_table.get(token.lexeme));
             }
 
+            std::cout << "token to binaryen type" << std::endl;
             throw BirdException("invalid type");
         }
     }
@@ -392,67 +386,27 @@ public:
             std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(bird_type);
             return bird_type_to_binaryen_type(alias->alias);
         }
+        std::cout << "bird type to binaryen type" << std::endl;
         throw BirdException("invalid type");
     }
 
-    CodeGenType token_to_code_gen_type(Token token)
+    BinaryenType from_bird_type(std::shared_ptr<BirdType> token)
     {
-        if (token.lexeme == "bool")
-            return CodeGenBool;
-        else if (token.lexeme == "int")
-            return CodeGenInt;
-        else if (token.lexeme == "float")
-            return CodeGenFloat;
-        else if (token.lexeme == "void")
-            return CodeGenVoid;
-        else if (token.lexeme == "str")
-            return CodeGenPtr;
-        else
-        {
-            if (this->type_table.contains(token.lexeme))
-            {
-                return bird_type_to_code_gen_type(this->type_table.get(token.lexeme));
-            }
-
-            throw BirdException("invalid type");
-        }
-    }
-
-    CodeGenType bird_type_to_code_gen_type(std::shared_ptr<BirdType> bird_type)
-    {
-        BirdTypeType type = bird_type->type;
-        if (type == BirdTypeType::BOOL)
-            return CodeGenBool; // bool is represented as i32
-        else if (type == BirdTypeType::INT)
-            return CodeGenInt;
-        else if (type == BirdTypeType::FLOAT)
-            return CodeGenFloat;
-        else if (type == BirdTypeType::VOID)
-            return CodeGenVoid;
-        else if (type == BirdTypeType::STRING)
-            return CodeGenPtr;
-        else if (type == BirdTypeType::STRUCT)
-            return CodeGenPtr;
-        else if (type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(bird_type);
-            return bird_type_to_code_gen_type(alias->alias);
-        }
-        throw BirdException("invalid type");
-    }
-
-    BinaryenType from_codegen_type(CodeGenType token)
-    {
-        if (token == CodeGenBool)
+        if (token->type == BirdTypeType::BOOL)
             return BinaryenTypeInt32();
-        else if (token == CodeGenInt)
+        else if (token->type == BirdTypeType::INT)
             return BinaryenTypeInt32();
-        else if (token == CodeGenFloat)
+        else if (token->type == BirdTypeType::FLOAT)
             return BinaryenTypeFloat64();
-        else if (token == CodeGenVoid)
+        else if (token->type == BirdTypeType::VOID)
             return BinaryenTypeNone();
-        else if (token == CodeGenPtr)
+        else if (token->type == BirdTypeType::STRING || token->type == BirdTypeType::STRUCT)
             return BinaryenTypeInt32();
+        else if (token->type == BirdTypeType::ALIAS)
+        {
+            std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(token);
+            return from_bird_type(alias->alias);
+        }
         else
         {
             throw BirdException("invaid type");
@@ -493,12 +447,19 @@ public:
         decl_stmt->value->accept(this);
         TaggedExpression initializer_value = this->stack.pop();
 
-        CodeGenType type;
+        std::shared_ptr<BirdType> type;
         if (decl_stmt->type_token.has_value()) // not inferred
         {
-            type = token_to_code_gen_type(decl_stmt->type_token.value());
+            if (decl_stmt->type_is_literal)
+            {
+                type = token_to_bird_type(decl_stmt->type_token.value());
+            }
+            else
+            {
+                type = this->type_table.get(decl_stmt->type_token.value().lexeme);
+            }
 
-            if (type == CodeGenInt && initializer_value.type == CodeGenFloat)
+            if (type->type == BirdTypeType::INT && initializer_value.type->type == BirdTypeType::FLOAT)
             {
                 initializer_value =
                     TaggedExpression(
@@ -506,9 +467,9 @@ public:
                             mod,
                             BinaryenTruncSatSFloat64ToInt32(),
                             initializer_value.value),
-                        CodeGenInt);
+                        std::shared_ptr<BirdType>(new IntType()));
             }
-            else if (type == CodeGenFloat && initializer_value.type == CodeGenInt)
+            else if (type->type == BirdTypeType::FLOAT && initializer_value.type->type == BirdTypeType::INT)
             {
                 initializer_value =
                     TaggedExpression(
@@ -516,12 +477,12 @@ public:
                             mod,
                             BinaryenConvertSInt32ToFloat64(),
                             initializer_value.value),
-                        CodeGenFloat);
+                        std::shared_ptr<BirdType>(new FloatType()));
             }
         }
         else
         {
-            if (initializer_value.type != CodeGenVoid)
+            if (initializer_value.type->type != BirdTypeType::VOID)
             {
                 type = initializer_value.type;
             }
@@ -529,13 +490,13 @@ public:
             {
                 BinaryenType binaryen_type = BinaryenExpressionGetType(initializer_value.value);
                 type = (binaryen_type == BinaryenTypeFloat64())
-                           ? CodeGenFloat
-                           : CodeGenInt;
+                           ? std::shared_ptr<BirdType>(new FloatType())
+                           : std::shared_ptr<BirdType>(new IntType());
             }
         }
 
         BinaryenIndex index = this->function_locals[this->current_function_name].size();
-        this->function_locals[this->current_function_name].push_back(from_codegen_type(type));
+        this->function_locals[this->current_function_name].push_back(from_bird_type(type));
 
         environment.declare(decl_stmt->identifier.lexeme, TaggedIndex(index, type));
 
@@ -551,13 +512,13 @@ public:
         auto lhs_val = BinaryenLocalGet(
             this->mod,
             index.value,
-            from_codegen_type(index.type));
+            from_bird_type(index.type));
 
         assign_expr->value->accept(this);
         TaggedExpression rhs_val = this->stack.pop();
 
-        bool float_flag = (index.type == CodeGenFloat || rhs_val.type == CodeGenFloat);
-        if (float_flag && index.type == CodeGenInt)
+        bool float_flag = (index.type->type == BirdTypeType::FLOAT || rhs_val.type->type == BirdTypeType::FLOAT);
+        if (float_flag && index.type->type == BirdTypeType::INT)
         {
             rhs_val =
                 BinaryenUnary(
@@ -565,7 +526,7 @@ public:
                     BinaryenTruncSatSFloat64ToInt32(),
                     rhs_val.value);
         }
-        else if (float_flag && rhs_val.type == CodeGenInt)
+        else if (float_flag && rhs_val.type->type == BirdTypeType::INT)
         {
             rhs_val =
                 BinaryenUnary(
@@ -643,12 +604,18 @@ public:
             arg->accept(this);
             auto result = this->stack.pop();
 
-            if (result.type == CodeGenVoid)
+            if (result.type->type == BirdTypeType::ALIAS)
+            {
+                std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(result.type);
+                result.type = alias->alias;
+            }
+
+            if (result.type->type == BirdTypeType::VOID)
             {
                 throw BirdException("unsupported print type");
             }
 
-            if (result.type == CodeGenInt)
+            if (result.type->type == BirdTypeType::INT)
             {
                 BinaryenExpressionRef consoleLogCall =
                     BinaryenCall(
@@ -660,7 +627,7 @@ public:
 
                 this->stack.push(consoleLogCall);
             }
-            else if (result.type == CodeGenBool)
+            else if (result.type->type == BirdTypeType::BOOL)
             {
                 BinaryenExpressionRef consoleLogCall =
                     BinaryenCall(
@@ -672,7 +639,7 @@ public:
 
                 this->stack.push(consoleLogCall);
             }
-            else if (result.type == CodeGenFloat)
+            else if (result.type->type == BirdTypeType::FLOAT)
             {
                 BinaryenExpressionRef consoleLogCall =
                     BinaryenCall(
@@ -684,7 +651,7 @@ public:
 
                 this->stack.push(consoleLogCall);
             }
-            else if (result.type == CodeGenPtr)
+            else if (result.type->type == BirdTypeType::STRING)
             {
                 BinaryenExpressionRef consoleLogCall =
                     BinaryenCall(
@@ -696,9 +663,13 @@ public:
 
                 this->stack.push(consoleLogCall);
             }
+            else if (result.type->type == BirdTypeType::STRUCT)
+            {
+                throw BirdException("unsupported print type");
+            }
             else
             {
-                throw BirdException("Unsupported print datatype: " + code_gen_type_to_string(result.type));
+                throw BirdException("Unsupported print datatype: " + bird_type_to_string(result.type));
             }
         }
     }
@@ -908,7 +879,7 @@ public:
                               BinaryenAddFloat64(),
                               left.value,
                               right.value),
-                          CodeGenFloat))
+                          std::shared_ptr<BirdType>(new FloatType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -916,7 +887,7 @@ public:
                               BinaryenAddInt32(),
                               left.value,
                               right.value),
-                          CodeGenInt));
+                          std::shared_ptr<BirdType>(new IntType())));
 
             break;
         }
@@ -930,7 +901,7 @@ public:
                               BinaryenSubFloat64(),
                               left.value,
                               right.value),
-                          CodeGenFloat))
+                          std::shared_ptr<BirdType>(new FloatType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -938,7 +909,7 @@ public:
                               BinaryenSubInt32(),
                               left.value,
                               right.value),
-                          CodeGenInt));
+                          std::shared_ptr<BirdType>(new IntType())));
 
             break;
         }
@@ -952,7 +923,7 @@ public:
                               BinaryenDivFloat64(),
                               left.value,
                               right.value),
-                          CodeGenFloat))
+                          std::shared_ptr<BirdType>(new FloatType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -960,7 +931,7 @@ public:
                               BinaryenDivSInt32(),
                               left.value,
                               right.value),
-                          CodeGenInt));
+                          std::shared_ptr<BirdType>(new IntType())));
 
             break;
         }
@@ -974,7 +945,7 @@ public:
                               BinaryenMulFloat64(),
                               left.value,
                               right.value),
-                          CodeGenFloat))
+                          std::shared_ptr<BirdType>(new FloatType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -982,7 +953,7 @@ public:
                               BinaryenMulInt32(),
                               left.value,
                               right.value),
-                          CodeGenInt));
+                          std::shared_ptr<BirdType>(new IntType())));
 
             break;
         }
@@ -996,7 +967,7 @@ public:
                               BinaryenGtFloat64(),
                               left.value,
                               right.value),
-                          CodeGenBool))
+                          std::shared_ptr<BirdType>(new BoolType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -1004,7 +975,7 @@ public:
                               BinaryenGtSInt32(),
                               left.value,
                               right.value),
-                          CodeGenBool));
+                          std::shared_ptr<BirdType>(new BoolType())));
 
             break;
         }
@@ -1019,7 +990,7 @@ public:
                               BinaryenRemSInt32(),
                               left.value,
                               right.value),
-                          CodeGenInt));
+                          std::shared_ptr<BirdType>(new IntType())));
 
             break;
         }
@@ -1033,7 +1004,7 @@ public:
                               BinaryenGeFloat64(),
                               left.value,
                               right.value),
-                          CodeGenBool))
+                          std::shared_ptr<BirdType>(new BoolType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -1041,7 +1012,7 @@ public:
                               BinaryenGeSInt32(),
                               left.value,
                               right.value),
-                          CodeGenBool));
+                          std::shared_ptr<BirdType>(new BoolType())));
 
             break;
         }
@@ -1054,7 +1025,7 @@ public:
                               this->mod, BinaryenLtFloat64(),
                               left.value,
                               right.value),
-                          CodeGenBool))
+                          std::shared_ptr<BirdType>(new BoolType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -1062,7 +1033,7 @@ public:
                               BinaryenLtSInt32(),
                               left.value,
                               right.value),
-                          CodeGenBool));
+                          std::shared_ptr<BirdType>(new BoolType())));
 
             break;
         }
@@ -1076,7 +1047,7 @@ public:
                               BinaryenLeFloat64(),
                               left.value,
                               right.value),
-                          CodeGenBool))
+                          std::shared_ptr<BirdType>(new BoolType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -1084,7 +1055,7 @@ public:
                               BinaryenLeSInt32(),
                               left.value,
                               right.value),
-                          CodeGenBool));
+                          std::shared_ptr<BirdType>(new BoolType())));
 
             break;
         }
@@ -1098,7 +1069,7 @@ public:
                               BinaryenEqFloat64(),
                               left.value,
                               right.value),
-                          CodeGenBool))
+                          std::shared_ptr<BirdType>(new BoolType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -1106,7 +1077,7 @@ public:
                               BinaryenEqInt32(),
                               left.value,
                               right.value),
-                          CodeGenBool));
+                          std::shared_ptr<BirdType>(new BoolType())));
 
             break;
         }
@@ -1120,7 +1091,7 @@ public:
                               BinaryenNeFloat64(),
                               left.value,
                               right.value),
-                          CodeGenBool))
+                          std::shared_ptr<BirdType>(new BoolType())))
                 : this->stack.push(
                       TaggedExpression(
                           BinaryenBinary(
@@ -1128,7 +1099,7 @@ public:
                               BinaryenNeInt32(),
                               left.value,
                               right.value),
-                          CodeGenBool));
+                          std::shared_ptr<BirdType>(new BoolType())));
 
             break;
         }
@@ -1159,7 +1130,7 @@ public:
                         mod,
                         BinaryenNegFloat64(),
                         expr.value),
-                    CodeGenFloat));
+                    std::shared_ptr<BirdType>(new BoolType())));
         }
         else if (expr_type == BinaryenTypeInt32())
         {
@@ -1172,7 +1143,7 @@ public:
                         BinaryenSubInt32(),
                         zero,
                         expr.value),
-                    CodeGenInt));
+                    std::shared_ptr<BirdType>(new IntType())));
         }
     }
 
@@ -1184,7 +1155,7 @@ public:
         {
             int value = std::stoi(primary->value.lexeme);
             BinaryenExpressionRef int_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(value));
-            this->stack.push(TaggedExpression(int_literal, CodeGenInt));
+            this->stack.push(TaggedExpression(int_literal, std::shared_ptr<BirdType>(new IntType())));
             break;
         }
 
@@ -1192,7 +1163,7 @@ public:
         {
             double value = std::stod(primary->value.lexeme);
             BinaryenExpressionRef float_literal = BinaryenConst(this->mod, BinaryenLiteralFloat64(value));
-            this->stack.push(TaggedExpression(float_literal, CodeGenFloat));
+            this->stack.push(TaggedExpression(float_literal, std::shared_ptr<BirdType>(new FloatType())));
             break;
         }
 
@@ -1204,7 +1175,7 @@ public:
                     ? BinaryenLiteralInt32(1)
                     : BinaryenLiteralInt32(0));
 
-            this->stack.push(TaggedExpression(bool_literal, CodeGenBool));
+            this->stack.push(TaggedExpression(bool_literal, std::shared_ptr<BirdType>(new BoolType())));
             break;
         }
 
@@ -1217,7 +1188,7 @@ public:
 
             BinaryenExpressionRef str_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(str_ptr));
 
-            this->stack.push(TaggedExpression(str_literal, CodeGenPtr));
+            this->stack.push(TaggedExpression(str_literal, std::shared_ptr<BirdType>(new StringType())));
             break;
         }
 
@@ -1227,7 +1198,7 @@ public:
             BinaryenExpressionRef local_get = BinaryenLocalGet(
                 this->mod,
                 tagged_index.value,
-                from_codegen_type(tagged_index.type));
+                from_bird_type(tagged_index.type));
 
             this->stack.push(TaggedExpression(local_get, tagged_index.type));
             break;
@@ -1263,19 +1234,19 @@ public:
         const_stmt->value->accept(this);
         TaggedExpression initializer = this->stack.pop();
 
-        CodeGenType type;
+        std::shared_ptr<BirdType> type;
         if (const_stmt->type_token.has_value())
         {
             if (!is_bird_type(const_stmt->type_token.value()))
             {
-                type = bird_type_to_code_gen_type(this->type_table.get(const_stmt->type_token.value().lexeme));
+                type = this->type_table.get(const_stmt->type_token.value().lexeme);
             }
             else
             {
-                type = token_to_code_gen_type(const_stmt->type_token.value());
+                type = token_to_bird_type(const_stmt->type_token.value());
             }
 
-            if (type == CodeGenInt && initializer.type == CodeGenFloat)
+            if (type->type == BirdTypeType::INT && initializer.type->type == BirdTypeType::FLOAT)
             {
                 initializer =
                     TaggedExpression(
@@ -1283,9 +1254,9 @@ public:
                             mod,
                             BinaryenTruncSatSFloat64ToInt32(),
                             initializer.value),
-                        CodeGenInt);
+                        std::shared_ptr<BirdType>(new IntType()));
             }
-            else if (type == CodeGenFloat && initializer.type == CodeGenInt)
+            else if (type->type == BirdTypeType::FLOAT && initializer.type->type == BirdTypeType::INT)
             {
                 initializer =
                     TaggedExpression(
@@ -1293,23 +1264,26 @@ public:
                             mod,
                             BinaryenConvertSInt32ToFloat64(),
                             initializer.value),
-                        CodeGenFloat);
+                        std::shared_ptr<BirdType>(new FloatType()));
             }
         }
         else
         {
-            if (initializer.type != CodeGenVoid)
+            if (initializer.type->type != BirdTypeType::VOID)
             {
                 type = initializer.type;
             }
-            BinaryenType binaryen_type = BinaryenExpressionGetType(initializer.value);
-            type = (binaryen_type == BinaryenTypeFloat64())
-                       ? CodeGenFloat
-                       : CodeGenInt;
+            else
+            {
+                BinaryenType binaryen_type = BinaryenExpressionGetType(initializer.value);
+                type = (binaryen_type == BinaryenTypeFloat64())
+                           ? std::shared_ptr<BirdType>(new FloatType())
+                           : std::shared_ptr<BirdType>(new IntType());
+            }
         }
 
         BinaryenIndex index = this->function_locals[this->current_function_name].size();
-        this->function_locals[this->current_function_name].push_back(from_codegen_type(type));
+        this->function_locals[this->current_function_name].push_back(from_bird_type(type));
 
         environment.declare(const_stmt->identifier.lexeme, TaggedIndex(index, type));
 
@@ -1325,12 +1299,22 @@ public:
         if (func->return_type.has_value())
         {
             auto binaryen_return_type = token_to_binaryen_type(func->return_type.value());
-            auto codegen_return_type = token_to_code_gen_type(func->return_type.value());
-            this->function_return_types[func_name] = TaggedType(binaryen_return_type, codegen_return_type);
+            // auto codegen_return_type = token_to_bird_type(func->return_type.value());
+            if (this->is_bird_type(func->return_type.value()))
+            {
+                this->function_return_types[func_name] = TaggedType(binaryen_return_type, token_to_bird_type(func->return_type.value()));
+            }
+            else
+            {
+                if (this->type_table.contains(func->return_type.value().lexeme))
+                    this->function_return_types[func_name] = TaggedType(binaryen_return_type, this->type_table.get(func->return_type.value().lexeme));
+                else
+                    throw BirdException("invalid return type");
+            }
         }
         else
         {
-            this->function_return_types[func_name] = TaggedType(BinaryenTypeNone(), CodeGenVoid);
+            this->function_return_types[func_name] = TaggedType(BinaryenTypeNone(), std::shared_ptr<BirdType>(new VoidType()));
         }
 
         auto old_function_name = this->current_function_name;
@@ -1358,7 +1342,17 @@ public:
         auto index = 0;
         for (auto &param : func->param_list)
         {
-            this->environment.declare(param.first.lexeme, TaggedIndex(index++, token_to_code_gen_type(param.second)));
+            if (this->is_bird_type(param.second))
+            {
+                this->environment.declare(param.first.lexeme, TaggedIndex(index++, token_to_bird_type(param.second)));
+            }
+            else
+            {
+                if (this->type_table.contains(param.second.lexeme))
+                    this->environment.declare(param.first.lexeme, TaggedIndex(index++, this->type_table.get(param.second.lexeme)));
+                else
+                    throw BirdException("invalid param type");
+            }
         }
 
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts)
@@ -1473,23 +1467,23 @@ public:
             // now allows for things like fn addF(x: float, y: float) -> int {...}
             if (result.type != func_return_type.type)
             {
-                if (func_return_type.type == CodeGenFloat && result.type == CodeGenInt)
+                if (func_return_type.type->type == BirdTypeType::FLOAT && result.type->type == BirdTypeType::INT)
                 {
                     result = TaggedExpression(
                         BinaryenUnary(
                             this->mod,
                             BinaryenConvertSInt32ToFloat64(),
                             result.value),
-                        CodeGenFloat);
+                        std::shared_ptr<BirdType>(new FloatType()));
                 }
-                else if (func_return_type.type == CodeGenInt && result.type == CodeGenFloat)
+                else if (func_return_type.type->type == BirdTypeType::INT && result.type->type == BirdTypeType::FLOAT)
                 {
                     result = TaggedExpression(
                         BinaryenUnary(
                             this->mod,
                             BinaryenTruncSatSFloat64ToInt32(),
                             result.value),
-                        CodeGenInt);
+                        std::shared_ptr<BirdType>(new IntType()));
                 }
             }
 
@@ -1507,7 +1501,7 @@ public:
                     BinaryenReturn(
                         this->mod,
                         nullptr),
-                    CodeGenVoid));
+                    std::shared_ptr<VoidType>()));
         }
     }
 
@@ -1568,9 +1562,13 @@ public:
                     args,
                     2,
                     BinaryenTypeInt32()),
-                CodeGenInt));
+                std::shared_ptr<BirdType>(new IntType())));
     }
 
+    /*
+    This function is called when a struct declaration is encountered.
+    The struct's shape is stored in the type table.
+    */
     void visit_struct_decl(StructDecl *struct_decl)
     {
         std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
@@ -1586,6 +1584,7 @@ public:
                             return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
                         } 
 
+                        std::cout << "visit struct decl" << std::endl;
                         throw BirdException("invalid type"); });
 
         type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, struct_fields));
@@ -1593,7 +1592,22 @@ public:
 
     void visit_direct_member_access(DirectMemberAccess *direct_member_access)
     {
-        throw BirdException("Direct member access not implemented");
+        // assume that the struct is already declared
+        // assume that the member is already declared
+
+        // direct_member_access->accessable->accept(this);
+        // auto instance = this->stack.pop();
+
+        // BinaryenExpressionRef args[2] = {instance.value, index.value};
+        // this->stack.push(
+        //     TaggedExpression(
+        //         BinaryenCall(
+        //             this->mod,
+        //             "mem_get",
+        //             args,
+        //             2,
+        //             BinaryenTypeInt32()),
+        //         CodeGenInt));
     }
 
     void visit_struct_initialization(StructInitialization *struct_initialization)
