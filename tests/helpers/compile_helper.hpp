@@ -7,6 +7,7 @@
 #include "parser.h"
 #include "token.h"
 #include "sym_table.h"
+#include "value.h"
 
 #include "binaryen-c.h"
 #include "visitors/code_gen.h"
