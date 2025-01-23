@@ -405,6 +405,10 @@ assign_expr:
             }
             $$ = std::make_unique<AssignExpr>(identifier->value, $2, std::move($3));
          }
+         if (auto *member_access = dynamic_cast<DirectMemberAccess *>($1.get()))
+         {
+            $$ = std::make_unique<MemberAssign>(std::move(member_access->accessable), member_access->identifier, $2, std::move($3));
+         }
       }
 
 ternary_expr: 

@@ -26,6 +26,7 @@ class Subscript;
 class StructDecl;
 class DirectMemberAccess;
 class StructInitialization;
+class MemberAssign;
 
 /*
  * the interface for all visitors,
@@ -58,4 +59,5 @@ public:
     virtual void visit_struct_decl(StructDecl *) = 0;
     virtual void visit_direct_member_access(DirectMemberAccess *) = 0;
     virtual void visit_struct_initialization(StructInitialization *) = 0;
+    virtual void visit_member_assign(MemberAssign *) = 0;
 };

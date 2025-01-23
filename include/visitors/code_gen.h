@@ -25,6 +25,32 @@ static std::string bird_type_to_string(std::shared_ptr<BirdType> type)
     }
 }
 
+static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i32s
+{
+    switch (type->type)
+    {
+    case BirdTypeType::INT:
+        return 1;
+    case BirdTypeType::FLOAT:
+        return 2;
+    case BirdTypeType::BOOL:
+        return 1;
+    case BirdTypeType::VOID:
+        return 0;
+    case BirdTypeType::STRING:
+        return 1;
+    case BirdTypeType::STRUCT:
+        return 1;
+    case BirdTypeType::ALIAS:
+    {
+        std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(type);
+        return bird_type_byte_size(alias->alias);
+    }
+    default:
+        return 0;
+    }
+}
+
 template <typename T>
 struct Tagged
 {
@@ -117,6 +143,25 @@ public:
             "env",
             "mem_get",
             args_type,
+            BinaryenTypeInt32());
+
+        // mem_set(pointer, index, value)
+        BinaryenType args_set[3] = {BinaryenTypeInt32(), BinaryenTypeInt32(), BinaryenTypeInt32()};
+        BinaryenType args_set_type = BinaryenTypeCreate(args_set, 3);
+        BinaryenAddFunctionImport(
+            this->mod,
+            "mem_set",
+            "env",
+            "mem_set",
+            args_set_type,
+            BinaryenTypeNone());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "mem_alloc",
+            "env",
+            "mem_alloc",
+            BinaryenTypeInt32(),
             BinaryenTypeInt32());
     }
 
@@ -1595,23 +1640,114 @@ public:
         // assume that the struct is already declared
         // assume that the member is already declared
 
-        // direct_member_access->accessable->accept(this);
-        // auto instance = this->stack.pop();
+        direct_member_access->accessable->accept(this);
+        auto accessable = this->stack.pop();
 
-        // BinaryenExpressionRef args[2] = {instance.value, index.value};
-        // this->stack.push(
-        //     TaggedExpression(
-        //         BinaryenCall(
-        //             this->mod,
-        //             "mem_get",
-        //             args,
-        //             2,
-        //             BinaryenTypeInt32()),
-        //         CodeGenInt));
+        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(accessable.type);
+
+        auto offset = 0;
+        std::shared_ptr<BirdType> member_type;
+        for (auto &field : struct_type->fields)
+        {
+            offset += bird_type_byte_size(field.second);
+
+            if (field.first == direct_member_access->identifier.lexeme)
+            {
+                member_type = field.second;
+                break;
+            }
+        }
+
+        BinaryenExpressionRef args[2] = {accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
+
+        std::cout << "foudn type: " << bird_type_to_string(member_type) << std::endl;
+
+        this->stack.push(
+            TaggedExpression(
+                BinaryenCall(
+                    this->mod,
+                    "mem_get",
+                    args,
+                    2,
+                    bird_type_to_binaryen_type(member_type)),
+                member_type));
     }
 
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
-        throw BirdException("Struct initialization not implemented");
+        /*
+         * TOOD: figure out how to do this
+         * the problem is that this is not a statement, so there are side effects.
+         * We cannot push the side effects to the stack.
+         */
+
+        // assume that the struct is already declared
+        if (!this->type_table.contains(struct_initialization->identifier.lexeme))
+        {
+            throw BirdException("struct not declared");
+        }
+
+        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
+
+        unsigned int size = 0;
+        for (auto &field : struct_initialization->field_assignments)
+        {
+            field.second->accept(this);
+            auto field_value = this->stack.pop();
+            size += bird_type_byte_size(field_value.type);
+        }
+
+        auto size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+
+        auto call = BinaryenCall(
+            this->mod,
+            "mem_alloc",
+            &size_literal,
+            1,
+            BinaryenTypeInt32());
+
+        /**
+         * TODO: figure out how to initialize the struct
+         */
+
+        this->stack.push(
+            TaggedExpression(
+                call,
+                struct_type));
+    }
+
+    void visit_member_assign(MemberAssign *member_assign)
+    {
+        member_assign->value->accept(this);
+        auto value = this->stack.pop();
+
+        member_assign->accessable->accept(this);
+        auto accessable = this->stack.pop();
+        std::cout << (bird_type_to_string(accessable.type)) << std::endl;
+
+        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(accessable.type);
+
+        auto offset = 0;
+        for (auto &field : struct_type->fields)
+        {
+            offset += bird_type_byte_size(field.second);
+
+            if (field.first == member_assign->identifier.lexeme)
+            {
+                break;
+            }
+        }
+
+        BinaryenExpressionRef args[3] = {accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), value.value};
+
+        this->stack.push(
+            TaggedExpression(
+                BinaryenCall(
+                    this->mod,
+                    "mem_set",
+                    args,
+                    3,
+                    BinaryenTypeNone()),
+                std::shared_ptr<BirdType>(new VoidType())));
     }
 };

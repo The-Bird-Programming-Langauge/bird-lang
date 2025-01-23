@@ -608,4 +608,24 @@ public:
 
         this->stack.push(Value(struct_instance));
     }
+
+    void visit_member_assign(MemberAssign *member_assign)
+    {
+        member_assign->accessable->accept(this);
+        auto accessable = this->stack.pop();
+
+        if (is_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable))
+        {
+            auto struct_type = as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable);
+
+            member_assign->value->accept(this);
+            auto value = this->stack.pop();
+
+            (*struct_type.get())[member_assign->identifier.lexeme] = value;
+        }
+        else
+        {
+            throw BirdException("Cannot assign member of non-struct type.");
+        }
+    }
 };

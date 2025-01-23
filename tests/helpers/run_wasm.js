@@ -24,13 +24,24 @@ const moduleOptions = {
             fs.appendFileSync(outputPath, str + "\n");
         },
         mem_get: (ptr, index) => {
-            const buffer = new Uint8Array(instance.exports.memory.buffer);
+            const buffer = new Uint32Array(instance.exports.memory.buffer);
             const result = buffer[ptr + index];
             return result;
         },
         mem_set: (ptr, offset, value) => {
-            const buffer = new Uint8Array(instance.exports.memory.buffer);
+            const buffer = new Uint32Array(instance.exports.memory.buffer);
             buffer[ptr + offset] = value;
+
+            return result;
+        },
+        mem_alloc: (size) => {
+            const buffer = new Uint32Array(instance.exports.memory.buffer);
+            for (let i = 0; i < buffer.length; i += 8) {
+                if (buffer.slice(i, i + size).every((x) => x === 0)) {
+                    return i;
+                }
+            }
+            // TODO: If we reach this point, we need to grow the memory
         },
     }
 };

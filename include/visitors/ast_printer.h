@@ -340,4 +340,11 @@ public:
         // }
         std::cout << "}";
     }
+
+    void visit_member_assign(MemberAssign *member_assign)
+    {
+        member_assign->accessable->accept(this);
+        std::cout << ".";
+        this->visit_assign_expr(member_assign);
+    }
 };

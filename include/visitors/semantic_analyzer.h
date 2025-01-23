@@ -388,4 +388,9 @@ public:
         //     field_assignment.second->accept(this);
         // }
     }
+
+    void visit_member_assign(MemberAssign *member_assign)
+    {
+        member_assign->accessable->accept(this);
+    }
 };

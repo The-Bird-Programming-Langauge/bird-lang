@@ -891,4 +891,44 @@ public:
             this->stack.push(struct_type);
         }
     }
+
+    void visit_member_assign(MemberAssign *member_assign)
+    {
+        member_assign->accessable->accept(this);
+        auto accessable = this->stack.pop();
+
+        if (accessable->type == BirdTypeType::ERROR)
+        {
+            this->stack.push(std::make_shared<ErrorType>());
+            return;
+        }
+
+        if (accessable->type != BirdTypeType::STRUCT)
+        {
+            this->user_error_tracker->type_error("expected struct in member assign", member_assign->identifier);
+            this->stack.push(std::make_shared<ErrorType>());
+            return;
+        }
+
+        auto struct_type = std::dynamic_pointer_cast<StructType>(accessable);
+
+        for (auto &f : struct_type->fields)
+        {
+            if (f.first == member_assign->identifier.lexeme)
+            {
+                member_assign->value->accept(this);
+                auto value = this->stack.pop();
+
+                if (f.second->type != value->type)
+                {
+                    this->user_error_tracker->type_mismatch("in member assign", member_assign->identifier);
+                    this->stack.push(std::make_shared<ErrorType>());
+                    return;
+                }
+
+                this->stack.push(bird_type_type_to_bird_type(f.second->type));
+                return;
+            }
+        }
+    }
 };
