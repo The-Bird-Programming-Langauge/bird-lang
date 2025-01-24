@@ -30,17 +30,17 @@ static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i3
     switch (type->type)
     {
     case BirdTypeType::INT:
-        return 1;
+        return 5;
     case BirdTypeType::FLOAT:
-        return 2;
+        return 9;
     case BirdTypeType::BOOL:
-        return 1;
+        return 5;
     case BirdTypeType::VOID:
         return 0;
     case BirdTypeType::STRING:
-        return 1;
+        return 5;
     case BirdTypeType::STRUCT:
-        return 1;
+        return 5;
     case BirdTypeType::ALIAS:
     {
         std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(type);
@@ -150,10 +150,36 @@ public:
         BinaryenType args_set_type = BinaryenTypeCreate(args_set, 3);
         BinaryenAddFunctionImport(
             this->mod,
-            "mem_set",
+            "mem_set_32",
             "env",
-            "mem_set",
+            "mem_set_32",
             args_set_type,
+            BinaryenTypeNone());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "mem_set_ptr",
+            "env",
+            "mem_set_ptr",
+            args_set_type,
+            BinaryenTypeNone());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "initialize_memory",
+            "env",
+            "initialize_memory",
+            BinaryenTypeNone(),
+            BinaryenTypeNone());
+
+        BinaryenType args_set_64[3] = {BinaryenTypeInt32(), BinaryenTypeInt32(), BinaryenTypeFloat64()};
+        BinaryenType args_set_64_type = BinaryenTypeCreate(args_set_64, 3);
+        BinaryenAddFunctionImport(
+            this->mod,
+            "mem_set_64",
+            "env",
+            "mem_set_64",
+            args_set_64_type,
             BinaryenTypeNone());
 
         BinaryenAddFunctionImport(
@@ -221,6 +247,14 @@ public:
         this->current_function_name = "main";
         auto main_function_body = std::vector<BinaryenExpressionRef>();
         this->function_locals[this->current_function_name] = std::vector<BinaryenType>();
+
+        main_function_body.push_back(
+            BinaryenCall(
+                this->mod,
+                "initialize_memory",
+                nullptr,
+                0,
+                BinaryenTypeNone()));
 
         for (auto &stmt : *stmts)
         {
@@ -407,7 +441,6 @@ public:
                 return bird_type_to_binaryen_type(this->type_table.get(token.lexeme));
             }
 
-            std::cout << "token to binaryen type" << std::endl;
             throw BirdException("invalid type");
         }
     }
@@ -431,7 +464,7 @@ public:
             std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(bird_type);
             return bird_type_to_binaryen_type(alias->alias);
         }
-        std::cout << "bird type to binaryen type" << std::endl;
+
         throw BirdException("invalid type");
     }
 
@@ -1629,7 +1662,6 @@ public:
                             return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
                         } 
 
-                        std::cout << "visit struct decl" << std::endl;
                         throw BirdException("invalid type"); });
 
         type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, struct_fields));
@@ -1649,18 +1681,17 @@ public:
         std::shared_ptr<BirdType> member_type;
         for (auto &field : struct_type->fields)
         {
-            offset += bird_type_byte_size(field.second);
 
             if (field.first == direct_member_access->identifier.lexeme)
             {
                 member_type = field.second;
                 break;
             }
+
+            offset += bird_type_byte_size(field.second);
         }
 
         BinaryenExpressionRef args[2] = {accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
-
-        std::cout << "foudn type: " << bird_type_to_string(member_type) << std::endl;
 
         this->stack.push(
             TaggedExpression(
@@ -1723,28 +1754,33 @@ public:
 
         member_assign->accessable->accept(this);
         auto accessable = this->stack.pop();
-        std::cout << (bird_type_to_string(accessable.type)) << std::endl;
 
         std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(accessable.type);
 
         auto offset = 0;
         for (auto &field : struct_type->fields)
         {
-            offset += bird_type_byte_size(field.second);
-
             if (field.first == member_assign->identifier.lexeme)
             {
                 break;
             }
+
+            offset += bird_type_byte_size(field.second);
         }
 
         BinaryenExpressionRef args[3] = {accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), value.value};
+
+        auto func_name =
+            value.type->type == BirdTypeType::FLOAT
+                ? "mem_set_64"
+            : value.type->type == BirdTypeType::STRUCT ? "mem_set_ptr"
+                                                       : "mem_set_32";
 
         this->stack.push(
             TaggedExpression(
                 BinaryenCall(
                     this->mod,
-                    "mem_set",
+                    func_name,
                     args,
                     3,
                     BinaryenTypeNone()),
