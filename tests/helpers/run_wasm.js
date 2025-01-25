@@ -29,62 +29,46 @@ const BLOCK_HEADER_SIZE = 9;
 const FREE_LIST_START = 5;
 
 function get_free_list_head_ptr() {
-    const memory = new DataView(instance.exports.memory.buffer);
     return memory.getUint32(HEAD_PTR_OFFSET);
 }
 
 function get_block_size(ptr) {
-    const memory = new DataView(instance.exports.memory.buffer);
     return memory.getUint32(ptr + BLOCK_SIZE_OFFSET);
 }
 
 function get_block_next_ptr(ptr) {
-    const memory = new DataView(instance.exports.memory.buffer);
     return memory.getUint32(ptr + BLOCK_PTR_OFFSET);
 }
 
 function block_is_marked(ptr) {
-    const memory = new DataView(instance.exports.memory.buffer);
     return memory.getUint8(ptr + BLOCK_MARK_OFFSET) === 1;
 }
 
 function set_block_size(ptr, size) {
-    const memory = new DataView(instance.exports.memory.buffer);
     memory.setUint32(ptr + BLOCK_SIZE_OFFSET, size);
 }
 
 function set_block_next_ptr(ptr, next_ptr) {
-    const memory = new DataView(instance.exports.memory.buffer);
     memory.setUint32(ptr + BLOCK_PTR_OFFSET, next_ptr);
 }
 
 function set_block_mark(ptr, mark) {
-    const memory = new DataView(instance.exports.memory.buffer);
     memory.setUint8(ptr + BLOCK_MARK_OFFSET, mark);
 }
 
 function set_free_list_head_ptr(ptr) {
-    const memory = new DataView(instance.exports.memory.buffer);
     memory.setUint32(HEAD_PTR_OFFSET, ptr);
 }
 
 function value_is_pointer(ptr) {
-    const memory = new DataView(instance.exports.memory.buffer);
     return memory.getUint8(ptr) & 0b01;
 }
 
 function value_is_64_bit(ptr) {
-    const memory = new DataView(instance.exports.memory.buffer);
     return memory.getUint8(ptr) & 0b10;
 }
 
-function value_get_data(value) {
-    const memory = new DataView(instance.exports.memory.buffer);
-    return memory.getUint32(value + 1);
-}
-
 function print_block_first_value(ptr) {
-    const memory = new DataView(instance.exports.memory.buffer);
     const value = ptr + BLOCK_HEADER_SIZE;
     if (value_is_64_bit(value)) {
         console.log(memory.getFloat64(value + 1));
@@ -116,35 +100,27 @@ const moduleOptions = {
             fs.appendFileSync(outputPath, str + "\n");
         },
         mem_get_32: (ptr, byte_offset) => { 
-            const buffer = new DataView(instance.exports.memory.buffer);
-            return buffer.getUint32(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
+            return memory.getUint32(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
         },
 
         mem_get_64: (ptr, byte_offset) => {
-            const buffer = new DataView(instance.exports.memory.buffer);
-            return buffer.getFloat64(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
+            return memory.getFloat64(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
         },
         /**
          * The first byte of the pointer is used to store the pointer bit 
          * 
          */
         mem_set_32: (ptr, offset, value) => { 
-            const buffer = new DataView(instance.exports.memory.buffer);
-
-            buffer.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0);
-            buffer.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
+            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0);
+            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
         },
         mem_set_64: (ptr, offset, value) => {
-            const buffer = new DataView(instance.exports.memory.buffer);
-
-            buffer.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b10);
-            buffer.setFloat64(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
+            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b10);
+            memory.setFloat64(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
         },
         mem_set_ptr: (ptr, offset, value) => {
-            const buffer = new DataView(instance.exports.memory.buffer);
-
-            buffer.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b01);
-            buffer.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
+            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b01);
+            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
         },
         /**
          * This is a first-fit free list allocator
@@ -159,8 +135,6 @@ const moduleOptions = {
          * 
          */
         mem_alloc: (size) => {
-            const memory = new DataView(instance.exports.memory.buffer);
-
             let curr_ptr = get_free_list_head_ptr(); // head of the free list
             let prev_ptr = curr_ptr;
             while (get_block_size(curr_ptr) <= size + BLOCK_HEADER_SIZE) { // block is too small
@@ -203,7 +177,6 @@ const moduleOptions = {
          */
         mark: (ptr) => // the root is any local or global variable that is dynamically allocated
         {
-            const memory = new DataView(instance.exports.memory.buffer);
             const stack = [];
             stack.push(ptr);
 
@@ -227,7 +200,6 @@ const moduleOptions = {
 
         sweep: () => {
             let curr_ptr = FREE_LIST_START;
-            const memory = new DataView(instance.exports.memory.buffer);
             while (curr_ptr < memory.byteLength && get_block_size(curr_ptr) !== 0) {
                 if (!block_is_marked(curr_ptr)) { // check if the block is marked
                     print_block_first_value(curr_ptr);
@@ -243,8 +215,6 @@ const moduleOptions = {
         },
 
         initialize_memory: () => {
-            const memory = new DataView(instance.exports.memory.buffer);
-
             memory.setUint8(0, 0); // null pointer
             memory.setUint32(1, FREE_LIST_START); // head of the free list
             memory.setUint32(FREE_LIST_START, 3000);
@@ -257,7 +227,9 @@ const moduleOptions = {
 const result = fs.readFileSync("output.wasm");
 
 let instance;
+let memory;
 WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
     instance = wasmInstatiatedSource.instance;
+    memory = new DataView(instance.exports.memory.buffer);
     instance.exports.main();
 });
