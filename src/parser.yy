@@ -250,7 +250,11 @@ field_map:
    %empty { $$ = std::vector<std::pair<std::string, Token>>(); }
    | IDENTIFIER COLON TYPE_LITERAL 
       { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back(std::make_pair($1.lexeme, $3)); }
+   | IDENTIFIER COLON IDENTIFIER 
+      { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back(std::make_pair($1.lexeme, $3)); }
    | field_map COMMA IDENTIFIER COLON TYPE_LITERAL 
+      { $1.push_back(std::make_pair($3.lexeme, $5)); $$ = $1; }
+   | field_map COMMA IDENTIFIER COLON IDENTIFIER
       { $1.push_back(std::make_pair($3.lexeme, $5)); $$ = $1; }
 
 decl_stmt: 
