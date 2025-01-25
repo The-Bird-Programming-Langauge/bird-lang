@@ -21,8 +21,6 @@ fs.writeFileSync(outputPath, "");
  * 2. The next 32/64 bits are used to store the actual value
  */
 
-
-const NULL_PTR = 0;
 const HEAD_PTR_OFFSET = 1;
 const BLOCK_SIZE_OFFSET = 0;
 const BLOCK_PTR_OFFSET = 4;
@@ -117,9 +115,14 @@ const moduleOptions = {
             console.log(str);
             fs.appendFileSync(outputPath, str + "\n");
         },
-        mem_get: (ptr, byte_offset) => { 
+        mem_get_32: (ptr, byte_offset) => { 
             const buffer = new DataView(instance.exports.memory.buffer);
             return buffer.getUint32(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
+        },
+
+        mem_get_64: (ptr, byte_offset) => {
+            const buffer = new DataView(instance.exports.memory.buffer);
+            return buffer.getFloat64(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
         },
         /**
          * The first byte of the pointer is used to store the pointer bit 

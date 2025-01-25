@@ -3,31 +3,10 @@ struct Person {
     name: str
 };
 
-fn create_person(age: int, name: str) -> Person {
-    return Person {
-        age = age,
-        name = name
-    };
-}
+var first: Person = Person {
+    age = 4,
+    name = "cole"
+};
 
-var me: Person = create_person(4, "cole");
-
-me.name = "foobar";
-me.age = 5;
-
-print me.age;
-print me.name;
-
-const you: Person = Person { age = 5, name = "shoebar"};
-you.age = 6;
-you.name = "shoebar";
-
-print you.age;
-print you.name;
-
-you.name = "something new";
-
-print you.name;
-
-you.age = you.age * 3;
-print you.age;
+print first.name;
+print first.age;

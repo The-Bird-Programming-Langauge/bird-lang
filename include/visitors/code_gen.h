@@ -139,11 +139,19 @@ public:
         BinaryenType args_type = BinaryenTypeCreate(args, 2);
         BinaryenAddFunctionImport(
             this->mod,
-            "mem_get",
+            "mem_get_32",
             "env",
-            "mem_get",
+            "mem_get_32",
             args_type,
             BinaryenTypeInt32());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "mem_get_64",
+            "env",
+            "mem_get_64",
+            args_type,
+            BinaryenTypeFloat64());
 
         // mem_set(pointer, index, value)
         BinaryenType args_set[3] = {BinaryenTypeInt32(), BinaryenTypeInt32(), BinaryenTypeInt32()};
@@ -1693,58 +1701,143 @@ public:
 
         BinaryenExpressionRef args[2] = {accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
 
+        auto func_name =
+            member_type->type == BirdTypeType::FLOAT
+                ? "mem_get_64"
+                : "mem_get_32";
+
         this->stack.push(
             TaggedExpression(
                 BinaryenCall(
                     this->mod,
-                    "mem_get",
+                    func_name,
                     args,
                     2,
                     bird_type_to_binaryen_type(member_type)),
                 member_type));
     }
 
+    // map from struct name to function name
+    std::unordered_map<std::string, std::string> struct_constructors;
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
-        /*
-         * TOOD: figure out how to do this
-         * the problem is that this is not a statement, so there are side effects.
-         * We cannot push the side effects to the stack.
-         */
-
-        // assume that the struct is already declared
-        if (!this->type_table.contains(struct_initialization->identifier.lexeme))
+        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
+        if (struct_constructors.find(struct_initialization->identifier.lexeme) == struct_constructors.end())
         {
-            throw BirdException("struct not declared");
+            // declare a function based on the struct fields
+            // call the function with the struct fields OR with default values
+
+            std::vector<BinaryenType> param_types;
+            unsigned int size = 0;
+            for (auto &field : struct_initialization->field_assignments)
+            {
+                field.second->accept(this);
+                auto field_value = this->stack.pop();
+                param_types.push_back(bird_type_to_binaryen_type(field_value.type));
+                size += bird_type_byte_size(field_value.type);
+            }
+
+            std::vector<BinaryenExpressionRef> constructor_body;
+
+            auto size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+            auto call = BinaryenCall(
+                this->mod,
+                "mem_alloc",
+                &size_literal,
+                1,
+                BinaryenTypeInt32());
+
+            constructor_body.push_back(BinaryenLocalSet(this->mod, param_types.size(), call));
+
+            for (auto &field : struct_initialization->field_assignments)
+            {
+                field.second->accept(this);
+                auto field_value = this->stack.pop();
+
+                auto offset = 0;
+                for (auto &struct_field : struct_type->fields)
+                {
+                    if (struct_field.first == field.first)
+                        break;
+
+                    offset += bird_type_byte_size(struct_field.second);
+                }
+
+                BinaryenExpressionRef args[3] = {BinaryenLocalGet(this->mod, param_types.size(), BinaryenTypeInt32()), BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), field_value.value};
+                auto func_name =
+                    field_value.type->type == BirdTypeType::FLOAT
+                        ? "mem_set_64"
+                    : field_value.type->type == BirdTypeType::STRUCT ? "mem_set_ptr"
+                                                                     : "mem_set_32";
+
+                constructor_body.push_back(
+                    BinaryenCall(
+                        this->mod,
+                        func_name,
+                        args,
+                        3,
+                        BinaryenTypeNone()));
+            }
+
+            constructor_body.push_back(BinaryenReturn(this->mod, BinaryenLocalGet(this->mod, param_types.size(), BinaryenTypeInt32())));
+
+            auto constructor_var_types = BinaryenTypeInt32();
+            BinaryenAddFunction(this->mod,
+                                struct_initialization->identifier.lexeme.c_str(),
+                                BinaryenTypeCreate(param_types.data(), param_types.size()),
+                                BinaryenTypeInt32(),
+                                &constructor_var_types,
+                                1,
+                                BinaryenBlock(this->mod, nullptr, constructor_body.data(), constructor_body.size(), BinaryenTypeNone()));
+
+            struct_constructors[struct_initialization->identifier.lexeme] = struct_initialization->identifier.lexeme;
         }
 
-        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
+        std::vector<BinaryenExpressionRef> args;
 
-        unsigned int size = 0;
         for (auto &field : struct_initialization->field_assignments)
         {
             field.second->accept(this);
             auto field_value = this->stack.pop();
-            size += bird_type_byte_size(field_value.type);
+            args.push_back(field_value.value);
         }
-
-        auto size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
-
-        auto call = BinaryenCall(
-            this->mod,
-            "mem_alloc",
-            &size_literal,
-            1,
-            BinaryenTypeInt32());
-
-        /**
-         * TODO: figure out how to initialize the struct
-         */
 
         this->stack.push(
             TaggedExpression(
-                call,
+                BinaryenCall(
+                    this->mod,
+                    struct_constructors[struct_initialization->identifier.lexeme].c_str(),
+                    args.data(),
+                    args.size(),
+                    BinaryenTypeInt32()),
                 struct_type));
+
+        // in the function, allocate memory for the struct
+        // set the fields of the struct
+        // return the struct pointer
+
+        // /*
+        //  * TOOD: figure out how to do this
+        //  * the problem is that this is not a statement, so there are side effects.
+        //  * We cannot push the side effects to the stack.
+        //  */
+
+        // // assume that the struct is already declared
+        // if (!this->type_table.contains(struct_initialization->identifier.lexeme))
+        // {
+        //     throw BirdException("struct not declared");
+        // }
+
+        // std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
+
+        // /**
+        //  * TODO: figure out how to initialize the struct
+        //  */
+
+        // this->stack.push(
+        //     TaggedExpression(
+        //         call,
+        //         struct_type));
     }
 
     void visit_member_assign(MemberAssign *member_assign)

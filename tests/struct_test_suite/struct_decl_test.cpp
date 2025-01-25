@@ -31,7 +31,7 @@ TEST(StructTest, StructDeclTest)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output == "", true);
+        ASSERT_EQ(output == "\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
