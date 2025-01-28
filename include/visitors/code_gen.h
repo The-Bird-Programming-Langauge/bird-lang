@@ -2,6 +2,7 @@
 #include "binaryen-c.h"
 #include "bird_type.h"
 #include <fstream>
+#include <algorithm>
 #include <ios>
 
 static std::string bird_type_to_string(std::shared_ptr<BirdType> type)
@@ -1715,20 +1716,24 @@ public:
     std::unordered_map<std::string, std::string> struct_constructors;
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
-        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
+        auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+
+        while (type->type == BirdTypeType::ALIAS)
+        {
+            std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(type);
+            type = alias->alias;
+        }
+
+        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(type);
         if (struct_constructors.find(struct_initialization->identifier.lexeme) == struct_constructors.end())
         {
             // declare a function based on the struct fields
             // call the function with the struct fields OR with default values
 
-            std::vector<BinaryenType> param_types;
             unsigned int size = 0;
-            for (auto &field : struct_initialization->field_assignments)
+            for (auto &field : struct_type->fields)
             {
-                field.second->accept(this);
-                auto field_value = this->stack.pop();
-                param_types.push_back(bird_type_to_binaryen_type(field_value.type));
-                size += bird_type_byte_size(field_value.type);
+                size += bird_type_byte_size(field.second);
             }
 
             std::vector<BinaryenExpressionRef> constructor_body;
@@ -1741,12 +1746,18 @@ public:
                 1,
                 BinaryenTypeInt32());
 
+            std::vector<BinaryenType> param_types;
+            for (auto &field : struct_type->fields)
+            {
+                param_types.push_back(bird_type_to_binaryen_type(field.second));
+            }
+
             constructor_body.push_back(BinaryenLocalSet(this->mod, param_types.size(), call));
 
-            for (auto &field : struct_initialization->field_assignments)
+            int count = 0;
+            for (auto &field : struct_type->fields)
             {
-                field.second->accept(this);
-                auto field_value = this->stack.pop();
+                auto type = field.second;
 
                 auto offset = 0;
                 for (auto &struct_field : struct_type->fields)
@@ -1757,12 +1768,14 @@ public:
                     offset += bird_type_byte_size(struct_field.second);
                 }
 
-                BinaryenExpressionRef args[3] = {BinaryenLocalGet(this->mod, param_types.size(), BinaryenTypeInt32()), BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), field_value.value};
+                BinaryenExpressionRef args[3] = {BinaryenLocalGet(this->mod, param_types.size(), BinaryenTypeInt32()),
+                                                 BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
+                                                 BinaryenLocalGet(this->mod, count++, bird_type_to_binaryen_type(type))};
                 auto func_name =
-                    field_value.type->type == BirdTypeType::FLOAT
+                    type->type == BirdTypeType::FLOAT
                         ? "mem_set_64"
-                    : field_value.type->type == BirdTypeType::STRUCT ? "mem_set_ptr"
-                                                                     : "mem_set_32";
+                    : type->type == BirdTypeType::STRUCT ? "mem_set_ptr"
+                                                         : "mem_set_32";
 
                 constructor_body.push_back(
                     BinaryenCall(
@@ -1789,11 +1802,26 @@ public:
 
         std::vector<BinaryenExpressionRef> args;
 
-        for (auto &field : struct_initialization->field_assignments)
+        for (auto &field : struct_type->fields)
         {
-            field.second->accept(this);
-            auto field_value = this->stack.pop();
-            args.push_back(field_value.value);
+            auto found = false;
+            for (auto &field_assignment : struct_initialization->field_assignments)
+            {
+                if (field.first == field_assignment.first)
+                {
+                    found = true;
+                    field_assignment.second->accept(this);
+                    auto field_value = this->stack.pop();
+                    args.push_back(field_value.value);
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                auto default_value = field.second->type == BirdTypeType::FLOAT ? BinaryenConst(this->mod, BinaryenLiteralFloat64(0.0)) : BinaryenConst(this->mod, BinaryenLiteralInt32(0));
+                args.push_back(default_value);
+            }
         }
 
         this->stack.push(
@@ -1805,33 +1833,6 @@ public:
                     args.size(),
                     BinaryenTypeInt32()),
                 struct_type));
-
-        // in the function, allocate memory for the struct
-        // set the fields of the struct
-        // return the struct pointer
-
-        // /*
-        //  * TOOD: figure out how to do this
-        //  * the problem is that this is not a statement, so there are side effects.
-        //  * We cannot push the side effects to the stack.
-        //  */
-
-        // // assume that the struct is already declared
-        // if (!this->type_table.contains(struct_initialization->identifier.lexeme))
-        // {
-        //     throw BirdException("struct not declared");
-        // }
-
-        // std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
-
-        // /**
-        //  * TODO: figure out how to initialize the struct
-        //  */
-
-        // this->stack.push(
-        //     TaggedExpression(
-        //         call,
-        //         struct_type));
     }
 
     void visit_member_assign(MemberAssign *member_assign)

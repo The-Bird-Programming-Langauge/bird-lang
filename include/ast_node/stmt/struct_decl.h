@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <optional>
+#include <algorithm>
 #include <vector>
 #include <utility>
 
@@ -26,7 +27,11 @@ public:
 
     StructDecl(Token identifier, std::vector<std::pair<std::string, Token>> fields)
         : identifier(identifier),
-          fields(fields) {}
+          fields(fields)
+    {
+        std::sort(this->fields.begin(), this->fields.end(), [](const auto &a, const auto &b)
+                  { return a.first < b.first; });
+    }
 
     void accept(Visitor *visitor)
     {

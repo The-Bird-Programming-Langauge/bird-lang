@@ -1,13 +1,11 @@
+struct Point { x: int, y: float };
 
-fn checkNum(x: int) -> void {
-        if (x == 0) {
-                print "zero";
-        } else if (x > 0) {
-                print "positive";
-        } else {
-                print "negative";
-        }
-}
+struct Line { start: Point, end: Point };
 
-print checkNum(1);
-print checkNum(-1);
+var s: Point = Point {};
+var e: Point = Point { x = 3, y = 4.4};
+
+print s.x;
+print s.y;
+print e.x;
+print e.y;

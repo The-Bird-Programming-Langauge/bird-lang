@@ -319,7 +319,7 @@ public:
         std::cout << "{";
         for (auto it = struct_decl->fields.begin(); it != struct_decl->fields.end(); it++)
         {
-            std::cout << it->first << ": " << it->second.lexeme;
+            std::cout << it->first << ": " << it->second.lexeme << ", ";
         }
         std::cout << "}";
     }
@@ -333,11 +333,12 @@ public:
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
         std::cout << struct_initialization->identifier.lexeme << "{";
-        // for (auto it = struct_initialization->field_assignments.begin(); it != struct_initialization->field_assignments.end(); it++)
-        // {
-        //     std::cout << it->first << ": ";
-        //     it->second->accept(this);
-        // }
+        for (auto it = struct_initialization->field_assignments.begin(); it != struct_initialization->field_assignments.end(); it++)
+        {
+            std::cout << it->first << ": ";
+            it->second->accept(this);
+            std::cout << ", ";
+        }
         std::cout << "}";
     }
 

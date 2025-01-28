@@ -598,12 +598,52 @@ public:
     {
         std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance = std::make_shared<std::unordered_map<std::string, Value>>();
 
-        for (auto &field_assignment : struct_initialization->field_assignments)
-        {
-            field_assignment.second->accept(this);
-            auto result = this->stack.pop();
+        auto struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
 
-            (*struct_instance)[field_assignment.first] = result;
+        for (auto &field : struct_type->fields)
+        {
+            bool found = false;
+            for (auto &field_assignment : struct_initialization->field_assignments)
+            {
+                if (field.first == field_assignment.first)
+                {
+                    found = true;
+                    field_assignment.second->accept(this);
+                    auto result = this->stack.pop();
+
+                    (*struct_instance)[field_assignment.first] = result;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                // (*struct_instance)[field.first] = Value(0);
+                if (field.second->type == BirdTypeType::BOOL)
+                {
+                    (*struct_instance)[field.first] = Value(false);
+                }
+                else if (field.second->type == BirdTypeType::INT)
+                {
+                    (*struct_instance)[field.first] = Value(0);
+                }
+                else if (field.second->type == BirdTypeType::FLOAT)
+                {
+                    (*struct_instance)[field.first] = Value(0.0);
+                }
+                else if (field.second->type == BirdTypeType::STRING)
+                {
+                    (*struct_instance)[field.first] = Value("");
+                }
+                else
+                {
+                    throw BirdException("Cannot assign member of non-struct type.");
+                }
+            }
+            // field_assignment.second->accept(this);
+            // auto result = this->stack.pop();
+
+            // (*struct_instance)[field_assignment.first] = result;
         }
 
         this->stack.push(Value(struct_instance));

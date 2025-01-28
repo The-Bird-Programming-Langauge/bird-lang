@@ -68,16 +68,6 @@ function value_is_64_bit(ptr) {
     return memory.getUint8(ptr) & 0b10;
 }
 
-function print_block_first_value(ptr) {
-    const value = ptr + BLOCK_HEADER_SIZE;
-    if (value_is_64_bit(value)) {
-        console.log(memory.getFloat64(value + 1));
-    } else if (value_is_pointer(value)) {
-        console.log("pointer: ", memory.getUint32(value + 1));
-    } else {
-        console.log(memory.getUint32(value + 1));
-    }
-}
 
 
 const moduleOptions = {
@@ -202,11 +192,9 @@ const moduleOptions = {
             let curr_ptr = FREE_LIST_START;
             while (curr_ptr < memory.byteLength && get_block_size(curr_ptr) !== 0) {
                 if (!block_is_marked(curr_ptr)) { // check if the block is marked
-                    print_block_first_value(curr_ptr);
                     set_block_next_ptr(curr_ptr, get_free_list_head_ptr()); // set the pointer of the block to the head of the free list
                     set_free_list_head_ptr(curr_ptr); 
                 } else {
-                    print_block_first_value(curr_ptr);
                     set_block_mark(curr_ptr, 0); // clear the mark bit
                 }
 

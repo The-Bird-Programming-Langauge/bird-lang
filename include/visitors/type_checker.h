@@ -851,7 +851,14 @@ public:
         }
         else
         {
-            auto struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
+            auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+            while (type->type == BirdTypeType::ALIAS)
+            {
+                auto alias = std::dynamic_pointer_cast<AliasType>(type);
+                type = alias->alias;
+            }
+
+            auto struct_type = std::dynamic_pointer_cast<StructType>(type);
 
             for (auto &field_assignment : struct_initialization->field_assignments)
             {
