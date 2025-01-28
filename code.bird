@@ -1,11 +1,5 @@
-struct Point { x: int, y: float };
+struct A { b: B };
+struct B { a: A };
+var a: A = A { b = B { a = A { } } };
+print ?a.b.a.b;
 
-struct Line { start: Point, end: Point };
-
-var s: Point = Point {};
-var e: Point = Point { x = 3, y = 4.4};
-
-print s.x;
-print s.y;
-print e.x;
-print e.y;

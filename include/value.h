@@ -22,7 +22,7 @@ inline T as_type(Value value);
 template <typename T, typename U>
 inline T to_type(Value value);
 
-using variant = std::variant<int, double, std::string, bool, std::shared_ptr<std::unordered_map<std::string, Value>>>;
+using variant = std::variant<int, double, std::string, bool, std::shared_ptr<std::unordered_map<std::string, Value>>, std::nullptr_t>;
 class Value
 {
 public:
@@ -210,6 +210,12 @@ public:
 
         if (is_type<bool>(*this) && is_type<bool>(right))
             return Value(as_type<bool>(*this) != as_type<bool>(right));
+
+        if (is_type<std::nullptr_t>(*this) && is_type<std::nullptr_t>(right))
+            return Value(false);
+
+        if (is_type<std::nullptr_t>(*this) || is_type<std::nullptr_t>(right))
+            return Value(true);
 
         throw BirdException("The '!=' binary operator could not be used to interpret these values.");
     }

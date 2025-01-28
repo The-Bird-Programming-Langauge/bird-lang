@@ -1,30 +1,10 @@
 #pragma once
 #include "binaryen-c.h"
 #include "bird_type.h"
+#include "hoist_visitor.h"
 #include <fstream>
 #include <algorithm>
 #include <ios>
-
-static std::string bird_type_to_string(std::shared_ptr<BirdType> type)
-{
-    switch (type->type)
-    {
-    case BirdTypeType::INT:
-        return "int";
-    case BirdTypeType::FLOAT:
-        return "float";
-    case BirdTypeType::BOOL:
-        return "bool";
-    case BirdTypeType::VOID:
-        return "void";
-    case BirdTypeType::STRING:
-        return "string";
-    case BirdTypeType::STRUCT:
-        return "struct";
-    default:
-        return "unknown";
-    }
-}
 
 static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i32s
 {
@@ -42,9 +22,11 @@ static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i3
         return 5;
     case BirdTypeType::STRUCT:
         return 5;
+    case BirdTypeType::PLACEHOLDER:
+        return 5;
     case BirdTypeType::ALIAS:
     {
-        std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(type);
+        std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(type);
         return bird_type_byte_size(alias->alias);
     }
     default:
@@ -86,6 +68,7 @@ public:
     Environment<std::shared_ptr<BirdType>> type_table;
     Stack<TaggedExpression> stack; // for returning values
     std::map<std::string, std::string> std_lib;
+    std::set<std::string> struct_names;
 
     // we need the function return types when calling functions
     std::unordered_map<std::string, TaggedType> function_return_types;
@@ -251,6 +234,9 @@ public:
 
     void generate(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
+        HoistVisitor hoist_visitor(&this->struct_names);
+        hoist_visitor.hoist(stmts);
+
         this->init_std_lib();
 
         this->current_function_name = "main";
@@ -462,9 +448,11 @@ public:
             return BinaryenTypeInt32();
         else if (bird_type->type == BirdTypeType::STRUCT)
             return BinaryenTypeInt32(); // ptr
+        else if (bird_type->type == BirdTypeType::PLACEHOLDER)
+            return BinaryenTypeInt32();
         else if (bird_type->type == BirdTypeType::ALIAS)
         {
-            std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(bird_type);
+            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(bird_type);
             return bird_type_to_binaryen_type(alias->alias);
         }
 
@@ -485,7 +473,7 @@ public:
             return BinaryenTypeInt32();
         else if (token->type == BirdTypeType::ALIAS)
         {
-            std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(token);
+            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(token);
             return from_bird_type(alias->alias);
         }
         else
@@ -687,7 +675,7 @@ public:
 
             if (result.type->type == BirdTypeType::ALIAS)
             {
-                std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(result.type);
+                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(result.type);
                 result.type = alias->alias;
             }
 
@@ -1655,6 +1643,7 @@ public:
         std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
         std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
                        { 
+
                         if (is_bird_type(field.second))
                         {
                             return std::make_pair(field.first, token_to_bird_type(field.second));
@@ -1664,6 +1653,11 @@ public:
                         {
                             return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
                         } 
+
+                        if (this->struct_names.find(field.second.lexeme) != this->struct_names.end())
+                        {
+                            return std::make_pair(field.first, std::shared_ptr<BirdType>(new PlaceholderType(field.second.lexeme)));
+                        }
 
                         throw BirdException("invalid type"); });
 
@@ -1678,7 +1672,21 @@ public:
         direct_member_access->accessable->accept(this);
         auto accessable = this->stack.pop();
 
-        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(accessable.type);
+        std::shared_ptr<StructType> struct_type;
+        if (accessable.type->type == BirdTypeType::PLACEHOLDER)
+        {
+            std::shared_ptr<PlaceholderType> placeholder = safe_dynamic_pointer_cast<PlaceholderType>(accessable.type);
+            if (this->struct_names.find(placeholder->name) == this->struct_names.end())
+            {
+                throw BirdException("struct not found");
+            }
+
+            struct_type = safe_dynamic_pointer_cast<StructType>(this->type_table.get(placeholder->name));
+        }
+        else
+        {
+            struct_type = safe_dynamic_pointer_cast<StructType>(accessable.type);
+        }
 
         auto offset = 0;
         std::shared_ptr<BirdType> member_type;
@@ -1720,11 +1728,11 @@ public:
 
         while (type->type == BirdTypeType::ALIAS)
         {
-            std::shared_ptr<AliasType> alias = std::dynamic_pointer_cast<AliasType>(type);
+            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(type);
             type = alias->alias;
         }
 
-        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(type);
+        std::shared_ptr<StructType> struct_type = safe_dynamic_pointer_cast<StructType>(type);
         if (struct_constructors.find(struct_initialization->identifier.lexeme) == struct_constructors.end())
         {
             // declare a function based on the struct fields
@@ -1843,7 +1851,7 @@ public:
         member_assign->accessable->accept(this);
         auto accessable = this->stack.pop();
 
-        std::shared_ptr<StructType> struct_type = std::dynamic_pointer_cast<StructType>(accessable.type);
+        std::shared_ptr<StructType> struct_type = safe_dynamic_pointer_cast<StructType>(accessable.type);
 
         auto offset = 0;
         for (auto &field : struct_type->fields)

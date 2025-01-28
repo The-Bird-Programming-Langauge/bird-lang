@@ -548,6 +548,7 @@ TERM_OP:
 
 UNARY_OP: 
    MINUS
+   | QUESTION
 
 %%
 

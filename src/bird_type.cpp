@@ -52,3 +52,30 @@ std::shared_ptr<BirdType> token_to_bird_type(Token token)
         return std::make_shared<ErrorType>();
     }
 }
+
+std::string bird_type_to_string(std::shared_ptr<BirdType> type)
+{
+    switch (type->type)
+    {
+    case BirdTypeType::INT:
+        return "int";
+    case BirdTypeType::FLOAT:
+        return "float";
+    case BirdTypeType::BOOL:
+        return "bool";
+    case BirdTypeType::VOID:
+        return "void";
+    case BirdTypeType::STRING:
+        return "string";
+    case BirdTypeType::STRUCT:
+        return "struct";
+    case BirdTypeType::PLACEHOLDER:
+        return "placeholder";
+    case BirdTypeType::ALIAS:
+        return "alias";
+    case BirdTypeType::FUNCTION:
+        return "function";
+    case BirdTypeType::ERROR:
+        return "error";
+    }
+}

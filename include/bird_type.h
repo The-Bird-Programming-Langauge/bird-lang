@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include "token.h"
+#include "exceptions/bird_exception.h"
 
 /*
  * Enum for the types of the language, used for type checking
@@ -17,7 +18,8 @@ enum class BirdTypeType
     ERROR,
     STRUCT,
     FUNCTION,
-    ALIAS
+    ALIAS,
+    PLACEHOLDER
 };
 
 // TODO: figure out how to do first class functions
@@ -94,3 +96,24 @@ struct BirdFunction : BirdType
 
 std::shared_ptr<BirdType> bird_type_type_to_bird_type(BirdTypeType type);
 std::shared_ptr<BirdType> token_to_bird_type(Token token);
+
+struct PlaceholderType : BirdType
+{
+    std::string name;
+    PlaceholderType(std::string name) : BirdType(BirdTypeType::PLACEHOLDER), name(name) {}
+    ~PlaceholderType() {};
+};
+
+std::string bird_type_to_string(std::shared_ptr<BirdType> type);
+
+template <typename T>
+std::shared_ptr<T> safe_dynamic_pointer_cast(std::shared_ptr<BirdType> type)
+{
+    std::shared_ptr<T> result = std::dynamic_pointer_cast<T>(type);
+    if (result.get() == nullptr)
+    {
+        throw BirdException("invalid cast, expected " + bird_type_to_string(type));
+    }
+
+    return result;
+}

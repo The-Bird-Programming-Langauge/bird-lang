@@ -5,8 +5,10 @@
 #include <variant>
 #include <iostream>
 #include <algorithm>
+#include <set>
 
 #include "ast_node/index.h"
+#include "hoist_visitor.h"
 
 #include "sym_table.h"
 #include "exceptions/bird_exception.h"
@@ -30,6 +32,7 @@ public:
     Environment<Callable> call_table;
     Environment<std::shared_ptr<BirdType>> type_table;
     Stack<Value> stack;
+    std::set<std::string> struct_names;
 
     Interpreter()
     {
@@ -40,6 +43,9 @@ public:
 
     void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
+        HoistVisitor hoist_visitor(&this->struct_names);
+        hoist_visitor.hoist(stmts);
+
         for (auto &stmt : *stmts)
         {
             if (auto decl_stmt = dynamic_cast<DeclStmt *>(stmt.get()))
@@ -447,7 +453,24 @@ public:
         unary->expr->accept(this);
         auto expr = std::move(this->stack.pop());
 
-        this->stack.push(-expr);
+        switch (unary->op.token_type)
+        {
+        case Token::Type::MINUS:
+        {
+            this->stack.push(-expr);
+            break;
+        }
+        case Token::Type::QUESTION:
+        {
+            this->stack.push(expr != Value(nullptr));
+            break;
+        }
+
+        default:
+        {
+            throw BirdException("Undefined unary operator.");
+        }
+        }
     }
 
     void visit_primary(Primary *primary)
@@ -503,7 +526,6 @@ public:
     void visit_if_stmt(IfStmt *if_stmt)
     {
         if_stmt->condition->accept(this);
-
         auto result = std::move(this->stack.pop());
 
         if (as_type<bool>(result))
@@ -571,9 +593,13 @@ public:
                         if (this->type_table.contains(field.second.lexeme))
                         {
                             return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
-                        } else {
-                            return std::make_pair(field.first, token_to_bird_type(field.second));
-                        } });
+                        } 
+
+                        if (this->struct_names.find(field.second.lexeme) != this->struct_names.end()) {
+                            return std::make_pair(field.first, std::shared_ptr<BirdType>(new PlaceholderType(field.second.lexeme)));
+                        }
+
+                            return std::make_pair(field.first, token_to_bird_type(field.second)); });
 
         this->type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, std::move(struct_fields)));
     }
@@ -634,6 +660,14 @@ public:
                 else if (field.second->type == BirdTypeType::STRING)
                 {
                     (*struct_instance)[field.first] = Value("");
+                }
+                else if (field.second->type == BirdTypeType::STRUCT)
+                {
+                    (*struct_instance)[field.first] = Value(nullptr);
+                }
+                else if (field.second->type == BirdTypeType::PLACEHOLDER)
+                {
+                    (*struct_instance)[field.first] = Value(nullptr);
                 }
                 else
                 {
