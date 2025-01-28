@@ -20,7 +20,7 @@ inline T as_type(Value value);
 template <typename T, typename U>
 inline T to_type(Value value);
 
-using variant = std::variant<int, double, std::string, bool>;
+using variant = std::variant<int, double, std::string, bool, std::vector<Value>>;
 class Value
 {
 public:
@@ -28,6 +28,8 @@ public:
     bool is_mutable;
 
     Value(variant data, bool is_mutable = false) : data(std::move(data)), is_mutable(is_mutable) {}
+    Value(const std::vector<Value> &array, bool is_mutable = false)
+        : data(array), is_mutable(is_mutable) {}
     Value() = default;
 
     Value operator+(Value right)

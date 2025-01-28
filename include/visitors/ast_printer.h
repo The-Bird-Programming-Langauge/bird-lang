@@ -296,4 +296,9 @@ public:
     {
         std::cout << "type " << type_stmt->identifier.lexeme << " = " << type_stmt->type_token.lexeme;
     }
+
+    void visit_array_decl(ArrayDecl *array_decl)
+    {
+        throw BirdException("implement visit_array_decl in ast printer");
+    }
 };

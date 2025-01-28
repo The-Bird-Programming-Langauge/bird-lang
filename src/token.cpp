@@ -21,6 +21,8 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::LBRACE, "LBRACE"},
     {Token::Type::RPAREN, "RPAREN"},
     {Token::Type::LPAREN, "LPAREN"},
+    {Token::Type::RBRACKET, "RBRACKET"},
+    {Token::Type::LBRACKET, "LBRACKET"},
     {Token::Type::TYPE_LITERAL, "TYPE_LITERAL"},
     {Token::Type::FLOAT_LITERAL, "FLOAT_LITERAL"},
     {Token::Type::BOOL_LITERAL, "BOOL_LITERAL"},

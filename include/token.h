@@ -40,6 +40,8 @@ public:
         LBRACE,
         RPAREN,
         LPAREN,
+        LBRACKET,
+        RBRACKET,
         COLON,
         GREATER,
         LESS,

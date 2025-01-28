@@ -86,6 +86,8 @@ RBRACE "}"
 LBRACE "{"
 RPAREN ")"
 LPAREN "("
+LBRACKET "["
+RBRACKET "]"
 COLON ":"
 BANG "!"
 ARROW "->"
@@ -127,7 +129,6 @@ TERM_OP
 FACTOR_OP
 UNARY_OP
 EQUALITY_OP
-
 
 %type <std::optional<Token>>
 return_type
@@ -221,7 +222,6 @@ stmt:
    | type_stmt SEMICOLON { $$ = std::move($1); }
    | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
 
-
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 
       { $$ = std::make_unique<DeclStmt>($2, std::nullopt, false, std::move($4)); }
@@ -229,6 +229,8 @@ decl_stmt:
       { $$ = std::make_unique<DeclStmt>($2, $4, true, std::move($6)); }
    | VAR IDENTIFIER COLON IDENTIFIER EQUAL expr
       { $$ = std::make_unique<DeclStmt>($2, $4, false, std::move($6)); }
+   | VAR IDENTIFIER COLON TYPE_LITERAL LBRACKET RBRACKET EQUAL LBRACKET maybe_arg_list RBRACKET
+      { $$ = std::make_unique<ArrayDecl>($2, $4, std::move($9)); }
 
 if_stmt: 
    IF expr block %prec THEN 

@@ -160,6 +160,8 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "{"                     { return token::LBRACE; } 
 ")"                     { return token::RPAREN; } 
 "("                     { return token::LPAREN; }
+"["                     { return token::LBRACKET; }
+"]"                     { return token::RBRACKET; }
 ";"                     { return token::SEMICOLON; } 
 "!"                     { return token::BANG; } 
 "->"                    { return token::ARROW; } 

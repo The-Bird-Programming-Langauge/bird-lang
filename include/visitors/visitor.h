@@ -22,6 +22,7 @@ class ReturnStmt;
 class BreakStmt;
 class ContinueStmt;
 class TypeStmt;
+class ArrayDecl;
 
 /*
  * the interface for all visitors,
@@ -50,4 +51,5 @@ public:
     virtual void visit_break_stmt(BreakStmt *) = 0;
     virtual void visit_continue_stmt(ContinueStmt *) = 0;
     virtual void visit_type_stmt(TypeStmt *) = 0;
+    virtual void visit_array_decl(ArrayDecl *) = 0;
 };

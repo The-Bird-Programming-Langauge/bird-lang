@@ -1487,4 +1487,9 @@ public:
             this->type_table.declare(type_stmt->identifier.lexeme, Type(this->type_table.get(type_stmt->type_token.lexeme).type));
         }
     }
+
+    void visit_array_decl(ArrayDecl *array_decl)
+    {
+        throw BirdException("implement visit_array_decl in codegen");
+    }
 };

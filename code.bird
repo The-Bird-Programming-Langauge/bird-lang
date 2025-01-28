@@ -1,1 +1,3 @@
-fn function(i: int) -> int {return i;}var result: int = function(4);print(result);
+var x: float[] = [ 1.0, 2.1, 3.2 ];
+var y: int[] = [ 1, 2, 3 ];
+var z: str[] = [ "hello", "world" ];

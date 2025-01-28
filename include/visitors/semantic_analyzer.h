@@ -356,4 +356,9 @@ public:
                this->call_table.current_contains(identifer) ||
                this->type_table.current_contains(identifer);
     }
+
+    void visit_array_decl(ArrayDecl *array_decl)
+    {
+        throw BirdException("implement visit_array_decl in semantic analyzer");
+    }
 };
