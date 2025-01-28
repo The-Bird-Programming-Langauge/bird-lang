@@ -99,6 +99,7 @@ DOT "."
 
 %type <std::unique_ptr<Stmt>> 
 stmt
+block_valid_stmt
 decl_stmt
 if_stmt
 const_stmt
@@ -138,22 +139,29 @@ FACTOR_OP
 UNARY_OP
 EQUALITY_OP
 
+%type <std::pair<std::string, Token>>
+field_member
+
 %type <std::vector<std::pair<std::string, Token>>>
+maybe_field_map
 field_map
 
 %type <std::vector<std::pair<std::string, std::unique_ptr<Expr>>>>
+maybe_struct_initialization_list
 struct_initialization_list
 
 %type <std::optional<Token>>
 return_type
 
 %type <std::optional<std::unique_ptr<Stmt>>>
-maybe_stmt
+maybe_block_valid_stmt
 
 %type <std::optional<std::unique_ptr<Expr>>>
 maybe_expr
 
 %type <std::vector<std::unique_ptr<Stmt>>>
+maybe_block_valid_stmts
+block_valid_stmts
 maybe_stmts
 stmts
 
@@ -225,12 +233,17 @@ stmts:
       { $1.push_back(std::move($2)); $$ = std::move($1); }
 
 stmt: 
+   func { $$ = std::move($1); }
+   | struct_decl SEMICOLON {$$ = std::move($1); }
+   | block_valid_stmt { $$ = std::move($1); }
+   | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
+
+block_valid_stmt:
    decl_stmt SEMICOLON { $$ = std::move($1); }
    | if_stmt { $$ = std::move($1); }
    | const_stmt SEMICOLON { $$ = std::move($1); }
    | print_stmt SEMICOLON { $$ = std::move($1); }
    | block { $$ = std::move($1); }
-   | func { $$ = std::move($1); }
    | while_stmt { $$ = std::move($1); }
    | for_stmt { $$ = std::move($1); }
    | return_stmt SEMICOLON { $$ = std::move($1); }
@@ -238,24 +251,27 @@ stmt:
    | continue_stmt SEMICOLON { $$ = std::move($1); }
    | expr_stmt SEMICOLON { $$ = std::move($1); }
    | type_stmt SEMICOLON { $$ = std::move($1); }
-   | struct_decl SEMICOLON { $$ = std::move($1); }
-   | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
 
 struct_decl:
-   STRUCT IDENTIFIER LBRACE field_map RBRACE {
-      $$ = std::make_unique<StructDecl>($2, $4);
-   }
+   STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
+      { $$ = std::make_unique<StructDecl>($2, $4); }
+
+maybe_field_map:
+   %empty { $$ = std::vector<std::pair<std::string, Token>>(); }
+   | field_map
+   | field_map COMMA
 
 field_map: 
-   %empty { $$ = std::vector<std::pair<std::string, Token>>(); }
-   | IDENTIFIER COLON TYPE_LITERAL 
-      { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back(std::make_pair($1.lexeme, $3)); }
-   | IDENTIFIER COLON IDENTIFIER 
-      { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back(std::make_pair($1.lexeme, $3)); }
-   | field_map COMMA IDENTIFIER COLON TYPE_LITERAL 
-      { $1.push_back(std::make_pair($3.lexeme, $5)); $$ = $1; }
-   | field_map COMMA IDENTIFIER COLON IDENTIFIER
-      { $1.push_back(std::make_pair($3.lexeme, $5)); $$ = $1; }
+   field_member
+      { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back($1); }
+   | field_map COMMA field_member
+      { $$ = std::move($1); $$.push_back($3); }
+
+field_member:
+   IDENTIFIER COLON TYPE_LITERAL
+      { $$ = std::make_pair($1.lexeme, $3); }
+   | IDENTIFIER COLON IDENTIFIER
+      { $$ = std::make_pair($1.lexeme, $3); }
 
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 
@@ -298,8 +314,18 @@ print_stmt:
       { $$ = std::make_unique<PrintStmt>(std::move($2)); }
 
 block: 
-   LBRACE maybe_stmts RBRACE 
+   LBRACE maybe_block_valid_stmts RBRACE 
       { $$ = std::make_unique<Block>(std::move($2)); }
+
+maybe_block_valid_stmts:
+    %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   | block_valid_stmts { $$ = std::move($1); }
+
+block_valid_stmts: 
+   block_valid_stmt 
+      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   | block_valid_stmts block_valid_stmt 
+      { $1.push_back(std::move($2)); $$ = std::move($1); }
 
 func: 
    FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
@@ -310,13 +336,21 @@ while_stmt:
       { $$ = std::make_unique<WhileStmt>($1, std::move($2), std::move($3)); }
 
 for_stmt: 
-   FOR maybe_stmt maybe_expr SEMICOLON maybe_expr DO stmt 
+   FOR maybe_block_valid_stmt maybe_expr SEMICOLON maybe_expr block 
       { $$ = std::make_unique<ForStmt>(  
             $1, 
             std::move($2), 
             std::move($3), 
             std::move($5), 
-            std::move($7)); }
+            std::move($6)); }
+
+maybe_block_valid_stmt: 
+   SEMICOLON { $$ = std::nullopt; }
+   | block_valid_stmt { $$ = std::move($1); }
+
+maybe_expr: 
+   %empty { $$ = std::nullopt; }
+   | expr { $$ = std::move($1); }
 
 return_stmt: 
    RETURN 
@@ -373,13 +407,6 @@ return_type:
    | ARROW TYPE_LITERAL { $$ = std::optional<Token>($2); }
    | ARROW IDENTIFIER { $$ = std::optional<Token>($2); }
 
-maybe_stmt: 
-   SEMICOLON { $$ = std::nullopt; }
-   | stmt { $$ = std::move($1); }
-
-maybe_expr: 
-   %empty { $$ = std::nullopt; }
-   | expr { $$ = std::move($1); }
 
 
 expr: 
@@ -457,34 +484,29 @@ call_expr:
       }
 
 struct_initialization:
-   IDENTIFIER LBRACE struct_initialization_list RBRACE {
-      $$ = std::make_unique<StructInitialization>($1, std::move($3));
-   }
+   IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
+      { $$ = std::make_unique<StructInitialization>($1, std::move($3)); }
+
+maybe_struct_initialization_list:
+   %empty { $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>(); }
+   | struct_initialization_list { $$ = std::move($1); }
+   | struct_initialization_list COMMA { $$ = std::move($1); }
 
 struct_initialization_list:
-   %empty { 
-         $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>();
-      }
-   | IDENTIFIER EQUAL expr { 
-         $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>();
-         $$.push_back(std::make_pair($1.lexeme, std::move($3)));
-      }
-   | struct_initialization_list COMMA IDENTIFIER EQUAL expr { 
-      $1.push_back(std::make_pair($3.lexeme, std::move($5)));
-      $$ = std::move($1);
-      }
+   IDENTIFIER EQUAL expr 
+      { $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>();
+        $$.push_back(std::make_pair($1.lexeme, std::move($3))); }
+   | struct_initialization_list COMMA IDENTIFIER EQUAL expr 
+      { $$ = std::move($1);
+        $$.push_back(std::make_pair($3.lexeme, std::move($5))); }
 
 subscript_expr:
    expr LBRACKET expr RBRACKET %prec SUBSCRIPT
-      {
-         $$ = std::make_unique<Subscript>(std::move($1), std::move($3), $2);
-      }
+      { $$ = std::make_unique<Subscript>(std::move($1), std::move($3), $2); }
 
 direct_member_access:
    expr DOT IDENTIFIER %prec SUBSCRIPT
-   {
-      $$ = std::make_unique<DirectMemberAccess>(std::move($1), $3);
-   }
+      { $$ = std::make_unique<DirectMemberAccess>(std::move($1), $3); }
 
 primary: 
    IDENTIFIER 

@@ -5,7 +5,7 @@ TEST(ForLoopTest, ForLoopIncrement)
 {
     BirdTest::TestOptions options;
     options.code = "var z = 0;"
-                   "for var x: int = 0; x <= 5; x += 1 do {"
+                   "for var x: int = 0; x <= 5; x += 1 {"
                    "z = x;"
                    "print z;"
                    "}";
@@ -66,7 +66,7 @@ TEST(ForLoopTest, ForLoopBreak)
 {
     BirdTest::TestOptions options;
     options.code = "var z = 0;"
-                   "for var x: int = 0; x <= 5; x += 1 do {"
+                   "for var x: int = 0; x <= 5; x += 1 {"
                    "    z = x;"
                    "    print z;"
                    "    if z == 2 {"
@@ -96,7 +96,7 @@ TEST(ForLoopTest, ForLoopContinue)
 {
     BirdTest::TestOptions options;
     options.code = "var z = 0;"
-                   "for var x: int = 0; x < 5; x += 1 do {"
+                   "for var x: int = 0; x < 5; x += 1 {"
                    "    print z;"
                    "    if z == 3 {continue;}"
                    "    z += 1;"
@@ -128,7 +128,7 @@ TEST(ForLoopTest, EmptyForLoop)
 {
     BirdTest::TestOptions options;
     options.code = "var x = 0;"
-                   "for ; ; do {"
+                   "for ; ; {"
                    "    x += 1;"
                    "    print x;"
                    "   if x == 5 {"
@@ -161,7 +161,7 @@ TEST(ForLoopTest, FalseForLoop)
 {
     BirdTest::TestOptions options;
     options.code = "var x = 0;"
-                   "for ; false; do {"
+                   "for ; false; {"
                    "    x = 1;"
                    "    print x;"
                    "}";

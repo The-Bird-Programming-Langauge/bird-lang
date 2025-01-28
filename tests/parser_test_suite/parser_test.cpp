@@ -573,7 +573,7 @@ TEST(ParserTest, ParseTernaryReject)
 TEST(ParserTest, ParserForLoop)
 {
     BirdTest::TestOptions options;
-    options.code = "for var x: int = 0; x <= 5; x += 1 do print x;";
+    options.code = "for var x: int = 0; x <= 5; x += 1 { print x; }";
 
     options.compile = false;
     options.interpret = false;
@@ -609,7 +609,11 @@ TEST(ParserTest, ParserForLoop)
         EXPECT_EQ(rhs_increment->value.lexeme, "1");
 
         ASSERT_NE(for_stmt->body, nullptr);
-        PrintStmt *print_stmt = dynamic_cast<PrintStmt *>(for_stmt->body.get());
+        Block *block = dynamic_cast<Block *>(for_stmt->body.get());
+        ASSERT_NE(block, nullptr);
+        ASSERT_EQ(block->stmts.size(), 1);
+
+        PrintStmt *print_stmt = dynamic_cast<PrintStmt *>((block->stmts[0]).get());
         ASSERT_NE(print_stmt, nullptr);
         ASSERT_EQ(print_stmt->args.size(), 1);
 
