@@ -66,3 +66,23 @@ TEST(FunctionTest, FunctionWrongReturnType)
 
     ASSERT_FALSE(BirdTest::compile(options));
 }
+
+TEST(FunctionTest, FunctionNoReturnType)
+{
+    BirdTest::TestOptions options;
+    options.code = "fn function()"
+                   "{"
+                   "return 34;"
+                   "}";
+
+    options.after_type_check = [&](UserErrorTracker &error_tracker, TypeChecker &type_checker)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
+
+        ASSERT_EQ(std::get<1>(tup).lexeme, "return");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: in return statement (line 1, character 15)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
+}

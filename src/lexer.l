@@ -28,7 +28,7 @@ using T = Token::Type;
 
 
 EXP             ([Ee][-+]?[0-9]+)
-IDENT           [a-zA-Z][a-zA-Z0-9_\-]*
+IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 %%

@@ -1,12 +1,13 @@
-struct Person {
-    age: int,
-    name: str
-};
 
-var first: Person = Person {
-    age = 4,
-    name = "cole"
-};
+fn checkNum(x: int) -> void {
+        if (x == 0) {
+                print "zero";
+        } else if (x > 0) {
+                print "positive";
+        } else {
+                print "negative";
+        }
+}
 
-print first.name;
-print first.age;
+print checkNum(1);
+print checkNum(-1);

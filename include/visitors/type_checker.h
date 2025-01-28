@@ -606,7 +606,7 @@ public:
         std::transform(func->param_list.begin(), func->param_list.end(), std::back_inserter(params), [&](auto param)
                        { return this->get_type_from_token(param.second); });
 
-        std::shared_ptr<BirdType> ret = func->return_type.has_value() ? this->get_type_from_token(func->return_type.value()) : std::shared_ptr<VoidType>();
+        std::shared_ptr<BirdType> ret = func->return_type.has_value() ? this->get_type_from_token(func->return_type.value()) : std::shared_ptr<BirdType>(new VoidType());
         auto previous_return_type = this->return_type;
         this->return_type = ret;
 

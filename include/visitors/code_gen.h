@@ -311,14 +311,14 @@ public:
             {
                 expr_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
+                main_function_body.push_back(BinaryenDrop(this->mod, result.value));
             }
 
             if (auto ternary_stmt = dynamic_cast<Ternary *>(stmt.get()))
             {
                 ternary_stmt->accept(this);
                 auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
+                main_function_body.push_back(BinaryenDrop(this->mod, result.value));
             }
 
             if (auto while_stmt = dynamic_cast<WhileStmt *>(stmt.get()))
@@ -337,23 +337,17 @@ public:
 
             if (auto return_stmt = dynamic_cast<ReturnStmt *>(stmt.get()))
             {
-                return_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
+                throw BirdException("return statement not allowed in main function");
             }
 
             if (auto break_stmt = dynamic_cast<BreakStmt *>(stmt.get()))
             {
-                break_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
+                throw BirdException("break statement not allowed in main function");
             }
 
             if (auto continue_stmt = dynamic_cast<ContinueStmt *>(stmt.get()))
             {
-                continue_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
+                throw BirdException("continue statement not allowed in main function");
             }
 
             if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get()))
