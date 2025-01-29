@@ -527,27 +527,6 @@ public:
             {
                 type = this->type_table.get(decl_stmt->type_token.value().lexeme);
             }
-
-            if (type->type == BirdTypeType::INT && initializer_value.type->type == BirdTypeType::FLOAT)
-            {
-                initializer_value =
-                    TaggedExpression(
-                        BinaryenUnary(
-                            mod,
-                            BinaryenTruncSatSFloat64ToInt32(),
-                            initializer_value.value),
-                        std::shared_ptr<BirdType>(new IntType()));
-            }
-            else if (type->type == BirdTypeType::FLOAT && initializer_value.type->type == BirdTypeType::INT)
-            {
-                initializer_value =
-                    TaggedExpression(
-                        BinaryenUnary(
-                            mod,
-                            BinaryenConvertSInt32ToFloat64(),
-                            initializer_value.value),
-                        std::shared_ptr<BirdType>(new FloatType()));
-            }
         }
         else
         {
@@ -586,23 +565,7 @@ public:
         assign_expr->value->accept(this);
         TaggedExpression rhs_val = this->stack.pop();
 
-        bool float_flag = (index.type->type == BirdTypeType::FLOAT || rhs_val.type->type == BirdTypeType::FLOAT);
-        if (float_flag && index.type->type == BirdTypeType::INT)
-        {
-            rhs_val =
-                BinaryenUnary(
-                    mod,
-                    BinaryenTruncSatSFloat64ToInt32(),
-                    rhs_val.value);
-        }
-        else if (float_flag && rhs_val.type->type == BirdTypeType::INT)
-        {
-            rhs_val =
-                BinaryenUnary(
-                    mod,
-                    BinaryenConvertSInt32ToFloat64(),
-                    rhs_val.value);
-        }
+        bool float_flag = (index.type->type == BirdTypeType::FLOAT && rhs_val.type->type == BirdTypeType::FLOAT);
 
         BinaryenExpressionRef result;
         switch (assign_expr->assign_operator.token_type)
@@ -1314,27 +1277,6 @@ public:
             {
                 type = token_to_bird_type(const_stmt->type_token.value());
             }
-
-            if (type->type == BirdTypeType::INT && initializer.type->type == BirdTypeType::FLOAT)
-            {
-                initializer =
-                    TaggedExpression(
-                        BinaryenUnary(
-                            mod,
-                            BinaryenTruncSatSFloat64ToInt32(),
-                            initializer.value),
-                        std::shared_ptr<BirdType>(new IntType()));
-            }
-            else if (type->type == BirdTypeType::FLOAT && initializer.type->type == BirdTypeType::INT)
-            {
-                initializer =
-                    TaggedExpression(
-                        BinaryenUnary(
-                            mod,
-                            BinaryenConvertSInt32ToFloat64(),
-                            initializer.value),
-                        std::shared_ptr<BirdType>(new FloatType()));
-            }
         }
         else
         {
@@ -1534,26 +1476,21 @@ public:
             auto result = this->stack.pop();
 
             // now allows for things like fn addF(x: float, y: float) -> int {...}
-            if (result.type != func_return_type.type)
+            if (func_return_type.type->type == BirdTypeType::ALIAS)
             {
-                if (func_return_type.type->type == BirdTypeType::FLOAT && result.type->type == BirdTypeType::INT)
-                {
-                    result = TaggedExpression(
-                        BinaryenUnary(
-                            this->mod,
-                            BinaryenConvertSInt32ToFloat64(),
-                            result.value),
-                        std::shared_ptr<BirdType>(new FloatType()));
-                }
-                else if (func_return_type.type->type == BirdTypeType::INT && result.type->type == BirdTypeType::FLOAT)
-                {
-                    result = TaggedExpression(
-                        BinaryenUnary(
-                            this->mod,
-                            BinaryenTruncSatSFloat64ToInt32(),
-                            result.value),
-                        std::shared_ptr<BirdType>(new IntType()));
-                }
+                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(func_return_type.type);
+                func_return_type.type = alias->alias;
+            }
+
+            if (result.type->type == BirdTypeType::ALIAS)
+            {
+                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(result.type);
+                result.type = alias->alias;
+            }
+
+            if (*result.type != *func_return_type.type)
+            {
+                throw BirdException("return type mismatch");
             }
 
             this->stack.push(
@@ -1596,21 +1533,32 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
-        std::shared_ptr<AliasType> alias;
         if (type_stmt->type_is_literal)
         {
-            alias = std::make_shared<AliasType>(
+            auto alias = std::make_shared<AliasType>(
                 type_stmt->identifier.lexeme,
                 token_to_bird_type(type_stmt->type_token));
+            this->type_table.declare(type_stmt->identifier.lexeme, alias);
         }
         else
         {
-            alias = std::make_shared<AliasType>(
-                type_stmt->identifier.lexeme,
-                this->type_table.get(type_stmt->type_token.lexeme));
+            auto parent_type = this->type_table.get(type_stmt->type_token.lexeme);
+            if (parent_type->type == BirdTypeType::STRUCT)
+            {
+                auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, parent_type);
+                this->type_table.declare(type_stmt->identifier.lexeme, alias);
+                return;
+            }
+            if (parent_type->type == BirdTypeType::ALIAS)
+            {
+                // alias types will only have one level of aliasing
+                auto alias = safe_dynamic_pointer_cast<AliasType>(parent_type);
+                auto new_alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, alias->alias);
+                this->type_table.declare(type_stmt->identifier.lexeme, new_alias);
+                return;
+            }
+            throw BirdException("invalid type");
         }
-
-        this->type_table.declare(type_stmt->identifier.lexeme, alias);
     }
 
     void visit_subscript(Subscript *subscript)
@@ -1666,14 +1614,16 @@ public:
 
     void visit_direct_member_access(DirectMemberAccess *direct_member_access)
     {
-        // assume that the struct is already declared
-        // assume that the member is already declared
-
         direct_member_access->accessable->accept(this);
         auto accessable = this->stack.pop();
 
         std::shared_ptr<StructType> struct_type;
-        if (accessable.type->type == BirdTypeType::PLACEHOLDER)
+        if (accessable.type->type == BirdTypeType::ALIAS)
+        {
+            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(accessable.type);
+            struct_type = safe_dynamic_pointer_cast<StructType>(alias->alias);
+        }
+        else if (accessable.type->type == BirdTypeType::PLACEHOLDER)
         {
             std::shared_ptr<PlaceholderType> placeholder = safe_dynamic_pointer_cast<PlaceholderType>(accessable.type);
             if (this->struct_names.find(placeholder->name) == this->struct_names.end())
@@ -1881,5 +1831,57 @@ public:
                     3,
                     BinaryenTypeNone()),
                 std::shared_ptr<BirdType>(new VoidType())));
+    }
+
+    void visit_as_cast(AsCast *as_cast)
+    {
+        as_cast->expr->accept(this);
+        auto expr = this->stack.pop();
+
+        if (expr.type->type == BirdTypeType::ALIAS)
+        {
+            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(expr.type);
+            expr.type = alias->alias;
+        }
+
+        std::shared_ptr<BirdType> to_type;
+        if (this->type_table.contains(as_cast->type.lexeme))
+        {
+            to_type = this->type_table.get(as_cast->type.lexeme);
+            if (to_type->type == BirdTypeType::ALIAS)
+            {
+                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(to_type);
+                to_type = alias->alias;
+            }
+        }
+        else
+        {
+            to_type = token_to_bird_type(as_cast->type);
+        }
+
+        if (to_type->type == BirdTypeType::INT && expr.type->type == BirdTypeType::FLOAT)
+        {
+            this->stack.push(
+                TaggedExpression(
+                    BinaryenUnary(
+                        this->mod,
+                        BinaryenTruncSatSFloat64ToInt32(),
+                        expr.value),
+                    std::shared_ptr<BirdType>(new IntType())));
+            return;
+        }
+        else if (to_type->type == BirdTypeType::FLOAT && expr.type->type == BirdTypeType::INT)
+        {
+            this->stack.push(
+                TaggedExpression(
+                    BinaryenUnary(
+                        this->mod,
+                        BinaryenConvertSInt32ToFloat64(),
+                        expr.value),
+                    std::shared_ptr<BirdType>(new FloatType())));
+            return;
+        }
+
+        this->stack.push(expr);
     }
 };

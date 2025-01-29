@@ -348,4 +348,10 @@ public:
         std::cout << ".";
         this->visit_assign_expr(member_assign);
     }
+
+    void visit_as_cast(AsCast *as_cast)
+    {
+        as_cast->expr->accept(this);
+        std::cout << " as " << as_cast->type.lexeme;
+    }
 };

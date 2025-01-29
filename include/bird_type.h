@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <iostream>
 #include "token.h"
 #include "exceptions/bird_exception.h"
 
@@ -28,6 +29,16 @@ struct BirdType
     BirdTypeType type;
     virtual ~BirdType() {};
     BirdType(BirdTypeType type) : type(type) {}
+
+    bool operator==(const BirdType &other) const
+    {
+        return this->type == other.type;
+    }
+
+    bool operator!=(const BirdType &other) const
+    {
+        return this->type != other.type;
+    }
 };
 
 struct IntType : BirdType
@@ -73,6 +84,16 @@ struct AliasType : BirdType
     AliasType(std::string name, std::shared_ptr<BirdType> type)
         : BirdType(BirdTypeType::ALIAS), name(name), alias(std::move(type)) {}
     ~AliasType() {};
+
+    bool operator==(const AliasType &other) const
+    {
+        return this->name == other.name && *this->alias == *other.alias;
+    }
+
+    bool operator!=(const AliasType &other) const
+    {
+        return this->name != other.name || *this->alias != *other.alias;
+    }
 };
 
 struct StructType : BirdType
@@ -112,7 +133,7 @@ std::shared_ptr<T> safe_dynamic_pointer_cast(std::shared_ptr<BirdType> type)
     std::shared_ptr<T> result = std::dynamic_pointer_cast<T>(type);
     if (result.get() == nullptr)
     {
-        throw BirdException("invalid cast, expected " + bird_type_to_string(type));
+        throw BirdException("invalid cast, found " + bird_type_to_string(type));
     }
 
     return result;

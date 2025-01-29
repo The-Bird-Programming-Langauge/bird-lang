@@ -62,6 +62,7 @@ PRINT "print"
 TYPE "type"
 STRUCT "struct"
 SELF "self"
+AS "as"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -118,6 +119,7 @@ struct_decl
 %type <std::unique_ptr<Expr>> 
 expr
 assign_expr
+type_cast
 ternary_expr
 equality_expr
 comparison_expr
@@ -201,6 +203,8 @@ param_list
    SLASH
    PERCENT
 %right UNARY
+%left CAST
+   AS
 %left CALL
    LPAREN
 %left SUBSCRIPT
@@ -417,6 +421,7 @@ expr:
    | term_expr { $$ = std::move($1); }
    | factor_expr { $$ = std::move($1); }
    | unary_expr { $$ = std::move($1); }
+   | type_cast {$$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
    | subscript_expr { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
@@ -441,6 +446,10 @@ assign_expr:
             $$ = std::make_unique<MemberAssign>(std::move(member_access->accessable), member_access->identifier, $2, std::move($3));
          }
       }
+
+type_cast:
+   expr AS IDENTIFIER %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
+   | expr AS TYPE_LITERAL %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
 
 ternary_expr: 
    expr QUESTION expr COLON expr %prec TERNARY 
@@ -469,6 +478,7 @@ factor_expr:
 unary_expr: 
    UNARY_OP expr %prec UNARY 
       { $$ = std::make_unique<Unary>($1, std::move($2)); }
+   | expr QUESTION %prec UNARY  {$$ = std::make_unique<Unary>($2, std::move($1));}
 
 call_expr: 
    expr LPAREN maybe_arg_list RPAREN %prec CALL 
@@ -548,7 +558,6 @@ TERM_OP:
 
 UNARY_OP: 
    MINUS
-   | QUESTION
 
 %%
 

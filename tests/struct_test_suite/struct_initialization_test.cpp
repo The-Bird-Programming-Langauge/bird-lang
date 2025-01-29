@@ -291,8 +291,7 @@ TEST(StructTest, MultipleStructInitialization)
         ASSERT_EQ(as_type<bool>((*second_instance)["d"]), false);
     };
 
-    options.after_compile = [&](std::string &output, CodeGen &codegen) {
-    };
+    options.after_compile = [&](std::string &output, CodeGen &codegen) {};
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
@@ -428,7 +427,7 @@ TEST(StructTest, StructRecursiveInitialization)
     options.code = "struct A { b: B };"
                    "struct B { a: A };"
                    "var a = A { b = B { a = A {} } };"
-                   "print ?a.b.a.b;";
+                   "print a.b.a.b?;";
 
     options.after_interpret = [&](Interpreter &interpreter)
     {

@@ -64,7 +64,7 @@ TEST(TypeStmtTest, DeclStmtWithTypeIdentifer)
 {
     BirdTest::TestOptions options;
     options.code = "type x = int;"
-                   "var y: x = 2;"
+                   "var y: x = 2 as x;"
                    "print y;";
 
     options.after_interpret = [&](Interpreter &interpreter)
@@ -89,7 +89,7 @@ TEST(TypeStmtTest, ConstStmtWithTypeIdentifer)
 {
     BirdTest::TestOptions options;
     options.code = "type x = int;"
-                   "const y: x = 2;"
+                   "const y: x = 2 as x;"
                    "print y;";
 
     options.after_interpret = [&](Interpreter &interpreter)
@@ -118,7 +118,7 @@ TEST(TypeStmtTest, FuncWithTypeIdentifier)
                    "{"
                    "return y;"
                    "}"
-                   "var z: x = foo(2);"
+                   "var z: x = foo(2 as x);"
                    "print foo(z);";
 
     options.after_interpret = [&](Interpreter &interpreter)

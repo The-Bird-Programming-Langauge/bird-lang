@@ -23,6 +23,7 @@ public:
         TYPE,
         VAR,
         WHILE,
+        AS,
 
         // types
         TYPE_LITERAL,

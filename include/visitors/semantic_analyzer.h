@@ -383,14 +383,19 @@ public:
 
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
-        // for (auto &field_assignment : struct_initialization->field_assignments)
-        // {
-        //     field_assignment.second->accept(this);
-        // }
+        for (auto &field_assignment : struct_initialization->field_assignments)
+        {
+            field_assignment.second->accept(this);
+        }
     }
 
     void visit_member_assign(MemberAssign *member_assign)
     {
         member_assign->accessable->accept(this);
+    }
+
+    void visit_as_cast(AsCast *as_cast)
+    {
+        as_cast->expr->accept(this);
     }
 };

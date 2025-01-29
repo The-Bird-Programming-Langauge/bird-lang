@@ -1,5 +1,15 @@
-struct A { b: B };
-struct B { a: A };
-var a: A = A { b = B { a = A { } } };
-print ?a.b.a.b;
+struct Node {
+    val: int,
+    next: Node
+};
 
+type MyNode = Node;
+
+const foo: MyNode = MyNode {
+    val = 3,
+    next = Node {
+        val = 4
+    }
+};
+
+print foo.next.val;

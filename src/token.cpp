@@ -3,6 +3,7 @@
 #include <map>
 #include <iostream>
 static const std::map<Token::Type, std::string> token_strings = {
+    {Token::Type::AS, "AS"},
     {Token::Type::ARROW, "ARROW"},
     {Token::Type::BANG, "BANG"},
     {Token::Type::BANG_EQUAL, "BANG_EQUAL"},

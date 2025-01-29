@@ -163,23 +163,6 @@ public:
         auto result = std::move(this->stack.pop());
         result.is_mutable = true;
 
-        if (decl_stmt->type_token.has_value())
-        {
-            if (decl_stmt->type_is_literal)
-            {
-                auto type_lexeme = decl_stmt->type_token.value().lexeme;
-
-                if (type_lexeme == "int")
-                {
-                    result.data = to_type<int, double>(result);
-                }
-                else if (type_lexeme == "float")
-                {
-                    result.data = to_type<double, int>(result);
-                }
-            }
-        }
-
         this->env.declare(decl_stmt->identifier.lexeme, std::move(result));
     }
 
@@ -251,23 +234,6 @@ public:
         const_stmt->value->accept(this);
 
         auto result = std::move(this->stack.pop());
-
-        if (const_stmt->type_token.has_value())
-        {
-            if (const_stmt->type_is_literal)
-            {
-                auto type_lexeme = const_stmt->type_token.value().lexeme;
-
-                if (type_lexeme == "int")
-                {
-                    result.data = to_type<int, double>(result);
-                }
-                else if (type_lexeme == "float")
-                {
-                    result.data = to_type<double, int>(result);
-                }
-            }
-        }
 
         this->env.declare(const_stmt->identifier.lexeme, std::move(result));
     }
@@ -381,7 +347,6 @@ public:
         binary->right->accept(this);
 
         auto right = std::move(this->stack.pop());
-
         auto left = std::move(this->stack.pop());
 
         switch (binary->op.token_type)
@@ -623,8 +588,14 @@ public:
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
         std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance = std::make_shared<std::unordered_map<std::string, Value>>();
+        auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+        if (type->type == BirdTypeType::ALIAS)
+        {
+            auto alias = safe_dynamic_pointer_cast<AliasType>(type);
+            type = alias->alias;
+        }
 
-        auto struct_type = std::dynamic_pointer_cast<StructType>(this->type_table.get(struct_initialization->identifier.lexeme));
+        auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
         for (auto &field : struct_type->fields)
         {
@@ -701,5 +672,25 @@ public:
         {
             throw BirdException("Cannot assign member of non-struct type.");
         }
+    }
+
+    void visit_as_cast(AsCast *as_cast)
+    {
+        as_cast->expr->accept(this);
+        auto expr = this->stack.pop();
+
+        if (as_cast->type.lexeme == "int" && is_type<double>(expr))
+        {
+            this->stack.push(Value((int)as_type<double>(expr)));
+            return;
+        }
+
+        if (as_cast->type.lexeme == "float" && is_type<int>(expr))
+        {
+            this->stack.push(Value((double)as_type<int>(expr)));
+            return;
+        }
+
+        this->stack.push(expr);
     }
 };

@@ -133,7 +133,7 @@ TEST(ExprTest, CondExprIntInt)
 TEST(ExprTest, CondExprFloatIntOverflow)
 {
     BirdTest::TestOptions options;
-    options.code = "var x = 0.9999999999 < 1;"
+    options.code = "var x = 0.9999999999 < 1 as float;"
                    "print x;";
     options.after_interpret = [](Interpreter &interpreter)
     {
@@ -153,7 +153,7 @@ TEST(ExprTest, CondExprFloatIntOverflow)
 TEST(ExprTest, CondExprIntFloatOverflow)
 {
     BirdTest::TestOptions options;
-    options.code = "var x = 1 > 0.9999999999;"
+    options.code = "var x = 1 as float > 0.9999999999;"
                    "print x;";
     options.after_interpret = [](Interpreter &interpreter)
     {
@@ -173,7 +173,7 @@ TEST(ExprTest, CondExprIntFloatOverflow)
 TEST(ExprTest, CondExprIntFloat)
 {
     BirdTest::TestOptions options;
-    options.code = "var x = 10532 == 10532.0;"
+    options.code = "var x = 10532 == 10532.0 as int;"
                    "print x;";
     options.after_interpret = [](Interpreter &interpreter)
     {
@@ -223,18 +223,18 @@ TEST(ExprTest, CondExprFloatBool)
 TEST(ExprTest, IdentifierInExpr)
 {
     BirdTest::TestOptions options;
-    options.code = "var z: int = 7; const y: float = -9.2; var x: int = 1 - (z * y) - -y;"
+    options.code = "var z: int = 7; const y: float = -9.2; var x: int = 1 - (z * y as int) - -y as int;"
                    "print x;";
     options.after_interpret = [](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.env.contains("x"));
         ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-        ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 56);
+        ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 55);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output, "56\n\n");
+        ASSERT_EQ(output, "55\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -295,7 +295,7 @@ TEST(ExprTest, BinaryModulus)
 TEST(ExprTest, BinaryModulusFail)
 {
     BirdTest::TestOptions options;
-    options.code = "var x: int = 10 % 0.0;";
+    options.code = "var x: int = 10 % 0.0 as int;";
     ASSERT_THROW(BirdTest::compile(options), BirdException);
 }
 

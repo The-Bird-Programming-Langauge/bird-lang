@@ -11,3 +11,4 @@
 #include "direct_member_access.h"
 #include "struct_initialization.h"
 #include "member_assign.h"
+#include "as_cast.h"
