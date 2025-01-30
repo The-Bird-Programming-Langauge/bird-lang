@@ -90,13 +90,9 @@ void repl()
         {
             interpreter.evaluate(&ast);
         }
-        catch (BirdException e)
+        catch (std::runtime_error e)
         {
             std::cout << e.what() << std::endl;
-        }
-        catch (std::exception e)
-        {
-            std::cout << "err" << std::endl;
         }
     }
 }
@@ -179,13 +175,9 @@ void interpret(std::string filename)
     {
         interpreter.evaluate(&ast);
     }
-    catch (BirdException e)
+    catch (std::runtime_error e)
     {
         std::cout << e.what() << std::endl;
-    }
-    catch (std::exception e)
-    {
-        std::cout << "err" << std::endl;
     }
 }
 
