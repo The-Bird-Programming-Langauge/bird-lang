@@ -77,7 +77,7 @@ public:
     std::string current_function_name;          // for indexing into maps
     std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
-    uint32_t static_offset = 0x1;
+    uint32_t static_offset = 1024;
     uint32_t heap_ptr = 0x4000;
 
     BinaryenModuleRef mod;
@@ -359,6 +359,23 @@ public:
 
         this->init_static_memory(this->mod);
 
+        auto count = 0;
+        for (auto &local : this->function_locals["main"])
+        {
+            if (local == BinaryenTypeInt32())
+            {
+                BinaryenAddGlobal(this->mod, std::to_string(count++).c_str(), local, true, BinaryenConst(this->mod, BinaryenLiteralInt32(0)));
+            }
+            else if (local == BinaryenTypeFloat64())
+            {
+                BinaryenAddGlobal(this->mod, std::to_string(count++).c_str(), local, true, BinaryenConst(this->mod, BinaryenLiteralFloat64(0.0)));
+            }
+            else
+            {
+                throw BirdException("unsupported type");
+            }
+        }
+
         BinaryenType params = BinaryenTypeNone();
         BinaryenType results = BinaryenTypeNone();
 
@@ -555,7 +572,7 @@ public:
 
         environment.declare(decl_stmt->identifier.lexeme, TaggedIndex(index, type));
 
-        BinaryenExpressionRef set_local = BinaryenLocalSet(this->mod, index, initializer_value.value);
+        BinaryenExpressionRef set_local = this->binaryen_set(decl_stmt->identifier.lexeme, initializer_value.value);
 
         this->stack.push(TaggedExpression(set_local, type));
     }
@@ -564,10 +581,7 @@ public:
     {
         TaggedIndex index = this->environment.get(assign_expr->identifier.lexeme);
 
-        auto lhs_val = BinaryenLocalGet(
-            this->mod,
-            index.value,
-            from_bird_type(index.type));
+        auto lhs_val = this->binaryen_get(assign_expr->identifier.lexeme);
 
         assign_expr->value->accept(this);
         TaggedExpression rhs_val = this->stack.pop();
@@ -628,9 +642,8 @@ public:
             break;
         }
 
-        BinaryenExpressionRef assign_stmt = BinaryenLocalSet(
-            this->mod,
-            index.value,
+        BinaryenExpressionRef assign_stmt = this->binaryen_set(
+            assign_expr->identifier.lexeme,
             result);
 
         this->stack.push(TaggedExpression(assign_stmt));
@@ -1234,10 +1247,7 @@ public:
         case Token::Type::IDENTIFIER:
         {
             TaggedIndex tagged_index = this->environment.get(primary->value.lexeme);
-            BinaryenExpressionRef local_get = BinaryenLocalGet(
-                this->mod,
-                tagged_index.value,
-                from_bird_type(tagged_index.type));
+            BinaryenExpressionRef local_get = this->binaryen_get(primary->value.lexeme);
 
             this->stack.push(TaggedExpression(local_get, tagged_index.type));
             break;
@@ -1305,7 +1315,7 @@ public:
 
         environment.declare(const_stmt->identifier.lexeme, TaggedIndex(index, type));
 
-        BinaryenExpressionRef set_local = BinaryenLocalSet(this->mod, index, initializer.value);
+        BinaryenExpressionRef set_local = this->binaryen_set(const_stmt->identifier.lexeme, initializer.value);
 
         this->stack.push(TaggedExpression(set_local, type));
     }
@@ -1891,6 +1901,46 @@ public:
         }
 
         this->stack.push(expr);
+    }
+
+    BinaryenExpressionRef binaryen_set(std::string identifier, BinaryenExpressionRef value)
+    {
+        if (this->environment.contains(identifier))
+        {
+            TaggedIndex tagged_index = this->environment.get(identifier);
+            if (this->environment.current_contains(identifier) && this->current_function_name != "main")
+            {
+                return BinaryenLocalSet(this->mod, tagged_index.value, value);
+            }
+            else
+            {
+                return BinaryenGlobalSet(this->mod, std::to_string(tagged_index.value).c_str(), value);
+            }
+        }
+        else
+        {
+            throw BirdException("undefined variable: " + identifier);
+        }
+    }
+
+    BinaryenExpressionRef binaryen_get(std::string identifier)
+    {
+        if (this->environment.contains(identifier))
+        {
+            TaggedIndex tagged_index = this->environment.get(identifier);
+            if (this->environment.current_contains(identifier) && this->current_function_name != "main")
+            {
+                return BinaryenLocalGet(this->mod, tagged_index.value, from_bird_type(tagged_index.type));
+            }
+            else
+            {
+                return BinaryenGlobalGet(this->mod, std::to_string(tagged_index.value).c_str(), from_bird_type(tagged_index.type));
+            }
+        }
+        else
+        {
+            throw BirdException("undefined variable: " + identifier);
+        }
     }
 
     void visit_array_decl(ArrayDecl *array_decl)
