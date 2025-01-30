@@ -171,7 +171,7 @@ TEST(ParserTest, ParseExprStmt)
 TEST(ParserTest, ParseFuncStmt)
 {
     BirdTest::TestOptions options;
-    options.code = "fn add(first: int, second: int) -> int { first + second; }";
+    options.code = "fn add(first: int, second: int) -> int { return first + second; }";
     options.compile = false;
     options.interpret = false;
 
@@ -197,10 +197,12 @@ TEST(ParserTest, ParseFuncStmt)
         ASSERT_NE(block_stmt, nullptr);
         ASSERT_EQ(block_stmt->stmts.size(), 1);
 
-        ExprStmt *expr_stmt = dynamic_cast<ExprStmt *>(block_stmt->stmts[0].get());
-        ASSERT_NE(expr_stmt, nullptr);
+        ReturnStmt *return_stmt = dynamic_cast<ReturnStmt *>(block_stmt->stmts[0].get());
+        ASSERT_NE(return_stmt, nullptr);
 
-        Binary *binary_expr = dynamic_cast<Binary *>(expr_stmt->expr.get());
+        ASSERT_TRUE(return_stmt->expr.has_value());
+
+        Binary *binary_expr = dynamic_cast<Binary *>(return_stmt->expr.value().get());
         ASSERT_NE(binary_expr, nullptr);
         EXPECT_EQ(binary_expr->op.lexeme, "+");
 
@@ -248,7 +250,7 @@ TEST(ParserTest, ParseFunctionNoArgsNoReturnType)
 TEST(ParserTest, ParseFunctionNoArgs)
 {
     BirdTest::TestOptions options;
-    options.code = "fn function() -> int {}";
+    options.code = "fn function() -> int { return 3; }";
 
     options.compile = false;
     options.interpret = false;
@@ -269,7 +271,7 @@ TEST(ParserTest, ParseFunctionNoArgs)
 
         Block *block_stmt = dynamic_cast<Block *>(func_stmt->block.get());
         ASSERT_NE(block_stmt, nullptr);
-        ASSERT_EQ(block_stmt->stmts.size(), 0);
+        ASSERT_EQ(block_stmt->stmts.size(), 1);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -625,6 +627,26 @@ TEST(ParserTest, ParserForLoop)
     ASSERT_TRUE(BirdTest::compile(options));
 }
 
+TEST(ParserTest, MultilineComments)
+{
+    BirdTest::TestOptions options;
+    options.code = "/* "
+                   "anything can go here\n"
+                   "or on the next line\n"
+                   "we can also have another open /*"
+                   "but when we close the comment code works"
+                   "*/"
+                   "var x = 5;"
+                   "print x;";
+  
+    options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
+    {
+          ASSERT_FALSE(error_tracker.has_errors());
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
+  
 TEST(ParserTest, ParserBooleanOp)
 {
     BirdTest::TestOptions options;

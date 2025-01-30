@@ -29,6 +29,7 @@ public:
     UserErrorTracker *user_error_tracker;
     int loop_depth;
     int function_depth;
+    bool found_return;
 
     SemanticAnalyzer(UserErrorTracker *user_error_tracker) : user_error_tracker(user_error_tracker)
     {
@@ -267,6 +268,7 @@ public:
     void visit_func(Func *func)
     {
         this->function_depth += 1;
+        this->found_return = false;
 
         if (this->identifer_in_any_environment(func->identifier.lexeme))
         {
@@ -275,6 +277,26 @@ public:
         }
 
         this->call_table.declare(func->identifier.lexeme, SemanticCallable(func->param_list.size()));
+
+        this->env.push_env();
+
+        for (auto &param : func->param_list)
+        {
+            this->env.declare(param.first.lexeme, SemanticValue());
+        }
+
+        auto block = std::dynamic_pointer_cast<Block>(func->block);
+        for (auto &stmt : block->stmts)
+        {
+            stmt->accept(this);
+        }
+
+        if (!found_return && func->return_type.has_value() && func->return_type.value().lexeme != "void")
+        {
+            this->user_error_tracker->semantic_error("Function '" + func->identifier.lexeme + "' does not have a return statement.", func->identifier);
+        }
+
+        this->env.pop_env();
 
         this->function_depth -= 1;
     }
@@ -309,6 +331,7 @@ public:
 
     void visit_return_stmt(ReturnStmt *return_stmt)
     {
+        this->found_return = true;
         if (this->function_depth == 0)
         {
             this->user_error_tracker->semantic_error("Return statement is declared outside of a function.", return_stmt->return_token);

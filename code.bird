@@ -1,14 +1,12 @@
-print true or true;
-print true or false;
-print false or true;
-print false or false;
-print "";
-print true and true;
-print true and false;
-print false and true;
-print false and false;
-print "";
+var x: int = 3;
+var y: float = 5 as float;
+fn foo() {
+    x += 1;
+    print x;
+}
 
-print false and 1/0 == 1;
-print true or 1/0 == 1;
+print x;
 
+foo();
+
+print x;
