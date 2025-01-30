@@ -206,7 +206,7 @@ public:
             break;
         }
         default:
-            throw BirdException("Unidentified assignment operator " + assign_expr->assign_operator.lexeme);
+            throw std::runtime_error("Unidentified assignment operator " + assign_expr->assign_operator.lexeme);
         }
 
         this->env.set(assign_expr->identifier.lexeme, previous_value);
@@ -408,7 +408,7 @@ public:
         }
         default:
         {
-            throw BirdException("Undefined binary operator.");
+            throw std::runtime_error("Undefined binary operator.");
         }
         }
     }
@@ -433,7 +433,7 @@ public:
 
         default:
         {
-            throw BirdException("Undefined unary operator.");
+            throw std::runtime_error("Undefined unary operator.");
         }
         }
     }
@@ -463,7 +463,7 @@ public:
                 this->env.get(primary->value.lexeme));
             break;
         default:
-            throw BirdException("undefined primary value");
+            throw std::runtime_error("undefined primary value");
         }
     }
 
@@ -581,7 +581,7 @@ public:
         }
         else
         {
-            throw BirdException("Cannot access member of non-struct type.");
+            throw std::runtime_error("Cannot access member of non-struct type.");
         }
     }
 
@@ -642,7 +642,7 @@ public:
                 }
                 else
                 {
-                    throw BirdException("Cannot assign member of non-struct type.");
+                    throw std::runtime_error("Cannot assign member of non-struct type.");
                 }
             }
             // field_assignment.second->accept(this);
@@ -670,7 +670,7 @@ public:
         }
         else
         {
-            throw BirdException("Cannot assign member of non-struct type.");
+            throw std::runtime_error("Cannot assign member of non-struct type.");
         }
     }
 
