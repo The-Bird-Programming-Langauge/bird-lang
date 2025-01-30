@@ -24,11 +24,6 @@ static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i3
         return 5;
     case BirdTypeType::PLACEHOLDER:
         return 5;
-    case BirdTypeType::ALIAS:
-    {
-        std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(type);
-        return bird_type_byte_size(alias->alias);
-    }
     default:
         return 0;
     }
@@ -450,11 +445,6 @@ public:
             return BinaryenTypeInt32(); // ptr
         else if (bird_type->type == BirdTypeType::PLACEHOLDER)
             return BinaryenTypeInt32();
-        else if (bird_type->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(bird_type);
-            return bird_type_to_binaryen_type(alias->alias);
-        }
 
         throw BirdException("invalid type");
     }
@@ -471,11 +461,6 @@ public:
             return BinaryenTypeNone();
         else if (token->type == BirdTypeType::STRING || token->type == BirdTypeType::STRUCT)
             return BinaryenTypeInt32();
-        else if (token->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(token);
-            return from_bird_type(alias->alias);
-        }
         else
         {
             throw BirdException("invaid type");
@@ -635,12 +620,6 @@ public:
         {
             arg->accept(this);
             auto result = this->stack.pop();
-
-            if (result.type->type == BirdTypeType::ALIAS)
-            {
-                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(result.type);
-                result.type = alias->alias;
-            }
 
             if (result.type->type == BirdTypeType::VOID)
             {
@@ -1475,19 +1454,6 @@ public:
             return_stmt->expr.value()->accept(this);
             auto result = this->stack.pop();
 
-            // now allows for things like fn addF(x: float, y: float) -> int {...}
-            if (func_return_type.type->type == BirdTypeType::ALIAS)
-            {
-                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(func_return_type.type);
-                func_return_type.type = alias->alias;
-            }
-
-            if (result.type->type == BirdTypeType::ALIAS)
-            {
-                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(result.type);
-                result.type = alias->alias;
-            }
-
             if (*result.type != *func_return_type.type)
             {
                 throw BirdException("return type mismatch");
@@ -1535,29 +1501,16 @@ public:
     {
         if (type_stmt->type_is_literal)
         {
-            auto alias = std::make_shared<AliasType>(
+            this->type_table.declare(
                 type_stmt->identifier.lexeme,
                 token_to_bird_type(type_stmt->type_token));
-            this->type_table.declare(type_stmt->identifier.lexeme, alias);
         }
         else
         {
             auto parent_type = this->type_table.get(type_stmt->type_token.lexeme);
-            if (parent_type->type == BirdTypeType::STRUCT)
-            {
-                auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, parent_type);
-                this->type_table.declare(type_stmt->identifier.lexeme, alias);
-                return;
-            }
-            if (parent_type->type == BirdTypeType::ALIAS)
-            {
-                // alias types will only have one level of aliasing
-                auto alias = safe_dynamic_pointer_cast<AliasType>(parent_type);
-                auto new_alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, alias->alias);
-                this->type_table.declare(type_stmt->identifier.lexeme, new_alias);
-                return;
-            }
-            throw BirdException("invalid type");
+            this->type_table.declare(
+                type_stmt->identifier.lexeme,
+                parent_type);
         }
     }
 
@@ -1618,12 +1571,7 @@ public:
         auto accessable = this->stack.pop();
 
         std::shared_ptr<StructType> struct_type;
-        if (accessable.type->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(accessable.type);
-            struct_type = safe_dynamic_pointer_cast<StructType>(alias->alias);
-        }
-        else if (accessable.type->type == BirdTypeType::PLACEHOLDER)
+        if (accessable.type->type == BirdTypeType::PLACEHOLDER)
         {
             std::shared_ptr<PlaceholderType> placeholder = safe_dynamic_pointer_cast<PlaceholderType>(accessable.type);
             if (this->struct_names.find(placeholder->name) == this->struct_names.end())
@@ -1675,12 +1623,6 @@ public:
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
         auto type = this->type_table.get(struct_initialization->identifier.lexeme);
-
-        while (type->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(type);
-            type = alias->alias;
-        }
 
         std::shared_ptr<StructType> struct_type = safe_dynamic_pointer_cast<StructType>(type);
         if (struct_constructors.find(struct_initialization->identifier.lexeme) == struct_constructors.end())
@@ -1838,21 +1780,10 @@ public:
         as_cast->expr->accept(this);
         auto expr = this->stack.pop();
 
-        if (expr.type->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(expr.type);
-            expr.type = alias->alias;
-        }
-
         std::shared_ptr<BirdType> to_type;
         if (this->type_table.contains(as_cast->type.lexeme))
         {
             to_type = this->type_table.get(as_cast->type.lexeme);
-            if (to_type->type == BirdTypeType::ALIAS)
-            {
-                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(to_type);
-                to_type = alias->alias;
-            }
         }
         else
         {

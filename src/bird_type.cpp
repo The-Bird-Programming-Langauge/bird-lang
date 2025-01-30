@@ -71,8 +71,6 @@ std::string bird_type_to_string(std::shared_ptr<BirdType> type)
         return "struct";
     case BirdTypeType::PLACEHOLDER:
         return "placeholder";
-    case BirdTypeType::ALIAS:
-        return "alias";
     case BirdTypeType::FUNCTION:
         return "function";
     case BirdTypeType::ERROR:
