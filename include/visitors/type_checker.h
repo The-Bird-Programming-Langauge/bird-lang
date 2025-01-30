@@ -691,6 +691,11 @@ public:
         }
         else
         {
+            if (!this->type_table.contains(type_stmt->type_token.lexeme))
+            {
+                this->user_error_tracker->type_error("undefined type", type_stmt->type_token);
+                return;
+            }
             auto parent_type = this->type_table.get(type_stmt->type_token.lexeme);
 
             if (parent_type->type == BirdTypeType::STRUCT)
