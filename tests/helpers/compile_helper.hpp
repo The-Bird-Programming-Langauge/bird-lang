@@ -83,7 +83,6 @@ namespace BirdTest
         {
             TypeChecker type_checker(&error_tracker);
             type_checker.check_types(&ast);
-
             if (options.after_type_check.has_value())
             {
                 options.after_type_check.value()(error_tracker, type_checker);
