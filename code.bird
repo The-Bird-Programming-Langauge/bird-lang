@@ -1,1 +1,13 @@
 
+var x: int = 3;
+var y: float = 5 as float;
+fn foo() {
+    x += 1;
+    print x;
+}
+
+print x;
+
+foo();
+
+print x;
