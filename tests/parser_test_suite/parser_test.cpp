@@ -624,3 +624,26 @@ TEST(ParserTest, ParserForLoop)
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(ParserTest, MultilineComments)
+{
+    BirdTest::TestOptions options;
+    options.code = "/* "
+                   "anything can go here\n"
+                   "or on the next line\n"
+                   "we can also have another open /*"
+                   "but when we close the comment code works"
+                   "*/"
+                   "var x = 5;"
+                   "print x;";
+
+    options.compile = false;
+    options.interpret = false;
+
+    options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
+    {
+        ASSERT_FALSE(error_tracker.has_errors());
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
