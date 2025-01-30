@@ -343,6 +343,65 @@ public:
 
     void visit_binary(Binary *binary)
     {
+        switch (binary->op.token_type)
+        {
+        case Token::Type::AND:
+        case Token::Type::OR:
+            visit_binary_short_circuit(binary);
+            break;
+        default:
+            visit_binary_normal(binary);
+        }
+    }
+
+    void visit_binary_short_circuit(Binary *binary)
+    {
+        binary->left->accept(this);
+        auto left = std::move(this->stack.pop());
+
+        switch (binary->op.token_type)
+        {
+        case Token::Type::AND:
+        {
+            if (!is_type<bool>(left))
+            {
+                throw BirdException("The 'and' binary operator could not be used to interpret these values.");
+            }
+            if (as_type<bool>(left) == false)
+            {
+                this->stack.push(Value(false));
+            }
+            else
+            {
+                binary->right->accept(this);
+            }
+            break;
+        }
+        case Token::Type::OR:
+        {
+            if (!is_type<bool>(left))
+            {
+                throw BirdException("The 'or' binary operator could not be used to interpret these values.");
+            }
+            if (as_type<bool>(left) == true)
+            {
+                this->stack.push(Value(true));
+            }
+            else
+            {
+                binary->right->accept(this);
+            }
+            break;
+        }
+        default:
+        {
+            throw std::runtime_error("Undefined binary short-circuit operator.");
+        }
+        }
+    }
+
+    void visit_binary_normal(Binary *binary)
+    {
         binary->left->accept(this);
         binary->right->accept(this);
 

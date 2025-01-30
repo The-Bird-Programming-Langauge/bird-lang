@@ -1135,6 +1135,30 @@ public:
 
             break;
         }
+        case Token::Type::AND:
+        {
+            this->stack.push(
+                TaggedExpression(
+                    BinaryenIf(
+                        this->mod,
+                        BinaryenUnary(this->mod, BinaryenEqZInt32(), left.value),
+                        left.value,
+                        right.value),
+                    std::shared_ptr<BirdType>(new BoolType())));
+            break;
+        }
+        case Token::Type::OR:
+        {
+            this->stack.push(
+                TaggedExpression(
+                    BinaryenIf(
+                        this->mod,
+                        BinaryenUnary(this->mod, BinaryenEqZInt32(), left.value),
+                        right.value,
+                        left.value),
+                    std::shared_ptr<BirdType>(new BoolType())));
+            break;
+        }
         default:
         {
             throw BirdException("undefined binary operator for code gen");
@@ -1252,13 +1276,13 @@ public:
         ternary->false_expr->accept(this);
         auto false_expr = this->stack.pop();
 
+        // May need to make this a tagged expression
         this->stack.push(
-            BinaryenSelect(
+            BinaryenIf(
                 this->mod,
                 condition.value,
                 true_expr.value,
-                false_expr.value,
-                BinaryenExpressionGetType(true_expr.value)));
+                false_expr.value));
     }
 
     void visit_const_stmt(ConstStmt *const_stmt)

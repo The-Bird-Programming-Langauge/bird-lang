@@ -624,3 +624,46 @@ TEST(ParserTest, ParserForLoop)
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(ParserTest, ParserBooleanOp)
+{
+    BirdTest::TestOptions options;
+    options.code = "false or true and false;";
+
+    options.compile = false;
+    options.interpret = false;
+
+    options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
+    {
+        ASSERT_EQ(error_tracker.has_errors(), false);
+
+        ASSERT_EQ(ast.size(), 1);
+
+        ExprStmt *stmt = dynamic_cast<ExprStmt *>(ast[0].get());
+
+        Binary *or_expr = dynamic_cast<Binary *>(stmt->expr.get());
+        ASSERT_NE(or_expr, nullptr);
+        ASSERT_EQ(or_expr->op.lexeme, "or");
+
+        Binary *and_expr = dynamic_cast<Binary *>(or_expr->right.get());
+        ASSERT_NE(and_expr, nullptr);
+        ASSERT_EQ(and_expr->op.lexeme, "and");
+
+        Primary *left = dynamic_cast<Primary *>(or_expr->left.get());
+        ASSERT_NE(left, nullptr);
+        ASSERT_EQ(left->value.token_type, Token::Type::BOOL_LITERAL);
+        ASSERT_EQ(left->value.lexeme, "false");
+
+        Primary *middle = dynamic_cast<Primary *>(and_expr->left.get());
+        ASSERT_NE(middle, nullptr);
+        ASSERT_EQ(middle->value.token_type, Token::Type::BOOL_LITERAL);
+        ASSERT_EQ(middle->value.lexeme, "true");
+
+        Primary *right = dynamic_cast<Primary *>(and_expr->right.get());
+        ASSERT_NE(right, nullptr);
+        ASSERT_EQ(right->value.token_type, Token::Type::BOOL_LITERAL);
+        ASSERT_EQ(right->value.lexeme, "false");
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}

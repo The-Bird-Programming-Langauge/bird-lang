@@ -63,6 +63,8 @@ TYPE "type"
 STRUCT "struct"
 SELF "self"
 AS "as"
+AND "and"
+OR "or"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -131,6 +133,8 @@ struct_initialization
 subscript_expr
 direct_member_access
 grouping
+and_expr
+or_expr
 
 %type <Token> 
 primary
@@ -187,6 +191,8 @@ param_list
    PERCENT_EQUAL
 %right TERNARY
    QUESTION
+%left OR
+%left AND
 %left EQUALITY
    EQUAL_EQUAL
    BANG_EQUAL
@@ -420,6 +426,8 @@ expr:
    | comparison_expr { $$ = std::move($1); }
    | term_expr { $$ = std::move($1); }
    | factor_expr { $$ = std::move($1); }
+   | and_expr { $$ = std::move($1); }
+   | or_expr { $$ = std::move($1); }
    | unary_expr { $$ = std::move($1); }
    | type_cast {$$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
@@ -479,6 +487,14 @@ unary_expr:
    UNARY_OP expr %prec UNARY 
       { $$ = std::make_unique<Unary>($1, std::move($2)); }
    | expr QUESTION %prec UNARY  {$$ = std::make_unique<Unary>($2, std::move($1));}
+
+and_expr:
+   expr AND expr %prec AND
+      { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
+
+or_expr:
+   expr OR expr %prec OR
+      { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
 call_expr: 
    expr LPAREN maybe_arg_list RPAREN %prec CALL 

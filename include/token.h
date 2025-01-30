@@ -24,6 +24,8 @@ public:
         VAR,
         WHILE,
         AS,
+        AND,
+        OR,
 
         // types
         TYPE_LITERAL,
