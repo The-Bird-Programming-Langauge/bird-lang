@@ -89,7 +89,9 @@
                 "*.inc": "cpp",
                 "codecvt": "cpp",
                 "numbers": "cpp",
-                "format": "cpp"
+                "format": "cpp",
+                "version": "cpp",
+                "bird_type.h": "c"
         },
         "C_Cpp.errorSquiggles": "enabled"
 }

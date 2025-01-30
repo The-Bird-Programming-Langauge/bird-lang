@@ -6,11 +6,11 @@ TEST(ForLoopTest, ScopedForLoopIncrement)
     BirdTest::TestOptions options;
     options.code = "var x = 0;"
                    "{"
-                   "   for var y = 0; y <= 5; y += 1 do {"
+                   "   for var y = 0; y <= 5; y += 1 {"
                    "       x = y;"
                    "   }"
                    "}"
-                    "print x;" ;
+                   "print x;";
 
     options.after_interpret = [&](Interpreter &interpreter)
     {

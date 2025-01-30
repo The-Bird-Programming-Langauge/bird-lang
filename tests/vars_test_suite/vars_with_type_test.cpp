@@ -45,7 +45,7 @@ TEST(VarTest, VarWithTypeFloatExplicit)
 TEST(VarTest, VarWithTypeFloatImplicit)
 {
     BirdTest::TestOptions options;
-    options.code = "var y: float = 4; print y;";
+    options.code = "var y: float = 4 as float; print y;";
 
     options.after_interpret = [&](Interpreter &interpreter)
     {

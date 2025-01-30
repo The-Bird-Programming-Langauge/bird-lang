@@ -1,1 +1,15 @@
-fn function(i: int) -> int {return i;}var result: int = function(4);print(result);
+struct Node {
+    val: int,
+    next: Node
+};
+
+type MyNode = Node;
+
+const foo: MyNode = MyNode {
+    val = 3,
+    next = Node {
+        val = 4
+    }
+};
+
+print foo.next.val;

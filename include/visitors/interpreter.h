@@ -4,8 +4,11 @@
 #include <vector>
 #include <variant>
 #include <iostream>
+#include <algorithm>
+#include <set>
 
 #include "ast_node/index.h"
+#include "hoist_visitor.h"
 
 #include "sym_table.h"
 #include "exceptions/bird_exception.h"
@@ -16,6 +19,7 @@
 #include "callable.h"
 #include "stack.h"
 #include "type.h"
+#include "bird_type.h"
 
 /*
  * Visitor that interprets and evaluates the AST
@@ -26,8 +30,9 @@ class Interpreter : public Visitor
 public:
     Environment<Value> env;
     Environment<Callable> call_table;
-    Environment<Type> type_table;
+    Environment<std::shared_ptr<BirdType>> type_table;
     Stack<Value> stack;
+    std::set<std::string> struct_names;
 
     Interpreter()
     {
@@ -38,6 +43,9 @@ public:
 
     void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
+        HoistVisitor hoist_visitor(&this->struct_names);
+        hoist_visitor.hoist(stmts);
+
         for (auto &stmt : *stmts)
         {
             if (auto decl_stmt = dynamic_cast<DeclStmt *>(stmt.get()))
@@ -123,6 +131,12 @@ public:
                 type_stmt->accept(this);
                 continue;
             }
+
+            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
+            {
+                struct_decl->accept(this);
+                continue;
+            }
         }
 
         while (!this->stack.empty())
@@ -148,28 +162,6 @@ public:
 
         auto result = std::move(this->stack.pop());
         result.is_mutable = true;
-
-        if (decl_stmt->type_token.has_value())
-        {
-            std::string type_lexeme;
-            if (decl_stmt->type_is_literal)
-            {
-                type_lexeme = decl_stmt->type_token.value().lexeme;
-            }
-            else
-            {
-                type_lexeme = this->type_table.get(decl_stmt->type_token.value().lexeme).type.lexeme;
-            }
-
-            if (type_lexeme == "int")
-            {
-                result.data = to_type<int, double>(result);
-            }
-            else if (type_lexeme == "float")
-            {
-                result.data = to_type<double, int>(result);
-            }
-        }
 
         this->env.declare(decl_stmt->identifier.lexeme, std::move(result));
     }
@@ -242,28 +234,6 @@ public:
         const_stmt->value->accept(this);
 
         auto result = std::move(this->stack.pop());
-
-        if (const_stmt->type_token.has_value())
-        {
-            std::string type_lexeme;
-            if (const_stmt->type_is_literal)
-            {
-                type_lexeme = const_stmt->type_token.value().lexeme;
-            }
-            else
-            {
-                type_lexeme = this->type_table.get(const_stmt->type_token.value().lexeme).type.lexeme;
-            }
-
-            if (type_lexeme == "int")
-            {
-                result.data = to_type<int, double>(result);
-            }
-            else if (type_lexeme == "float")
-            {
-                result.data = to_type<double, int>(result);
-            }
-        }
 
         this->env.declare(const_stmt->identifier.lexeme, std::move(result));
     }
@@ -377,7 +347,6 @@ public:
         binary->right->accept(this);
 
         auto right = std::move(this->stack.pop());
-
         auto left = std::move(this->stack.pop());
 
         switch (binary->op.token_type)
@@ -449,7 +418,24 @@ public:
         unary->expr->accept(this);
         auto expr = std::move(this->stack.pop());
 
-        this->stack.push(-expr);
+        switch (unary->op.token_type)
+        {
+        case Token::Type::MINUS:
+        {
+            this->stack.push(-expr);
+            break;
+        }
+        case Token::Type::QUESTION:
+        {
+            this->stack.push(expr != Value(nullptr));
+            break;
+        }
+
+        default:
+        {
+            throw BirdException("Undefined unary operator.");
+        }
+        }
     }
 
     void visit_primary(Primary *primary)
@@ -505,7 +491,6 @@ public:
     void visit_if_stmt(IfStmt *if_stmt)
     {
         if_stmt->condition->accept(this);
-
         auto result = std::move(this->stack.pop());
 
         if (as_type<bool>(result))
@@ -544,11 +529,168 @@ public:
     {
         if (type_stmt->type_is_literal)
         {
-            this->type_table.declare(type_stmt->identifier.lexeme, Type(type_stmt->type_token));
+            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, token_to_bird_type(type_stmt->type_token));
+            this->type_table.declare(type_stmt->identifier.lexeme, std::move(alias));
         }
         else
         {
-            this->type_table.declare(type_stmt->identifier.lexeme, Type(this->type_table.get(type_stmt->type_token.lexeme).type));
+            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, this->type_table.get(type_stmt->type_token.lexeme));
+            this->type_table.declare(type_stmt->identifier.lexeme, std::move(alias));
         }
+    }
+
+    void visit_subscript(Subscript *Subscript)
+    {
+        Subscript->subscriptable->accept(this);
+        auto subscriptable = this->stack.pop();
+
+        Subscript->index->accept(this);
+        auto index = this->stack.pop();
+
+        this->stack.push(subscriptable[index]);
+    }
+
+    void visit_struct_decl(StructDecl *struct_decl)
+    {
+        std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
+        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
+                       { 
+                        if (this->type_table.contains(field.second.lexeme))
+                        {
+                            return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
+                        } 
+
+                        if (this->struct_names.find(field.second.lexeme) != this->struct_names.end()) {
+                            return std::make_pair(field.first, std::shared_ptr<BirdType>(new PlaceholderType(field.second.lexeme)));
+                        }
+
+                            return std::make_pair(field.first, token_to_bird_type(field.second)); });
+
+        this->type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, std::move(struct_fields)));
+    }
+
+    void visit_direct_member_access(DirectMemberAccess *direct_member_access)
+    {
+        direct_member_access->accessable->accept(this);
+        auto accessable = this->stack.pop();
+
+        if (is_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable))
+        {
+            auto struct_type = as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable);
+            this->stack.push((*struct_type.get())[direct_member_access->identifier.lexeme]);
+        }
+        else
+        {
+            throw BirdException("Cannot access member of non-struct type.");
+        }
+    }
+
+    void visit_struct_initialization(StructInitialization *struct_initialization)
+    {
+        std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance = std::make_shared<std::unordered_map<std::string, Value>>();
+        auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+        if (type->type == BirdTypeType::ALIAS)
+        {
+            auto alias = safe_dynamic_pointer_cast<AliasType>(type);
+            type = alias->alias;
+        }
+
+        auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
+
+        for (auto &field : struct_type->fields)
+        {
+            bool found = false;
+            for (auto &field_assignment : struct_initialization->field_assignments)
+            {
+                if (field.first == field_assignment.first)
+                {
+                    found = true;
+                    field_assignment.second->accept(this);
+                    auto result = this->stack.pop();
+
+                    (*struct_instance)[field_assignment.first] = result;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                // (*struct_instance)[field.first] = Value(0);
+                if (field.second->type == BirdTypeType::BOOL)
+                {
+                    (*struct_instance)[field.first] = Value(false);
+                }
+                else if (field.second->type == BirdTypeType::INT)
+                {
+                    (*struct_instance)[field.first] = Value(0);
+                }
+                else if (field.second->type == BirdTypeType::FLOAT)
+                {
+                    (*struct_instance)[field.first] = Value(0.0);
+                }
+                else if (field.second->type == BirdTypeType::STRING)
+                {
+                    (*struct_instance)[field.first] = Value("");
+                }
+                else if (field.second->type == BirdTypeType::STRUCT)
+                {
+                    (*struct_instance)[field.first] = Value(nullptr);
+                }
+                else if (field.second->type == BirdTypeType::PLACEHOLDER)
+                {
+                    (*struct_instance)[field.first] = Value(nullptr);
+                }
+                else
+                {
+                    throw BirdException("Cannot assign member of non-struct type.");
+                }
+            }
+            // field_assignment.second->accept(this);
+            // auto result = this->stack.pop();
+
+            // (*struct_instance)[field_assignment.first] = result;
+        }
+
+        this->stack.push(Value(struct_instance));
+    }
+
+    void visit_member_assign(MemberAssign *member_assign)
+    {
+        member_assign->accessable->accept(this);
+        auto accessable = this->stack.pop();
+
+        if (is_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable))
+        {
+            auto struct_type = as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(accessable);
+
+            member_assign->value->accept(this);
+            auto value = this->stack.pop();
+
+            (*struct_type.get())[member_assign->identifier.lexeme] = value;
+        }
+        else
+        {
+            throw BirdException("Cannot assign member of non-struct type.");
+        }
+    }
+
+    void visit_as_cast(AsCast *as_cast)
+    {
+        as_cast->expr->accept(this);
+        auto expr = this->stack.pop();
+
+        if (as_cast->type.lexeme == "int" && is_type<double>(expr))
+        {
+            this->stack.push(Value((int)as_type<double>(expr)));
+            return;
+        }
+
+        if (as_cast->type.lexeme == "float" && is_type<int>(expr))
+        {
+            this->stack.push(Value((double)as_type<int>(expr)));
+            return;
+        }
+
+        this->stack.push(expr);
     }
 };

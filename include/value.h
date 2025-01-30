@@ -1,6 +1,8 @@
 #pragma once
 #include <variant>
 #include <string>
+#include <unordered_map>
+#include <memory>
 
 #include "exceptions/bird_exception.h"
 
@@ -20,14 +22,14 @@ inline T as_type(Value value);
 template <typename T, typename U>
 inline T to_type(Value value);
 
-using variant = std::variant<int, double, std::string, bool>;
+using variant = std::variant<int, double, std::string, bool, std::shared_ptr<std::unordered_map<std::string, Value>>, std::nullptr_t>;
 class Value
 {
 public:
     variant data;
     bool is_mutable;
 
-    Value(variant data, bool is_mutable = false) : data(std::move(data)), is_mutable(is_mutable) {}
+    Value(variant data, bool is_mutable = false) : data(data), is_mutable(is_mutable) {}
     Value() = default;
 
     Value operator+(Value right)
@@ -209,6 +211,12 @@ public:
         if (is_type<bool>(*this) && is_type<bool>(right))
             return Value(as_type<bool>(*this) != as_type<bool>(right));
 
+        if (is_type<std::nullptr_t>(*this) && is_type<std::nullptr_t>(right))
+            return Value(false);
+
+        if (is_type<std::nullptr_t>(*this) || is_type<std::nullptr_t>(right))
+            return Value(true);
+
         throw BirdException("The '!=' binary operator could not be used to interpret these values.");
     }
 
@@ -259,6 +267,23 @@ public:
         }
 
         return *this;
+    }
+
+    Value operator[](const Value &index)
+    {
+        if (!is_type<std::string>(*this))
+            throw BirdException("The subscript operator could not be used to interpret these values.");
+
+        if (!is_type<int>(index))
+            throw BirdException("The subscript operator requires an integer index.");
+
+        std::string str = as_type<std::string>(*this);
+        int idx = as_type<int>(index);
+
+        if (idx < 0 || idx >= str.size())
+            throw BirdException("Index out of bounds.");
+
+        return Value(std::string(1, str[idx]));
     }
 
     friend std::ostream &operator<<(std::ostream &os, const Value &obj)

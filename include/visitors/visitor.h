@@ -22,6 +22,12 @@ class ReturnStmt;
 class BreakStmt;
 class ContinueStmt;
 class TypeStmt;
+class Subscript;
+class StructDecl;
+class DirectMemberAccess;
+class StructInitialization;
+class MemberAssign;
+class AsCast;
 
 /*
  * the interface for all visitors,
@@ -50,4 +56,10 @@ public:
     virtual void visit_break_stmt(BreakStmt *) = 0;
     virtual void visit_continue_stmt(ContinueStmt *) = 0;
     virtual void visit_type_stmt(TypeStmt *) = 0;
+    virtual void visit_subscript(Subscript *) = 0;
+    virtual void visit_struct_decl(StructDecl *) = 0;
+    virtual void visit_direct_member_access(DirectMemberAccess *) = 0;
+    virtual void visit_struct_initialization(StructInitialization *) = 0;
+    virtual void visit_member_assign(MemberAssign *) = 0;
+    virtual void visit_as_cast(AsCast *) = 0;
 };

@@ -27,13 +27,13 @@ TEST(TypeStmtTest, TypeStmtWithTypeLiteral)
     options.after_interpret = [&](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.type_table.contains("x"));
-        ASSERT_EQ(interpreter.type_table.get("x").type.lexeme, "int");
+        ASSERT_EQ(interpreter.type_table.get("x")->type, BirdTypeType::ALIAS);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.type_table.contains("x"));
-        ASSERT_EQ(codegen.type_table.get("x").type.lexeme, "int");
+        ASSERT_EQ(codegen.type_table.get("x")->type, BirdTypeType::ALIAS);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -48,13 +48,13 @@ TEST(TypeStmtTest, TypeStmtWithTypeIdentifier)
     options.after_interpret = [&](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.type_table.contains("y"));
-        ASSERT_EQ(interpreter.type_table.get("y").type.lexeme, "int");
+        ASSERT_EQ(interpreter.type_table.get("y")->type, BirdTypeType::ALIAS);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.type_table.contains("x"));
-        ASSERT_EQ(codegen.type_table.get("y").type.lexeme, "int");
+        ASSERT_EQ(codegen.type_table.get("y")->type, BirdTypeType::ALIAS);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -64,7 +64,7 @@ TEST(TypeStmtTest, DeclStmtWithTypeIdentifer)
 {
     BirdTest::TestOptions options;
     options.code = "type x = int;"
-                   "var y: x = 2;"
+                   "var y: x = 2 as x;"
                    "print y;";
 
     options.after_interpret = [&](Interpreter &interpreter)
@@ -77,7 +77,7 @@ TEST(TypeStmtTest, DeclStmtWithTypeIdentifer)
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.environment.contains("y"));
-        ASSERT_EQ(codegen.environment.get("y").type, CodeGenInt);
+        ASSERT_EQ(codegen.environment.get("y").type->type, BirdTypeType::ALIAS);
         ASSERT_EQ(codegen.environment.get("y").value, 0);
         ASSERT_EQ(output, "2\n\n");
     };
@@ -89,7 +89,7 @@ TEST(TypeStmtTest, ConstStmtWithTypeIdentifer)
 {
     BirdTest::TestOptions options;
     options.code = "type x = int;"
-                   "const y: x = 2;"
+                   "const y: x = 2 as x;"
                    "print y;";
 
     options.after_interpret = [&](Interpreter &interpreter)
@@ -102,7 +102,7 @@ TEST(TypeStmtTest, ConstStmtWithTypeIdentifer)
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.environment.contains("y"));
-        ASSERT_EQ(codegen.environment.get("y").type, CodeGenInt);
+        ASSERT_EQ(codegen.environment.get("y").type->type, BirdTypeType::ALIAS);
         ASSERT_EQ(codegen.environment.get("y").value, 0);
         ASSERT_EQ(output, "2\n\n");
     };
@@ -118,7 +118,7 @@ TEST(TypeStmtTest, FuncWithTypeIdentifier)
                    "{"
                    "return y;"
                    "}"
-                   "var z: int = foo(2);"
+                   "var z: x = foo(2 as x);"
                    "print foo(z);";
 
     options.after_interpret = [&](Interpreter &interpreter)
@@ -131,7 +131,7 @@ TEST(TypeStmtTest, FuncWithTypeIdentifier)
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
         ASSERT_TRUE(codegen.environment.contains("z"));
-        ASSERT_EQ(codegen.environment.get("z").type, CodeGenInt);
+        ASSERT_EQ(codegen.environment.get("z").type->type, BirdTypeType::ALIAS);
         ASSERT_EQ(output, "2\n\n");
     };
 

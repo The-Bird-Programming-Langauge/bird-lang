@@ -14,3 +14,4 @@
 #include "stmt.h"
 #include "type_stmt.h"
 #include "while_stmt.h"
+#include "struct_decl.h"
