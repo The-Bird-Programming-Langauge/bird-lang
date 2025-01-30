@@ -284,6 +284,8 @@ decl_stmt:
       { $$ = std::make_unique<DeclStmt>($2, $4, true, std::move($6)); }
    | VAR IDENTIFIER COLON IDENTIFIER EQUAL expr
       { $$ = std::make_unique<DeclStmt>($2, $4, false, std::move($6)); }
+   | VAR IDENTIFIER COLON TYPE_LITERAL LBRACKET RBRACKET EQUAL LBRACKET maybe_arg_list RBRACKET
+      { $$ = std::make_unique<ArrayDecl>($2, $4, std::move($9)); }
 
 if_stmt: 
    IF expr block %prec THEN 

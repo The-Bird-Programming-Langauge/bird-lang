@@ -77,9 +77,9 @@ public:
     std::string current_function_name;          // for indexing into maps
     std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
-    uint32_t current_offset = 1024; // current offset is set high to allow
-                                    // js to identify a string by a higher
-                                    // offset, will fix tomorrow
+    uint32_t static_offset = 0x1;
+    uint32_t heap_ptr = 0x4000;
+
     BinaryenModuleRef mod;
 
     ~CodeGen()
@@ -185,8 +185,8 @@ public:
 
     void add_memory_segment(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
     {
-        str_offset = current_offset;
-        this->current_offset += str.size() + 1;
+        str_offset = static_offset;
+        this->static_offset += str.size() + 1;
 
         MemorySegment segment = {
             str.c_str(),
@@ -214,7 +214,7 @@ public:
         }
         // since static memory is added at once we can
         // calculate the exact memory in pages to allocate
-        BinaryenIndex max_pages = (current_offset / 65536) + 1;
+        BinaryenIndex max_pages = (static_offset / 65536) + 1;
 
         // call to create memory with all segments
         BinaryenSetMemory(
@@ -347,6 +347,13 @@ public:
             {
                 struct_decl->accept(this);
                 // no stack push here, only type table
+            }
+
+            if (auto array_decl = dynamic_cast<ArrayDecl *>(stmt.get()))
+            {
+                array_decl->accept(this);
+                auto result = this->stack.pop();
+                main_function_body.push_back(result.value);
             }
         }
 
@@ -1575,7 +1582,8 @@ public:
             TaggedExpression(
                 BinaryenCall(
                     this->mod,
-                    "mem_get",
+                    (from_bird_type(index.type)) == BinaryenTypeInt32() ? "mem_get_32"
+                                                                        : "mem_get_64",
                     args,
                     2,
                     BinaryenTypeInt32()),
@@ -1883,5 +1891,53 @@ public:
         }
 
         this->stack.push(expr);
+    }
+
+    void visit_array_decl(ArrayDecl *array_decl)
+    {
+        std::vector<TaggedExpression> elements;
+
+        for (const auto &element : array_decl->elements)
+        {
+            element->accept(this);
+            elements.push_back(this->stack.pop());
+        }
+
+        BinaryenType type = from_bird_type(elements[0].type);
+
+        uint32_t data_size = (type == BinaryenTypeInt32()) ? 4
+                                                           : 8;
+
+        uint32_t size = elements.size() * data_size;
+
+        std::vector<BinaryenExpressionRef> stores;
+        for (int i = 0; i < elements.size(); i++)
+        {
+            uint32_t data_offset = this->heap_ptr + (i * data_size);
+
+            std::cout << data_offset << std::endl;
+
+            BinaryenExpressionRef store = BinaryenStore(
+                this->mod,
+                data_size,
+                0,
+                data_size,
+                BinaryenConst(this->mod, BinaryenLiteralInt32(data_offset)),
+                elements[i].value,
+                type);
+
+            stores.push_back(store);
+        }
+
+        BinaryenExpressionRef block = BinaryenBlock(
+            this->mod,
+            "array declaration",
+            stores.data(),
+            stores.size(),
+            BinaryenTypeNone());
+
+        this->stack.push(TaggedExpression(block, std::shared_ptr<BirdType>(new VoidType())));
+
+        this->heap_ptr += size;
     }
 };

@@ -137,6 +137,12 @@ public:
                 struct_decl->accept(this);
                 continue;
             }
+
+            if (auto array_stmt = dynamic_cast<ArrayDecl *>(stmt.get()))
+            {
+                array_stmt->accept(this);
+                continue;
+            }
         }
 
         while (!this->stack.empty())
@@ -692,5 +698,33 @@ public:
         }
 
         this->stack.push(expr);
+    }
+
+    void visit_array_decl(ArrayDecl *array_decl)
+    {
+        std::vector<Value> elements;
+
+        for (const auto &element : array_decl->elements)
+        {
+            element->accept(this);
+            auto value = this->stack.pop();
+
+            if (array_decl->type_identifier.lexeme == "int" && !is_type<int>(value))
+            {
+                throw BirdException("mixed types: expected int");
+            }
+            else if (array_decl->type_identifier.lexeme == "float" && !is_type<double>(value))
+            {
+                throw BirdException("mixed types: expected float");
+            }
+            else if (array_decl->type_identifier.lexeme == "str" && !is_type<std::string>(value))
+            {
+                throw BirdException("mixed types: expected string");
+            }
+
+            elements.push_back(value);
+        }
+
+        this->env.declare(array_decl->identifier.lexeme, elements);
     }
 };

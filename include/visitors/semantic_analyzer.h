@@ -398,4 +398,9 @@ public:
     {
         as_cast->expr->accept(this);
     }
+
+    void visit_array_decl(ArrayDecl *array_decl)
+    {
+        throw BirdException("implement visit_array_decl in semantic analyzer");
+    }
 };

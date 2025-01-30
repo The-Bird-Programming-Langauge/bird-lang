@@ -354,4 +354,9 @@ public:
         as_cast->expr->accept(this);
         std::cout << " as " << as_cast->type.lexeme;
     }
+
+    void visit_array_decl(ArrayDecl *array_decl)
+    {
+        throw BirdException("implement visit_array_decl in ast printer");
+    }
 };

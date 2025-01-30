@@ -15,3 +15,4 @@
 #include "type_stmt.h"
 #include "while_stmt.h"
 #include "struct_decl.h"
+#include "array_decl.h"

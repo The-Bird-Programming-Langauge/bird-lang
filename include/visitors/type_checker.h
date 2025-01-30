@@ -964,4 +964,9 @@ public:
         this->user_error_tracker->type_mismatch("in 'as' type cast", as_cast->type);
         this->stack.push(std::make_shared<ErrorType>());
     }
+
+    void visit_array_decl(ArrayDecl *array_decl)
+    {
+        throw BirdException("implement visit_array_decl in type checker");
+    }
 };
