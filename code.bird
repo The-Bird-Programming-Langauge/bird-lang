@@ -1,15 +1,1 @@
 
-struct Node {
-    val: int,
-    next: Node
-};
-
-type MyNode = Node;
-
-const foo: MyNode = MyNode {
-    val = 3,
-    next = MyNode {
-        val = 4
-    }
-};
-
