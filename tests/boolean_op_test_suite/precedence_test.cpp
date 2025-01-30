@@ -4,7 +4,8 @@
 TEST(BooleanOpTest, AndOrPrecedenceTest)
 {
     BirdTest::TestOptions options;
-    options.code = "var x = false or true and false;";
+    options.code = "var x = false or true and false;"
+                   "print x;";
 
     options.after_interpret = [](auto &interpreter)
     {
@@ -15,7 +16,7 @@ TEST(BooleanOpTest, AndOrPrecedenceTest)
 
     options.after_compile = [](auto &output, auto &codegen)
     {
-        ASSERT_EQ(output, "false");
+        ASSERT_EQ(output, "0\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
