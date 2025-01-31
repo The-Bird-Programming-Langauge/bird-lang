@@ -649,3 +649,21 @@ TEST(ParserTest, MultilineComments)
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(ParserTest, SingleLineComments)
+{
+    BirdTest::TestOptions options;
+    options.code = "// this is a comment\n"
+                   "var x = 5; // this is another comment\n"
+                   "print x;";
+
+    options.compile = false;
+    options.interpret = false;
+
+    options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
+    {
+        ASSERT_FALSE(error_tracker.has_errors());
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
