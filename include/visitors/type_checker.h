@@ -102,6 +102,12 @@ public:
                                       {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::BOOL},
                                       {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::BOOL},
                                   }},
+        {Token::Type::AND, {
+                               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+                           }},
+        {Token::Type::OR, {
+                              {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+                          }},
         {Token::Type::PERCENT, {
                                    {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
                                    {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::FLOAT},
