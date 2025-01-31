@@ -78,7 +78,6 @@ public:
     std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
     uint32_t static_offset = 1024;
-    uint32_t heap_ptr = 0x4000;
 
     BinaryenModuleRef mod;
 
@@ -1945,49 +1944,69 @@ public:
 
     void visit_array_decl(ArrayDecl *array_decl)
     {
-        std::vector<TaggedExpression> elements;
+        auto element_type = token_to_bird_type(array_decl->type_identifier);
 
-        for (const auto &element : array_decl->elements)
+        std::vector<BinaryenExpressionRef> values;
+        unsigned int size = 0;
+
+        if (!array_decl->elements.empty())
         {
-            element->accept(this);
-            elements.push_back(this->stack.pop());
+            for (auto &element : array_decl->elements)
+            {
+                element->accept(this);
+                auto value = this->stack.pop();
+
+                values.push_back(value.value);
+                size += bird_type_byte_size(element_type);
+            }
         }
 
-        BinaryenType type = from_bird_type(elements[0].type);
-
-        uint32_t data_size = (type == BinaryenTypeInt32()) ? 4
-                                                           : 8;
-
-        uint32_t size = elements.size() * data_size;
-
-        std::vector<BinaryenExpressionRef> stores;
-        for (int i = 0; i < elements.size(); i++)
-        {
-            uint32_t data_offset = this->heap_ptr + (i * data_size);
-
-            std::cout << data_offset << std::endl;
-
-            BinaryenExpressionRef store = BinaryenStore(
-                this->mod,
-                data_size,
-                0,
-                data_size,
-                BinaryenConst(this->mod, BinaryenLiteralInt32(data_offset)),
-                elements[i].value,
-                type);
-
-            stores.push_back(store);
-        }
-
-        BinaryenExpressionRef block = BinaryenBlock(
+        BinaryenExpressionRef size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+        BinaryenExpressionRef call = BinaryenCall(
             this->mod,
-            "array declaration",
-            stores.data(),
-            stores.size(),
-            BinaryenTypeNone());
+            "mem_alloc",
+            &size_literal,
+            1,
+            BinaryenTypeInt32());
 
-        this->stack.push(TaggedExpression(block, std::shared_ptr<BirdType>(new VoidType())));
+        BinaryenIndex index = this->function_locals[this->current_function_name].size();
+        this->function_locals[this->current_function_name].push_back(BinaryenTypeInt32());
 
-        this->heap_ptr += size;
+        environment.declare(array_decl->identifier.lexeme, TaggedIndex(index, element_type));
+
+        if (!array_decl->elements.empty())
+        {
+            std::vector<BinaryenExpressionRef> elements;
+            elements.push_back(BinaryenLocalSet(this->mod, index, call));
+
+            int offset = 0;
+            for (auto &value : values)
+            {
+                BinaryenExpressionRef args[3] = {
+                    BinaryenLocalGet(this->mod, index, BinaryenTypeInt32()),
+                    BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
+                    value};
+
+                std::string func_name = (element_type->type == BirdTypeType::FLOAT) ? "mem_set_64" : "mem_set_32";
+
+                elements.push_back(BinaryenCall(this->mod, func_name.c_str(), args, 3, BinaryenTypeNone()));
+
+                offset += bird_type_byte_size(element_type);
+            }
+
+            BinaryenExpressionRef block = BinaryenBlock(
+                this->mod,
+                "array declaration",
+                elements.data(),
+                elements.size(),
+                BinaryenTypeNone());
+
+            this->stack.push(TaggedExpression(block, element_type));
+        }
+        else
+        {
+            BinaryenExpressionRef local_set = BinaryenLocalSet(this->mod, index, call);
+            this->stack.push(TaggedExpression(local_set, element_type));
+        }
     }
 };

@@ -1,13 +1,4 @@
+var x: int[] = [1, 2, 3];
+var y: int[] = [4, 5, 6];
+var z: int[] = [7, 8, 9];
 
-var x: int = 3;
-var y: float = 5 as float;
-fn foo() {
-    x += 1;
-    print x;
-}
-
-print x;
-
-foo();
-
-print x;
