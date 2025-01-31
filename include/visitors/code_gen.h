@@ -1381,12 +1381,17 @@ public:
             stmt->accept(this);
             auto result = this->stack.pop();
 
-            if (result_type == BinaryenTypeNone())
+            if (result.type->type != BirdTypeType::VOID)
             {
-                result = BinaryenDrop(this->mod, result.value);
+                current_function_body.push_back(
+                    BinaryenDrop(
+                        this->mod,
+                        result.value));
             }
-
-            current_function_body.push_back(result.value);
+            else
+            {
+                current_function_body.push_back(result.value);
+            }
         }
 
         this->environment.pop_env();
@@ -1897,41 +1902,27 @@ public:
 
     BinaryenExpressionRef binaryen_set(std::string identifier, BinaryenExpressionRef value)
     {
-        if (this->environment.contains(identifier))
+        TaggedIndex tagged_index = this->environment.get(identifier);
+        if (this->environment.get_depth(identifier) != 0 && this->current_function_name != "main")
         {
-            TaggedIndex tagged_index = this->environment.get(identifier);
-            if (this->environment.current_contains(identifier) && this->current_function_name != "main")
-            {
-                return BinaryenLocalSet(this->mod, tagged_index.value, value);
-            }
-            else
-            {
-                return BinaryenGlobalSet(this->mod, std::to_string(tagged_index.value).c_str(), value);
-            }
+            return BinaryenLocalSet(this->mod, tagged_index.value, value);
         }
         else
         {
-            throw BirdException("undefined variable: " + identifier);
+            return BinaryenGlobalSet(this->mod, std::to_string(tagged_index.value).c_str(), value);
         }
     }
 
     BinaryenExpressionRef binaryen_get(std::string identifier)
     {
-        if (this->environment.contains(identifier))
+        TaggedIndex tagged_index = this->environment.get(identifier);
+        if (this->environment.get_depth(identifier) != 0 && this->current_function_name != "main")
         {
-            TaggedIndex tagged_index = this->environment.get(identifier);
-            if (this->environment.current_contains(identifier) && this->current_function_name != "main")
-            {
-                return BinaryenLocalGet(this->mod, tagged_index.value, from_bird_type(tagged_index.type));
-            }
-            else
-            {
-                return BinaryenGlobalGet(this->mod, std::to_string(tagged_index.value).c_str(), from_bird_type(tagged_index.type));
-            }
+            return BinaryenLocalGet(this->mod, tagged_index.value, from_bird_type(tagged_index.type));
         }
         else
         {
-            throw BirdException("undefined variable: " + identifier);
+            return BinaryenGlobalGet(this->mod, std::to_string(tagged_index.value).c_str(), from_bird_type(tagged_index.type));
         }
     }
 };

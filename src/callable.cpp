@@ -20,22 +20,12 @@ void Callable::call(Interpreter *interpreter, std::vector<std::shared_ptr<Expr>>
         evaluated_args.push_back(value);
     }
 
+    auto original_env = interpreter->env.envs.size();
+
     interpreter->env.push_env();
 
     for (int i = 0; i < this->param_list.size(); i++)
     {
-        if (param_list[i].second.lexeme == "int" && !is_type<int>(evaluated_args[i]))
-            throw BirdException("Type mismatch");
-
-        if (param_list[i].second.lexeme == "str" && !is_type<std::string>(evaluated_args[i]))
-            throw BirdException("Type mismatch");
-
-        if (param_list[i].second.lexeme == "bool" && !is_type<bool>(evaluated_args[i]))
-            throw BirdException("Type mismatch");
-
-        if (param_list[i].second.lexeme == "float" && !is_type<double>(evaluated_args[i]))
-            throw BirdException("Type mismatch");
-
         interpreter->env.declare(param_list[i].first.lexeme, evaluated_args[i]);
     }
 
@@ -47,10 +37,16 @@ void Callable::call(Interpreter *interpreter, std::vector<std::shared_ptr<Expr>>
         }
         catch (ReturnException e)
         {
-            interpreter->env.pop_env();
+            while (interpreter->env.envs.size() > original_env)
+            {
+                interpreter->env.pop_env();
+            }
             return;
         }
     }
 
-    interpreter->env.pop_env();
+    while (interpreter->env.envs.size() > original_env)
+    {
+        interpreter->env.pop_env();
+    }
 }
