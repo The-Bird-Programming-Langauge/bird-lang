@@ -36,6 +36,24 @@ public:
         return envs.back().find(identifier) != envs.back().end();
     }
 
+    int get_depth(std::string identifier)
+    {
+        if (envs.empty())
+        {
+            return 0;
+        }
+
+        for (int i = envs.size() - 1; i >= 0; i--)
+        {
+            if (envs[i].find(identifier) != envs[i].end())
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
     bool contains(std::string identifier)
     {
         if (envs.empty())
