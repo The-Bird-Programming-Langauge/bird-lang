@@ -19,7 +19,6 @@ enum class BirdTypeType
     ERROR,
     STRUCT,
     FUNCTION,
-    ALIAS,
     PLACEHOLDER
 };
 
@@ -82,18 +81,8 @@ struct AliasType : BirdType
     std::string name;
     std::shared_ptr<BirdType> alias;
     AliasType(std::string name, std::shared_ptr<BirdType> type)
-        : BirdType(BirdTypeType::ALIAS), name(name), alias(std::move(type)) {}
+        : BirdType(type->type), name(name), alias(std::move(type)) {}
     ~AliasType() {};
-
-    bool operator==(const AliasType &other) const
-    {
-        return this->name == other.name && *this->alias == *other.alias;
-    }
-
-    bool operator!=(const AliasType &other) const
-    {
-        return this->name != other.name || *this->alias != *other.alias;
-    }
 };
 
 struct StructType : BirdType
