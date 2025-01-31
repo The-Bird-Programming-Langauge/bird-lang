@@ -176,6 +176,22 @@ public:
             "mem_alloc",
             BinaryenTypeInt32(),
             BinaryenTypeInt32());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "mark",
+            "env",
+            "mark",
+            BinaryenTypeInt32(),
+            BinaryenTypeNone());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "sweep",
+            "env",
+            "sweep",
+            BinaryenTypeNone(),
+            BinaryenTypeNone());
     }
 
     void add_memory_segment(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
@@ -345,6 +361,12 @@ public:
             }
         }
 
+        // (commented out for now)
+        // perform garbage collection at the end of the program by popping the javascript calls off the stack in a block and executing the block
+        // this->garbage_collect();
+        // auto calls_block = this->stack.pop();
+        // main_function_body.push_back(calls_block.value);
+
         this->init_static_memory(this->mod);
 
         auto count = 0;
@@ -482,6 +504,54 @@ public:
         {
             throw BirdException("invaid type");
         }
+    }
+    
+    // perform garbage collection on memory data by marking and sweeping dynamically allocated blocks
+    void garbage_collect()
+    {
+        std::cout << "test2" << std::endl;
+        // list that stores all of the javascript calls to be pushed on the stack as 1 block
+        std::vector<BinaryenExpressionRef> calls;
+
+        // mark all dynamically allocated blocks by traversing the environment, locate all pointers pointing to dynamically allocated blocks, and pass the pointers to the mark function
+        for (const auto& scope : this->environment.envs)
+        {
+            for (const auto& [key, value] : scope)
+            {
+                std::cout << "test3" << std::endl;
+                std::cout << key << std::endl;
+                if (value.type->type == BirdTypeType::STRUCT)
+                {
+                    auto allocated_block_ptr = this->binaryen_get(key);
+                    calls.push_back(
+                        BinaryenCall(
+                            this->mod,
+                            "mark",
+                            &allocated_block_ptr,
+                            1,
+                            BinaryenTypeNone()));
+                }
+            }
+        }
+
+        // sweep all unmarked dynamically allocated blocks
+        calls.push_back(
+            BinaryenCall(
+                this->mod,
+                "sweep",
+                nullptr,
+                0,
+                BinaryenTypeNone()));
+        
+        // push all of the calls to the stack as 1 block
+        this->stack.push(
+            TaggedExpression(
+                BinaryenBlock(
+                    this->mod,
+                    nullptr,
+                    calls.data(),
+                    calls.size(),
+                    BinaryenTypeNone())));
     }
 
     void visit_block(Block *block)
@@ -1397,6 +1467,11 @@ public:
             }
         }
 
+        // perform garbage collection at the end of a function by popping the javascript calls off the stack in a block and executing the block
+        this->garbage_collect();
+        auto calls_block = this->stack.pop();
+        current_function_body.push_back(calls_block.value);
+
         this->environment.pop_env();
 
         BinaryenExpressionRef body = BinaryenBlock(
@@ -1713,7 +1788,7 @@ public:
                 auto func_name =
                     type->type == BirdTypeType::FLOAT
                         ? "mem_set_64"
-                    : type->type == BirdTypeType::STRUCT ? "mem_set_ptr"
+                    : type->type == BirdTypeType::STRUCT || type->type == BirdTypeType::PLACEHOLDER ? "mem_set_ptr"
                                                          : "mem_set_32";
 
                 constructor_body.push_back(
@@ -1800,7 +1875,7 @@ public:
         auto func_name =
             value.type->type == BirdTypeType::FLOAT
                 ? "mem_set_64"
-            : value.type->type == BirdTypeType::STRUCT ? "mem_set_ptr"
+            : value.type->type == BirdTypeType::STRUCT || value.type->type == BirdTypeType::PLACEHOLDER ? "mem_set_ptr"
                                                        : "mem_set_32";
 
         this->stack.push(
