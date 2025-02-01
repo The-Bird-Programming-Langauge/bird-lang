@@ -20,9 +20,9 @@ class PrintStmt : public Stmt
 {
 public:
     std::vector<std::shared_ptr<Expr>> args;
+    Token print_token;
 
-    PrintStmt(std::vector<std::shared_ptr<Expr>> args)
-        : args(std::move(args)) {}
+    PrintStmt(std::vector<std::shared_ptr<Expr>> args, Token print_token) : args(std::move(args)), print_token(print_token) {}
 
     void accept(Visitor *visitor)
     {

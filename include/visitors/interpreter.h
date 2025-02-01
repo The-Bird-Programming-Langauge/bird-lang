@@ -667,7 +667,6 @@ public:
 
             if (!found)
             {
-                // (*struct_instance)[field.first] = Value(0);
                 if (field.second->type == BirdTypeType::BOOL)
                 {
                     (*struct_instance)[field.first] = Value(false);
@@ -697,10 +696,6 @@ public:
                     throw std::runtime_error("Cannot assign member of non-struct type.");
                 }
             }
-            // field_assignment.second->accept(this);
-            // auto result = this->stack.pop();
-
-            // (*struct_instance)[field_assignment.first] = result;
         }
 
         this->stack.push(Value(struct_instance));

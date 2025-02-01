@@ -41,3 +41,22 @@ TEST(StructTest, DirectAccessTest)
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(StructTest, DirectAccessTestWithNonExistentField)
+{
+    BirdTest::TestOptions options;
+    options.code = "struct Test { a: int, b: float, c: str, d: bool }; "
+                   "var t = Test { a = 1, b = 2.0, c = \"hello\", d = true }; "
+                   "print t.e;";
+
+    options.after_type_check = [&](UserErrorTracker error_tracker, TypeChecker &type_checker)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
+
+        ASSERT_EQ(std::get<1>(tup).lexeme, "e");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: field does not exist on struct (line 1, character 116)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
+}
