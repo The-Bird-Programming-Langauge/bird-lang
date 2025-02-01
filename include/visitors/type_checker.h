@@ -306,6 +306,32 @@ public:
         for (auto &arg : print_stmt->args)
         {
             arg->accept(this);
+            auto result = this->stack.pop();
+
+            if (result->type == BirdTypeType::VOID)
+            {
+                this->user_error_tracker->type_error("cannot print void type", print_stmt->print_token);
+            }
+
+            if (result->type == BirdTypeType::STRUCT)
+            {
+                this->user_error_tracker->type_error("cannot print struct type", print_stmt->print_token);
+            }
+
+            if (result->type == BirdTypeType::PLACEHOLDER)
+            {
+                this->user_error_tracker->type_error("cannot print struct type", print_stmt->print_token);
+            }
+
+            if (result->type == BirdTypeType::FUNCTION)
+            {
+                this->user_error_tracker->type_error("cannot print function type", print_stmt->print_token);
+            }
+
+            if (result->type == BirdTypeType::ERROR)
+            {
+                return;
+            }
         }
     }
 
@@ -759,6 +785,8 @@ public:
             }
         }
 
+        this->user_error_tracker->type_error("field does not exist on struct", direct_member_access->identifier);
+        this->stack.push(std::make_shared<ErrorType>());
         return;
     }
 
@@ -774,6 +802,27 @@ public:
         auto type = this->type_table.get(struct_initialization->identifier.lexeme);
 
         auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
+
+        for (auto &field_assignment : struct_initialization->field_assignments)
+        {
+            auto found = false;
+            for (auto &field : struct_type->fields)
+            {
+                if (field.first == field_assignment.first)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                this->user_error_tracker->type_error("field \"" + field_assignment.first + "\" does not exist in struct " + struct_initialization->identifier.lexeme, struct_initialization->identifier);
+                this->stack.push(std::make_shared<ErrorType>());
+                return;
+            }
+        }
+
         for (auto &field : struct_type->fields)
         {
             for (auto &field_assignment : struct_initialization->field_assignments)
