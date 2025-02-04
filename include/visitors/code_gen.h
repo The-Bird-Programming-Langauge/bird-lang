@@ -1944,21 +1944,18 @@ public:
 
     void visit_array_decl(ArrayDecl *array_decl)
     {
-        auto element_type = token_to_bird_type(array_decl->type_identifier);
+        auto type = token_to_bird_type(array_decl->type_identifier);
 
-        std::vector<BinaryenExpressionRef> values;
+        std::vector<BinaryenExpressionRef> vals;
+
         unsigned int size = 0;
-
-        if (!array_decl->elements.empty())
+        for (auto &element : array_decl->elements)
         {
-            for (auto &element : array_decl->elements)
-            {
-                element->accept(this);
-                auto value = this->stack.pop();
+            element->accept(this);
+            auto val = this->stack.pop();
 
-                values.push_back(value.value);
-                size += bird_type_byte_size(element_type);
-            }
+            vals.push_back(val.value);
+            size += bird_type_byte_size(type);
         }
 
         BinaryenExpressionRef size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
@@ -1972,41 +1969,36 @@ public:
         BinaryenIndex index = this->function_locals[this->current_function_name].size();
         this->function_locals[this->current_function_name].push_back(BinaryenTypeInt32());
 
-        environment.declare(array_decl->identifier.lexeme, TaggedIndex(index, element_type));
+        this->environment.declare(array_decl->identifier.lexeme, TaggedIndex(index, type));
 
-        if (!array_decl->elements.empty())
+        std::vector<BinaryenExpressionRef> array_declaration;
+
+        array_declaration.push_back(BinaryenLocalSet(this->mod, index, call));
+
+        unsigned int offset = 0;
+        for (auto &val : vals)
         {
-            std::vector<BinaryenExpressionRef> elements;
-            elements.push_back(BinaryenLocalSet(this->mod, index, call));
+            BinaryenExpressionRef args[3] = {
+                BinaryenLocalGet(this->mod, index, BinaryenTypeInt32()),
+                BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
+                val};
 
-            int offset = 0;
-            for (auto &value : values)
-            {
-                BinaryenExpressionRef args[3] = {
-                    BinaryenLocalGet(this->mod, index, BinaryenTypeInt32()),
-                    BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
-                    value};
+            std::string func_name = (type->type == BirdTypeType::FLOAT)
+                                        ? "mem_set_64"
+                                        : "mem_set_32";
 
-                std::string func_name = (element_type->type == BirdTypeType::FLOAT) ? "mem_set_64" : "mem_set_32";
+            array_declaration.push_back(BinaryenCall(this->mod, func_name.c_str(), args, 3, BinaryenTypeNone()));
 
-                elements.push_back(BinaryenCall(this->mod, func_name.c_str(), args, 3, BinaryenTypeNone()));
-
-                offset += bird_type_byte_size(element_type);
-            }
-
-            BinaryenExpressionRef block = BinaryenBlock(
-                this->mod,
-                "array declaration",
-                elements.data(),
-                elements.size(),
-                BinaryenTypeNone());
-
-            this->stack.push(TaggedExpression(block, element_type));
+            offset += bird_type_byte_size(type);
         }
-        else
-        {
-            BinaryenExpressionRef local_set = BinaryenLocalSet(this->mod, index, call);
-            this->stack.push(TaggedExpression(local_set, element_type));
-        }
+
+        BinaryenExpressionRef block = BinaryenBlock(
+            this->mod,
+            "array declaration",
+            array_declaration.data(),
+            array_declaration.size(),
+            BinaryenTypeNone());
+
+        this->stack.push(TaggedExpression(block, type));
     }
 };

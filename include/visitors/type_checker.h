@@ -202,6 +202,12 @@ public:
                 struct_decl->accept(this);
                 continue;
             }
+
+            if (auto array_decl = dynamic_cast<ArrayDecl *>(stmt.get()))
+            {
+                array_decl->accept(this);
+                continue;
+            }
         }
 
         while (!this->stack.empty())
@@ -967,6 +973,6 @@ public:
 
     void visit_array_decl(ArrayDecl *array_decl)
     {
-        throw BirdException("implement visit_array_decl in type checker");
+        // TODO: find out what to do here
     }
 };
