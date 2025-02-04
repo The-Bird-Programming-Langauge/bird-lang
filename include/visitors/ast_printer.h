@@ -174,8 +174,9 @@ public:
 
     void visit_unary(Unary *unary)
     {
-        std::cout << unary->op.lexeme;
+        std::cout << "(" << unary->op.lexeme << " ";
         unary->expr->accept(this);
+        std::cout << ")";
     }
 
     void visit_primary(Primary *primary)

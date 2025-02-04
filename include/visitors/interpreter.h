@@ -497,6 +497,7 @@ public:
         case Token::Type::NOT:
         {
             this->stack.push(!expr);
+            break;
         }
         default:
         {
