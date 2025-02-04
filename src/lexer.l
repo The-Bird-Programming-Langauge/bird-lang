@@ -31,10 +31,14 @@ EXP             ([Ee][-+]?[0-9]+)
 IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
+%x MULTILINE_COMMENT
+%x SINGLELINE_COMMENT
+
 %%
 
-"//".*\n                { location->lines(); }
-
+"//"                   { BEGIN(SINGLELINE_COMMENT); }
+<SINGLELINE_COMMENT>.  { }
+<SINGLELINE_COMMENT>\n { BEGIN(INITIAL); location->lines(); }
 
 "var"                   { yylval->emplace<Token>() = make_token(T::VAR);
                           return token::VAR; }
@@ -84,10 +88,10 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "struct"                { yylval->emplace<Token>() = make_token(T::STRUCT);
                           return token::STRUCT; }
 
-"self"                 { yylval->emplace<Token>() = make_token(T::SELF);
+"self"                  { yylval->emplace<Token>() = make_token(T::SELF);
                           return token::SELF; }
 
-"as"                   { yylval->emplace<Token>() = make_token(T::AS);
+"as"                    { yylval->emplace<Token>() = make_token(T::AS);
                           return token::AS; } 
 
 "and"                  { yylval->emplace<Token>() = make_token(T::AND);
@@ -112,8 +116,7 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
                           return token::INT_LITERAL;} 
 
 
-\"(\\.|[^"\\])*\"                  { 
-                          yytext = yytext + 1;
+\"(\\.|[^"\\])*\"       { yytext = yytext + 1;
                           yytext[yyleng - 2] = '\0';
                           yylval->emplace<Token>() =  make_token(T::STR_LITERAL);
                           return token::STR_LITERAL;} 
@@ -183,15 +186,22 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "}"                     { return token::RBRACE; } 
 "{"                     { return token::LBRACE; } 
 ")"                     { return token::RPAREN; } 
-"["                    { yylval->emplace<Token>() = make_token(T::LBRACKET);
+"["                     { yylval->emplace<Token>() = make_token(T::LBRACKET);
                         return token::LBRACKET; }
-"]"                   { return token::RBRACKET; }
+"]"                     { return token::RBRACKET; }
 "("                     { return token::LPAREN; }
 ";"                     { return token::SEMICOLON; } 
 "!"                     { return token::BANG; } 
 "->"                    { return token::ARROW; } 
 
 \n                      { location->lines(); }
+
+
+"/*"                    { BEGIN(MULTILINE_COMMENT); }
+<MULTILINE_COMMENT>"*/" { BEGIN(INITIAL); }
+<MULTILINE_COMMENT>"\n" { location->lines(); }
+<MULTILINE_COMMENT>.    { }
+
 
 
 [ \t\r]*                { /* do nothing */ }
