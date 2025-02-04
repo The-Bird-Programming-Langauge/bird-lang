@@ -108,6 +108,9 @@ public:
         {Token::Type::OR, {
                               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
                           }},
+        {Token::Type::XOR, {
+                               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+                           }},
         {Token::Type::PERCENT, {
                                    {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
                                    {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::FLOAT},
@@ -427,6 +430,19 @@ public:
             else
             {
                 this->user_error_tracker->type_error("expected int or float in unary operation, found: " + bird_type_to_string(result), unary->op);
+                this->stack.push(std::make_shared<ErrorType>());
+            }
+            break;
+        }
+        case Token::Type::NOT:
+        {
+            if (result->type == BirdTypeType::BOOL)
+            {
+                this->stack.push(std::make_shared<BoolType>());
+            }
+            else
+            {
+                this->user_error_tracker->type_error("expected bool int unary operation, found: " + bird_type_to_string(result), unary->op);
                 this->stack.push(std::make_shared<ErrorType>());
             }
             break;
