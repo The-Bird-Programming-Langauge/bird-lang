@@ -32,11 +32,13 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 %x MULTILINE_COMMENT
+%x SINGLELINE_COMMENT
 
 %%
 
-"//".*\n                { location->lines(); }
-
+"//"                   { BEGIN(SINGLELINE_COMMENT); }
+<SINGLELINE_COMMENT>.  { }
+<SINGLELINE_COMMENT>\n { BEGIN(INITIAL); location->lines(); }
 
 "var"                   { yylval->emplace<Token>() = make_token(T::VAR);
                           return token::VAR; }
@@ -91,6 +93,12 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 "as"                    { yylval->emplace<Token>() = make_token(T::AS);
                           return token::AS; } 
+
+"and"                  { yylval->emplace<Token>() = make_token(T::AND);
+                          return token::AND; } 
+
+"or"                   { yylval->emplace<Token>() = make_token(T::OR);
+                          return token::OR; } 
 
 {TYPE_IDENT}            { yylval->emplace<Token>() = make_token(T::TYPE_LITERAL);
                           return token::TYPE_LITERAL;} 

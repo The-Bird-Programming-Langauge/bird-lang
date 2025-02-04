@@ -349,6 +349,65 @@ public:
 
     void visit_binary(Binary *binary)
     {
+        switch (binary->op.token_type)
+        {
+        case Token::Type::AND:
+        case Token::Type::OR:
+            visit_binary_short_circuit(binary);
+            break;
+        default:
+            visit_binary_normal(binary);
+        }
+    }
+
+    void visit_binary_short_circuit(Binary *binary)
+    {
+        binary->left->accept(this);
+        auto left = std::move(this->stack.pop());
+
+        switch (binary->op.token_type)
+        {
+        case Token::Type::AND:
+        {
+            if (!is_type<bool>(left))
+            {
+                throw BirdException("The 'and' binary operator could not be used to interpret these values.");
+            }
+            if (as_type<bool>(left) == false)
+            {
+                this->stack.push(Value(false));
+            }
+            else
+            {
+                binary->right->accept(this);
+            }
+            break;
+        }
+        case Token::Type::OR:
+        {
+            if (!is_type<bool>(left))
+            {
+                throw BirdException("The 'or' binary operator could not be used to interpret these values.");
+            }
+            if (as_type<bool>(left) == true)
+            {
+                this->stack.push(Value(true));
+            }
+            else
+            {
+                binary->right->accept(this);
+            }
+            break;
+        }
+        default:
+        {
+            throw std::runtime_error("Undefined binary short-circuit operator.");
+        }
+        }
+    }
+
+    void visit_binary_normal(Binary *binary)
+    {
         binary->left->accept(this);
         binary->right->accept(this);
 
@@ -535,13 +594,11 @@ public:
     {
         if (type_stmt->type_is_literal)
         {
-            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, token_to_bird_type(type_stmt->type_token));
-            this->type_table.declare(type_stmt->identifier.lexeme, std::move(alias));
+            this->type_table.declare(type_stmt->identifier.lexeme, token_to_bird_type(type_stmt->type_token));
         }
         else
         {
-            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, this->type_table.get(type_stmt->type_token.lexeme));
-            this->type_table.declare(type_stmt->identifier.lexeme, std::move(alias));
+            this->type_table.declare(type_stmt->identifier.lexeme, this->type_table.get(type_stmt->type_token.lexeme));
         }
     }
 
@@ -595,11 +652,6 @@ public:
     {
         std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance = std::make_shared<std::unordered_map<std::string, Value>>();
         auto type = this->type_table.get(struct_initialization->identifier.lexeme);
-        if (type->type == BirdTypeType::ALIAS)
-        {
-            auto alias = safe_dynamic_pointer_cast<AliasType>(type);
-            type = alias->alias;
-        }
 
         auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
