@@ -1,3 +1,5 @@
-print not true;
-print not false;
+print true xor true;
+print false xor false;
+print true xor false;
+print false xor true;
 

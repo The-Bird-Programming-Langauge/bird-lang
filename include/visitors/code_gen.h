@@ -1159,6 +1159,18 @@ public:
                     std::shared_ptr<BirdType>(new BoolType())));
             break;
         }
+        case Token::Type::XOR:
+        {
+            this->stack.push(
+                TaggedExpression(
+                    BinaryenBinary(
+                        this->mod,
+                        BinaryenNeInt32(),
+                        left.value,
+                        right.value),
+                    std::shared_ptr<BirdType>(new BoolType())));
+            break;
+        }
         default:
         {
             throw BirdException("undefined binary operator for code gen");
