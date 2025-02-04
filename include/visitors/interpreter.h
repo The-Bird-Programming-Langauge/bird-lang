@@ -410,6 +410,11 @@ public:
 
         switch (binary->op.token_type)
         {
+        case Token::Type::XOR:
+        {
+            this->stack.push(left != right);
+            break;
+        }
         case Token::Type::PLUS:
         {
             this->stack.push(left + right);
@@ -489,7 +494,10 @@ public:
             this->stack.push(expr != Value(nullptr));
             break;
         }
-
+        case Token::Type::NOT:
+        {
+            this->stack.push(!expr);
+        }
         default:
         {
             throw std::runtime_error("Undefined unary operator.");
