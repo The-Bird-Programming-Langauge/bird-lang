@@ -94,7 +94,10 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
                           return token::AND; } 
 
 "or"                   { yylval->emplace<Token>() = make_token(T::OR);
-                          return token::OR; } 
+                          return token::OR; }
+
+"xor"                  { yylval->emplace<Token>() = make_token(T::XOR); 
+                          return token::XOR; }
 
 {TYPE_IDENT}            { yylval->emplace<Token>() = make_token(T::TYPE_LITERAL);
                           return token::TYPE_LITERAL;} 

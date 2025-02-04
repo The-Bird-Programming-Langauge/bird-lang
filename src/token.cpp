@@ -55,6 +55,10 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::TYPE_LITERAL, "TYPE_LITERAL"},
     {Token::Type::VAR, "VAR"},
     {Token::Type::WHILE, "WHILE"},
+    {Token::Type::AND, "AND"},
+    {Token::Type::XOR, "XOR"},
+    {Token::Type::OR, "OR"},
+    {Token::Type::NOT, "NOT"},
 };
 
 void Token::print_token()
