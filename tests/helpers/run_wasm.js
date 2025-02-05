@@ -89,7 +89,7 @@ const moduleOptions = {
             console.log(str);
             fs.appendFileSync(outputPath, str + "\n");
         },
-        mem_get_32: (ptr, byte_offset) => { 
+        mem_get_32: (ptr, byte_offset) => {
             return memory.getUint32(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
         },
 
@@ -100,7 +100,7 @@ const moduleOptions = {
          * The first byte of the pointer is used to store the pointer bit 
          * 
          */
-        mem_set_32: (ptr, offset, value) => { 
+        mem_set_32: (ptr, offset, value) => {
             memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0);
             memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
         },
@@ -140,15 +140,15 @@ const moduleOptions = {
 
             // we have found a block that is big enough
             if (get_block_size(curr_ptr) - size > BLOCK_HEADER_SIZE + 4) { // we can split the block
-                const new_block_ptr = curr_ptr + size + BLOCK_HEADER_SIZE; 
+                const new_block_ptr = curr_ptr + size + BLOCK_HEADER_SIZE;
 
                 set_block_size(new_block_ptr, get_block_size(curr_ptr) - size - BLOCK_HEADER_SIZE); // set the size of the current block
                 set_block_next_ptr(new_block_ptr, get_block_next_ptr(curr_ptr)); // set the pointer of the new block
 
-                if (prev_ptr !== curr_ptr) { 
+                if (prev_ptr !== curr_ptr) {
                     set_block_next_ptr(prev_ptr, new_block_ptr); // set the pointer of the new block to the current block
                 }
-                
+
                 if (curr_ptr === get_free_list_head_ptr()) { // we are at the head of the list
                     set_free_list_head_ptr(new_block_ptr);
                 }
@@ -178,7 +178,7 @@ const moduleOptions = {
 
                 set_block_mark(ptr, 1); // mark the block
 
-                const curr_value = ptr + BLOCK_HEADER_SIZE; 
+                const curr_value = ptr + BLOCK_HEADER_SIZE;
                 const size = get_block_size(ptr);
                 for (let i = curr_value; i < ptr + size - BLOCK_HEADER_SIZE; i += value_is_64_bit(i) ? 9 : 5) {
                     if (value_is_pointer(i)) { // check if the value is a pointer
@@ -193,7 +193,7 @@ const moduleOptions = {
             while (curr_ptr < memory.byteLength && get_block_size(curr_ptr) !== 0) {
                 if (!block_is_marked(curr_ptr)) { // check if the block is marked
                     set_block_next_ptr(curr_ptr, get_free_list_head_ptr()); // set the pointer of the block to the head of the free list
-                    set_free_list_head_ptr(curr_ptr); 
+                    set_free_list_head_ptr(curr_ptr);
                 } else {
                     set_block_mark(curr_ptr, 0); // clear the mark bit
                 }
@@ -202,13 +202,13 @@ const moduleOptions = {
             }
         },
 
-        initialize_memory: () => {
-            memory.setUint8(0, 0); // null pointer
-            memory.setUint32(1, FREE_LIST_START); // head of the free list
-            memory.setUint32(FREE_LIST_START, 3000);
-            memory.setUint32(9, 0); // next block
-            memory.setUint8(13, 0); // mark bit to 0
-        }
+        initialize_memory: (offset) => {
+            memory.setUint8(offset, 0);
+            memory.setUint32(offset + 1, offset + FREE_LIST_START);
+            memory.setUint32(offset + FREE_LIST_START, 3000);
+            memory.setUint32(offset + 9, 0);
+            memory.setUint8(offset + 13, 0);
+        },
     }
 };
 
