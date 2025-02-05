@@ -1,23 +1,17 @@
-type years = int;
-struct Person {
-    age: years,
+
+
+struct Person  {
+    age: int,
+    name: str
 };
 
-var person: Person = Person {
-    age = 1,
-};
 
-print person.age;
+for var i: int = 0; i < 1000; i += 1 {
+    const p: Person = Person {
+        name = "cole",
+        age = i
+    };
 
-person.age = 2;
-
-print person.age;
-
-type name = str;
-var foo: name = "marci" as name;
-
-print foo;
-
-foo = "klaus" as name;
-
-print foo;
+    print p.age;
+    print p.name;
+}
