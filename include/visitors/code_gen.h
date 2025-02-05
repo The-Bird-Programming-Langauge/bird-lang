@@ -2,6 +2,7 @@
 #include "binaryen-c.h"
 #include "bird_type.h"
 #include "hoist_visitor.h"
+#include "static_visitor.h"
 #include <fstream>
 #include <algorithm>
 #include <ios>
@@ -65,6 +66,8 @@ public:
     std::map<std::string, std::string> std_lib;
     std::set<std::string> struct_names;
 
+    std::map<std::string, uint32_t> str_offsets;
+
     // we need the function return types when calling functions
     std::unordered_map<std::string, TaggedType> function_return_types;
     // allows us to track the local variables of a function
@@ -72,9 +75,7 @@ public:
     std::string current_function_name;          // for indexing into maps
     std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
-    uint32_t current_offset = 1024; // current offset is set high to allow
-                                    // js to identify a string by a higher
-                                    // offset, will fix tomorrow
+    uint32_t current_offset = 0;
     BinaryenModuleRef mod;
 
     ~CodeGen()
@@ -156,7 +157,7 @@ public:
             "initialize_memory",
             "env",
             "initialize_memory",
-            BinaryenTypeNone(),
+            BinaryenTypeInt32(),
             BinaryenTypeNone());
 
         BinaryenType args_set_64[3] = {BinaryenTypeInt32(), BinaryenTypeInt32(), BinaryenTypeFloat64()};
@@ -194,21 +195,29 @@ public:
             BinaryenTypeNone());
     }
 
-    void add_memory_segment(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
+    void add_memory_segment(const std::string &str)
     {
-        str_offset = current_offset;
+        auto str_offset = this->current_offset;
         this->current_offset += str.size() + 1;
 
         MemorySegment segment = {
             str.c_str(),
             static_cast<BinaryenIndex>(str.size() + 1), // + 1 for '\0'
-            BinaryenConst(mod, BinaryenLiteralInt32(str_offset))};
+            BinaryenConst(this->mod, BinaryenLiteralInt32(str_offset))};
+
+        this->str_offsets[str] = str_offset;
 
         this->memory_segments.push_back(segment);
     }
 
-    void init_static_memory(BinaryenModuleRef mod)
+    void init_static_memory(std::vector<std::string> &strings)
     {
+        for (auto &str : strings)
+        {
+            add_memory_segment(str);
+        }
+
+        // this should probably push the call the initialize_memory to the stack
         std::vector<const char *> segments;
         std::vector<BinaryenIndex> sizes;
         bool *passive = new bool[memory_segments.size()];
@@ -225,7 +234,7 @@ public:
         }
         // since static memory is added at once we can
         // calculate the exact memory in pages to allocate
-        BinaryenIndex max_pages = (current_offset / 65536) + 1;
+        BinaryenIndex max_pages = (this->current_offset / 65536) + 1;
 
         // call to create memory with all segments
         BinaryenSetMemory(
@@ -248,19 +257,26 @@ public:
         HoistVisitor hoist_visitor(&this->struct_names);
         hoist_visitor.hoist(stmts);
 
+        std::vector<std::string> static_strings;
+        StaticVisitor static_visitor(&static_strings);
+        static_visitor.static_pass(stmts);
+
+        this->init_static_memory(static_strings);
+
         this->init_std_lib();
 
         this->current_function_name = "main";
         auto main_function_body = std::vector<BinaryenExpressionRef>();
         this->function_locals[this->current_function_name] = std::vector<BinaryenType>();
 
+        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
         main_function_body.push_back(
             BinaryenCall(
                 this->mod,
                 "initialize_memory",
-                nullptr,
-                0,
-                BinaryenTypeNone()));
+                &offset,
+                1,
+                BinaryenTypeInt32()));
 
         for (auto &stmt : *stmts)
         {
@@ -360,14 +376,6 @@ public:
                 // no stack push here, only type table
             }
         }
-
-        // (commented out for now)
-        // perform garbage collection at the end of the program by popping the javascript calls off the stack in a block and executing the block
-        // this->garbage_collect();
-        // auto calls_block = this->stack.pop();
-        // main_function_body.push_back(calls_block.value);
-
-        this->init_static_memory(this->mod);
 
         auto count = 0;
         for (auto &local : this->function_locals["main"])
@@ -505,7 +513,7 @@ public:
             throw BirdException("invaid type");
         }
     }
-    
+
     // perform garbage collection on memory data by marking and sweeping dynamically allocated blocks
     void garbage_collect()
     {
@@ -514,9 +522,9 @@ public:
         std::vector<BinaryenExpressionRef> calls;
 
         // mark all dynamically allocated blocks by traversing the environment, locate all pointers pointing to dynamically allocated blocks, and pass the pointers to the mark function
-        for (const auto& scope : this->environment.envs)
+        for (const auto &scope : this->environment.envs)
         {
-            for (const auto& [key, value] : scope)
+            for (const auto &[key, value] : scope)
             {
                 std::cout << "test3" << std::endl;
                 std::cout << key << std::endl;
@@ -542,7 +550,7 @@ public:
                 nullptr,
                 0,
                 BinaryenTypeNone()));
-        
+
         // push all of the calls to the stack as 1 block
         this->stack.push(
             TaggedExpression(
@@ -1300,13 +1308,10 @@ public:
         case Token::Type::STR_LITERAL:
         {
             const std::string &str_value = primary->value.lexeme;
-            uint32_t str_ptr;
 
-            add_memory_segment(mod, str_value, str_ptr);
+            BinaryenExpressionRef str_ptr = BinaryenConst(this->mod, BinaryenLiteralInt32(this->str_offsets[str_value]));
 
-            BinaryenExpressionRef str_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(str_ptr));
-
-            this->stack.push(TaggedExpression(str_literal, std::shared_ptr<BirdType>(new StringType())));
+            this->stack.push(TaggedExpression(str_ptr, std::shared_ptr<BirdType>(new StringType())));
             break;
         }
 
@@ -1789,7 +1794,7 @@ public:
                     type->type == BirdTypeType::FLOAT
                         ? "mem_set_64"
                     : type->type == BirdTypeType::STRUCT || type->type == BirdTypeType::PLACEHOLDER ? "mem_set_ptr"
-                                                         : "mem_set_32";
+                                                                                                    : "mem_set_32";
 
                 constructor_body.push_back(
                     BinaryenCall(
@@ -1876,7 +1881,7 @@ public:
             value.type->type == BirdTypeType::FLOAT
                 ? "mem_set_64"
             : value.type->type == BirdTypeType::STRUCT || value.type->type == BirdTypeType::PLACEHOLDER ? "mem_set_ptr"
-                                                       : "mem_set_32";
+                                                                                                        : "mem_set_32";
 
         this->stack.push(
             TaggedExpression(
