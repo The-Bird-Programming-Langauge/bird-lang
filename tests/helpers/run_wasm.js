@@ -21,7 +21,7 @@ fs.writeFileSync(outputPath, "");
  * 2. The next 32/64 bits are used to store the actual value
  */
 
-const HEAD_PTR_OFFSET = 1;
+let HEAD_PTR_OFFSET = 1;
 const BLOCK_SIZE_OFFSET = 0;
 const BLOCK_PTR_OFFSET = 4;
 const BLOCK_MARK_OFFSET = 8;
@@ -203,6 +203,7 @@ const moduleOptions = {
         },
 
         initialize_memory: (offset) => {
+            HEAD_PTR_OFFSET += offset;
             memory.setUint8(offset, 0);
             memory.setUint32(offset + 1, offset + FREE_LIST_START);
             memory.setUint32(offset + FREE_LIST_START, 3000);

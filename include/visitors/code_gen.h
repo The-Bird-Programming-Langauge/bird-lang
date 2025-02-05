@@ -1247,8 +1247,12 @@ public:
         {
             const std::string &str_value = primary->value.lexeme;
 
-            BinaryenExpressionRef str_ptr = BinaryenConst(this->mod, BinaryenLiteralInt32(this->str_offsets[str_value]));
+            if (this->str_offsets.find(str_value) == this->str_offsets.end())
+            {
+                throw BirdException("string not found: " + str_value);
+            }
 
+            BinaryenExpressionRef str_ptr = BinaryenConst(this->mod, BinaryenLiteralInt32(this->str_offsets[str_value]));
             this->stack.push(TaggedExpression(str_ptr, std::shared_ptr<BirdType>(new StringType())));
             break;
         }

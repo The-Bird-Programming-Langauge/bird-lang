@@ -33,9 +33,9 @@ public:
                 continue;
             }
 
-            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
+            if (auto print_stmt = dynamic_cast<PrintStmt *>(stmt.get()))
             {
-                struct_decl->accept(this);
+                print_stmt->accept(this);
                 continue;
             }
         }
@@ -76,6 +76,22 @@ public:
         }
         default:
             break;
+        }
+    }
+
+    void visit_print_stmt(PrintStmt *print_stmt)
+    {
+        for (auto &arg : print_stmt->args)
+        {
+            arg->accept(this);
+        }
+    }
+
+    void visit_struct_initialization(StructInitialization *struct_intialization)
+    {
+        for (auto &field_assignment : struct_intialization->field_assignments)
+        {
+            field_assignment.second->accept(this);
         }
     }
 };
