@@ -12,19 +12,19 @@ static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i3
     switch (type->type)
     {
     case BirdTypeType::INT:
-        return 5;
+        return 8;
     case BirdTypeType::FLOAT:
-        return 9;
+        return 16;
     case BirdTypeType::BOOL:
-        return 5;
+        return 8;
     case BirdTypeType::VOID:
         return 0;
     case BirdTypeType::STRING:
-        return 5;
+        return 8;
     case BirdTypeType::STRUCT:
-        return 5;
+        return 8;
     case BirdTypeType::PLACEHOLDER:
-        return 5;
+        return 8;
     default:
         return 0;
     }
@@ -238,7 +238,7 @@ public:
         }
         // since static memory is added at once we can
         // calculate the exact memory in pages to allocate
-        BinaryenIndex max_pages = (this->current_offset / 65536) + 1;
+        BinaryenIndex max_pages = (this->current_offset / 65536) + 2;
 
         // call to create memory with all segments
         BinaryenSetMemory(
