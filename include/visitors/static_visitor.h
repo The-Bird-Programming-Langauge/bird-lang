@@ -102,6 +102,7 @@ public:
             if (auto as_cast = dynamic_cast<AsCast *>(stmt.get()))
             {
                 as_cast->accept(this);
+                continue;
             }
 
             if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
