@@ -66,7 +66,7 @@ public:
     std::map<std::string, std::string> std_lib;
     std::set<std::string> struct_names;
 
-    std::unordered_map<std::string, uint32_t> str_offsets;
+    std::map<std::string, uint32_t> str_offsets;
 
     // we need the function return types when calling functions
     std::unordered_map<std::string, TaggedType> function_return_types;
@@ -275,6 +275,7 @@ public:
         auto main_function_body = std::vector<BinaryenExpressionRef>();
         this->function_locals[this->current_function_name] = std::vector<BinaryenType>();
 
+        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
         main_function_body.push_back(
             BinaryenCall(
                 this->mod,
@@ -1313,13 +1314,13 @@ public:
         case Token::Type::STR_LITERAL:
         {
             const std::string &str_value = primary->value.lexeme;
-
             if (this->str_offsets.find(str_value) == this->str_offsets.end())
             {
                 throw BirdException("string not found: " + str_value);
             }
 
             BinaryenExpressionRef str_ptr = BinaryenConst(this->mod, BinaryenLiteralInt32(this->str_offsets[str_value]));
+
             this->stack.push(TaggedExpression(str_ptr, std::shared_ptr<BirdType>(new StringType())));
             break;
         }
