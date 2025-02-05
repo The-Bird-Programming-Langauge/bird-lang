@@ -206,7 +206,6 @@ public:
             add_memory_segment(str);
         }
 
-        // this should probably push the call the initialize_memory to the stack
         std::vector<const char *> segments;
         std::vector<BinaryenIndex> sizes;
         bool *passive = new bool[memory_segments.size()];
