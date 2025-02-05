@@ -38,6 +38,42 @@ public:
                 print_stmt->accept(this);
                 continue;
             }
+
+            if (auto block = dynamic_cast<Block *>(stmt.get()))
+            {
+                block->accept(this);
+                continue;
+            }
+
+            if (auto func = dynamic_cast<Func *>(stmt.get()))
+            {
+                func->accept(this);
+                continue;
+            }
+
+            if (auto if_stmt = dynamic_cast<IfStmt *>(stmt.get()))
+            {
+                if_stmt->accept(this);
+                continue;
+            }
+
+            if (auto return_stmt = dynamic_cast<ReturnStmt *>(stmt.get()))
+            {
+                return_stmt->accept(this);
+                continue;
+            }
+
+            if (auto ternary_expr = dynamic_cast<Ternary *>(stmt.get()))
+            {
+                ternary_expr->accept(this);
+                continue;
+            }
+
+            if (auto member_assign = dynamic_cast<MemberAssign *>(stmt.get()))
+            {
+                member_assign->accept(this);
+                continue;
+            }
         }
     }
 
@@ -93,5 +129,47 @@ public:
         {
             field_assignment.second->accept(this);
         }
+    }
+
+    void visit_block(Block *block)
+    {
+        for (auto &stmt : block->stmts)
+        {
+            stmt->accept(this);
+        }
+    }
+
+    void visit_func(Func *func)
+    {
+        func->block->accept(this);
+    }
+
+    void visit_if_stmt(IfStmt *if_stmt)
+    {
+        if_stmt->then_branch->accept(this);
+        if (if_stmt->else_branch.has_value())
+        {
+            if_stmt->else_branch->get()->accept(this);
+        }
+    }
+
+    void visit_return_stmt(ReturnStmt *return_stmt)
+    {
+        if (return_stmt->expr.has_value())
+        {
+            return_stmt->expr->get()->accept(this);
+        }
+    }
+
+    void visit_ternary(Ternary *ternary_expr)
+    {
+        ternary_expr->condition->accept(this);
+        ternary_expr->true_expr->accept(this);
+        ternary_expr->false_expr->accept(this);
+    }
+
+    void visit_member_assign(MemberAssign *member_assign)
+    {
+        member_assign->value->accept(this);
     }
 };
