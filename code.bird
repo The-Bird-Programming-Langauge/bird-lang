@@ -1,36 +1,11 @@
 struct Person {
-    age: int,
-    id: int,
     name: str,
 };
 
 var person: Person = Person {
-    age = 10,
-    id = 1,
-    name = "klaus",
+    name = "marci"
 };
 
-var person2: Person = Person {
-    age = 4,
-    id = 2,
-    name = "marci",
-};
+person.name = "klaus";
 
 print person.name;
-print person.id;
-print person.age;
-
-print person2.name;
-print person2.id;
-print person2.age;
-
-print "hello, world";
-
-var s: str = "goodbye, world";
-print s;
-
-s = "hello, world";
-print s;
-
-var f: str = "hello, world";
-print f;
