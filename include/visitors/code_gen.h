@@ -270,13 +270,12 @@ public:
 
         this->init_static_memory(static_strings);
 
-        this->init_std_lib();
+        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
 
         this->current_function_name = "main";
         auto main_function_body = std::vector<BinaryenExpressionRef>();
         this->function_locals[this->current_function_name] = std::vector<BinaryenType>();
 
-        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
         main_function_body.push_back(
             BinaryenCall(
                 this->mod,
