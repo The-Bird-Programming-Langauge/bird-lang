@@ -1,4 +1,18 @@
-var x: str = "hello,";
-print x;
-var y: str = " world";
-print y;
+struct Person {
+    age: int,
+    name: str,
+};
+
+var person: Person = Person {
+    age = 1,
+    name = "nathan",
+};
+
+var person2: Person = Person {
+    age = 4,
+    name = "marci",
+};
+
+print person.name;
+
+print person2.name;
