@@ -1,0 +1,4 @@
+var x: str = "hello,";
+print x;
+var y: str = " world";
+print y;
