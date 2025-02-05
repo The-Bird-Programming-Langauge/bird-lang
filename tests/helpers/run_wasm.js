@@ -21,7 +21,8 @@ fs.writeFileSync(outputPath, "");
  * 2. The next 32/64 bits are used to store the actual value
  */
 
-let HEAD_PTR_OFFSET = 1;
+let base_offset = 0;
+const HEAD_PTR_OFFSET = 1;
 const BLOCK_SIZE_OFFSET = 0;
 const BLOCK_PTR_OFFSET = 4;
 const BLOCK_MARK_OFFSET = 8;
@@ -29,7 +30,7 @@ const BLOCK_HEADER_SIZE = 9;
 const FREE_LIST_START = 5;
 
 function get_free_list_head_ptr() {
-    return memory.getUint32(HEAD_PTR_OFFSET);
+    return memory.getUint32(base_offset + HEAD_PTR_OFFSET);
 }
 
 function get_block_size(ptr) {
@@ -57,7 +58,7 @@ function set_block_mark(ptr, mark) {
 }
 
 function set_free_list_head_ptr(ptr) {
-    memory.setUint32(HEAD_PTR_OFFSET, ptr);
+    memory.setUint32(base_offset + HEAD_PTR_OFFSET, ptr);
 }
 
 function value_is_pointer(ptr) {
@@ -203,12 +204,12 @@ const moduleOptions = {
         },
 
         initialize_memory: (offset) => {
-            HEAD_PTR_OFFSET += offset;
-            memory.setUint8(offset, 0);
-            memory.setUint32(offset + 1, offset + FREE_LIST_START);
-            memory.setUint32(offset + FREE_LIST_START, 3000);
-            memory.setUint32(offset + 9, 0);
-            memory.setUint8(offset + 13, 0);
+            base_offset = offset;
+            memory.setUint8(base_offset, 0);
+            memory.setUint32(base_offset + 1, base_offset + FREE_LIST_START);
+            memory.setUint32(base_offset + FREE_LIST_START, 3000);
+            memory.setUint32(base_offset + 9, 0);
+            memory.setUint8(base_offset + 13, 0);
         },
     }
 };
