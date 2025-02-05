@@ -181,6 +181,11 @@ public:
 
     void add_memory_segment(const std::string &str)
     {
+        if (this->str_offsets.find(str) != this->str_offsets.end())
+        {
+            return;
+        }
+
         auto str_offset = this->current_offset;
         this->current_offset += str.size() + 1;
 
@@ -238,6 +243,8 @@ public:
 
     void generate(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
+        this->init_std_lib();
+
         HoistVisitor hoist_visitor(&this->struct_names);
         hoist_visitor.hoist(stmts);
 
@@ -247,13 +254,12 @@ public:
 
         this->init_static_memory(static_strings);
 
-        this->init_std_lib();
+        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
 
         this->current_function_name = "main";
         auto main_function_body = std::vector<BinaryenExpressionRef>();
         this->function_locals[this->current_function_name] = std::vector<BinaryenType>();
 
-        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
         main_function_body.push_back(
             BinaryenCall(
                 this->mod,
@@ -360,8 +366,6 @@ public:
                 // no stack push here, only type table
             }
         }
-
-        // this->init_static_memory(this->mod);
 
         auto count = 0;
         for (auto &local : this->function_locals["main"])

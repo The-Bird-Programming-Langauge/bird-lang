@@ -29,5 +29,8 @@ print "hello, world";
 var s: str = "goodbye, world";
 print s;
 
-s = "!!!";
+s = "hello, world";
 print s;
+
+var f: str = "hello, world";
+print f;
