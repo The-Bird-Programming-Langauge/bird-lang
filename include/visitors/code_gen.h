@@ -275,7 +275,6 @@ public:
         auto main_function_body = std::vector<BinaryenExpressionRef>();
         this->function_locals[this->current_function_name] = std::vector<BinaryenType>();
 
-        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
         main_function_body.push_back(
             BinaryenCall(
                 this->mod,
