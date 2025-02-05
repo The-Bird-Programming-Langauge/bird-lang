@@ -104,12 +104,6 @@ public:
                 as_cast->accept(this);
                 continue;
             }
-
-            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
-            {
-                struct_decl->accept(this);
-                continue;
-            }
         }
     }
 
@@ -150,7 +144,6 @@ public:
             break;
         }
     }
-
     void visit_binary(Binary *binary)
     {
         binary->left->accept(this);

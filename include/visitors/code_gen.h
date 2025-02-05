@@ -66,7 +66,7 @@ public:
     std::map<std::string, std::string> std_lib;
     std::set<std::string> struct_names;
 
-    std::unordered_map<std::string, uint32_t> str_offsets;
+    std::map<std::string, uint32_t> str_offsets;
 
     // we need the function return types when calling functions
     std::unordered_map<std::string, TaggedType> function_return_types;
@@ -222,6 +222,7 @@ public:
             add_memory_segment(str);
         }
 
+        // this should probably push the call the initialize_memory to the stack
         std::vector<const char *> segments;
         std::vector<BinaryenIndex> sizes;
         bool *passive = new bool[memory_segments.size()];
@@ -269,12 +270,13 @@ public:
 
         this->init_static_memory(static_strings);
 
-        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
+        this->init_std_lib();
 
         this->current_function_name = "main";
         auto main_function_body = std::vector<BinaryenExpressionRef>();
         this->function_locals[this->current_function_name] = std::vector<BinaryenType>();
 
+        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
         main_function_body.push_back(
             BinaryenCall(
                 this->mod,
@@ -1317,12 +1319,8 @@ public:
                 throw BirdException("string not found: " + str_value);
             }
 
-            if (this->str_offsets.find(str_value) == this->str_offsets.end())
-            {
-                throw BirdException("string not found: " + str_value);
-            }
-
             BinaryenExpressionRef str_ptr = BinaryenConst(this->mod, BinaryenLiteralInt32(this->str_offsets[str_value]));
+
             this->stack.push(TaggedExpression(str_ptr, std::shared_ptr<BirdType>(new StringType())));
             break;
         }
