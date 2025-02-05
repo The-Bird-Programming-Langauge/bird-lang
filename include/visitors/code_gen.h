@@ -66,7 +66,7 @@ public:
     std::map<std::string, std::string> std_lib;
     std::set<std::string> struct_names;
 
-    std::map<std::string, uint32_t> str_offsets;
+    std::unordered_map<std::string, uint32_t> str_offsets;
 
     // we need the function return types when calling functions
     std::unordered_map<std::string, TaggedType> function_return_types;
