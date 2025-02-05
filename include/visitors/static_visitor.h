@@ -109,7 +109,7 @@ public:
                 struct_decl->accept(this);
                 continue;
             }
-        }
+                }
     }
 
     void visit_decl_stmt(DeclStmt *decl_stmt)
