@@ -33,6 +33,12 @@ public:
                 continue;
             }
 
+            if (auto assign_expr = dynamic_cast<AssignExpr *>(stmt.get()))
+            {
+                assign_expr->accept(this);
+                continue;
+            }
+
             if (auto print_stmt = dynamic_cast<PrintStmt *>(stmt.get()))
             {
                 print_stmt->accept(this);
@@ -74,6 +80,30 @@ public:
                 member_assign->accept(this);
                 continue;
             }
+
+            if (auto const_stmt = dynamic_cast<ConstStmt *>(stmt.get()))
+            {
+                const_stmt->accept(this);
+                continue;
+            }
+
+            if (auto for_stmt = dynamic_cast<ForStmt *>(stmt.get()))
+            {
+                for_stmt->accept(this);
+                continue;
+            }
+
+            if (auto while_stmt = dynamic_cast<WhileStmt *>(stmt.get()))
+            {
+                while_stmt->accept(this);
+                continue;
+            }
+
+            if (auto as_cast = dynamic_cast<AsCast *>(stmt.get()))
+            {
+                as_cast->accept(this);
+                continue;
+            }
         }
     }
 
@@ -113,6 +143,12 @@ public:
         default:
             break;
         }
+    }
+
+    void visit_binary(Binary *binary)
+    {
+        binary->left->accept(this);
+        binary->right->accept(this);
     }
 
     void visit_print_stmt(PrintStmt *print_stmt)
@@ -171,5 +207,25 @@ public:
     void visit_member_assign(MemberAssign *member_assign)
     {
         member_assign->value->accept(this);
+    }
+
+    void visit_const_stmt(ConstStmt *const_stmt)
+    {
+        const_stmt->value->accept(this);
+    }
+
+    void visit_for_stmt(ForStmt *for_stmt)
+    {
+        for_stmt->body->accept(this);
+    }
+
+    void visit_while_stmt(WhileStmt *while_stmt)
+    {
+        while_stmt->stmt->accept(this);
+    }
+
+    void visit_as_cast(AsCast *as_cast)
+    {
+        as_cast->expr->accept(this);
     }
 };

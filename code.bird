@@ -1,11 +1,23 @@
+type years = int;
 struct Person {
-    name: str,
+    age: years,
 };
 
 var person: Person = Person {
-    name = "marci"
+    age = 1,
 };
 
-person.name = "klaus";
+print person.age;
 
-print person.name;
+person.age = 2;
+
+print person.age;
+
+type name = str;
+var foo: name = "marci" as name;
+
+print foo;
+
+foo = "klaus" as name;
+
+print foo;
