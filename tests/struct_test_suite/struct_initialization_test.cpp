@@ -392,10 +392,6 @@ TEST(StructTest, AliasStructInitialization)
                    "var p = P { x = 1, y = 2 };"
                    "print p.x;"
                    "print p.y;";
-    options.semantic_analyze = false;
-    options.type_check = false;
-    options.interpret = false;
-    options.compile = false;
 
     options.after_interpret = [&](Interpreter &interpreter)
     {
@@ -452,4 +448,22 @@ TEST(StructTest, StructRecursiveInitialization)
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
+}
+
+TEST(StructTest, StructWithAdditionalField)
+{
+    BirdTest::TestOptions options;
+    options.code = "struct Point { x: int, y: int };"
+                   "var p = Point { x = 1, y = 2, z = 3 };";
+
+    options.after_type_check = [&](UserErrorTracker error_tracker, TypeChecker &checker)
+    {
+        ASSERT_TRUE(error_tracker.has_errors());
+        auto tup = error_tracker.get_errors()[0];
+
+        ASSERT_EQ(std::get<1>(tup).lexeme, "Point");
+        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: field \"z\" does not exist in struct Point (line 1, character 41)");
+    };
+
+    ASSERT_FALSE(BirdTest::compile(options));
 }
