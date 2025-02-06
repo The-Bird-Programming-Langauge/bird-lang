@@ -1,0 +1,41 @@
+#include <gtest/gtest.h>
+#include "helpers/compile_helper.hpp"
+
+TEST(BooleanOpTest, AndTest)
+{
+    BirdTest::TestOptions options;
+    options.code = "var tt = true and true;"
+                   "var tf = true and false;"
+                   "var ft = false and true;"
+                   "var ff = false and false;"
+                   "print tt;"
+                   "print tf;"
+                   "print ft;"
+                   "print ff;";
+
+    options.after_interpret = [](auto &interpreter)
+    {
+        ASSERT_TRUE(interpreter.env.contains("tt"));
+        ASSERT_TRUE(is_type<bool>(interpreter.env.get("tt")));
+        ASSERT_EQ(as_type<bool>(interpreter.env.get("tt")), true);
+
+        ASSERT_TRUE(interpreter.env.contains("tf"));
+        ASSERT_TRUE(is_type<bool>(interpreter.env.get("tf")));
+        ASSERT_EQ(as_type<bool>(interpreter.env.get("tf")), false);
+
+        ASSERT_TRUE(interpreter.env.contains("ft"));
+        ASSERT_TRUE(is_type<bool>(interpreter.env.get("ft")));
+        ASSERT_EQ(as_type<bool>(interpreter.env.get("ft")), false);
+
+        ASSERT_TRUE(interpreter.env.contains("ff"));
+        ASSERT_TRUE(is_type<bool>(interpreter.env.get("ff")));
+        ASSERT_EQ(as_type<bool>(interpreter.env.get("ff")), false);
+    };
+
+    options.after_compile = [](auto &output, auto &codegen)
+    {
+        ASSERT_EQ(output, "1\n0\n0\n0\n\n");
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
