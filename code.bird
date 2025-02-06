@@ -1,5 +1,9 @@
 var x: int[] = [1, 2, 3];
+var y: float[] = [1.1, 2.2, 3.3];
+var z: str[] = ["hello", "world", "!"];
 
 for var i: int = 0; i < 3; i += 1 {
     print x[i];
+    print y[i];
+    print z[i];
 }

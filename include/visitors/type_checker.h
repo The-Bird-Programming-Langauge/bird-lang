@@ -976,6 +976,6 @@ public:
             }
         }
 
-        this->stack.push(std::make_shared<ArrayType>(expected_type));
+        this->env.declare(array_decl->identifier.lexeme, std::make_shared<ArrayType>(expected_type));
     }
 };
