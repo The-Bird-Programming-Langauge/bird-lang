@@ -723,9 +723,9 @@ public:
         subscript->index->accept(this);
         auto index = this->stack.pop();
 
-        if (subscriptable->type != BirdTypeType::STRING)
+        if (subscriptable->type != BirdTypeType::STRING && subscriptable->type != BirdTypeType::ARRAY)
         {
-            this->user_error_tracker->type_error("expected string in subscriptable", subscript->subscript_token);
+            this->user_error_tracker->type_error("unexpected subscriptable type", subscript->subscript_token);
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }

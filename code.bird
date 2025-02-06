@@ -1,1 +1,5 @@
 var x: int[] = [1, 2, 3];
+
+for var i: int = 0; i < 3; i += 1 {
+    print x[i];
+}

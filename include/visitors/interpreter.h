@@ -754,22 +754,7 @@ public:
         for (const auto &element : array_decl->elements)
         {
             element->accept(this);
-            auto value = this->stack.pop();
-
-            if (array_decl->type_identifier.lexeme == "int" && !is_type<int>(value))
-            {
-                throw BirdException("mixed types: expected int");
-            }
-            else if (array_decl->type_identifier.lexeme == "float" && !is_type<double>(value))
-            {
-                throw BirdException("mixed types: expected float");
-            }
-            else if (array_decl->type_identifier.lexeme == "str" && !is_type<std::string>(value))
-            {
-                throw BirdException("mixed types: expected string");
-            }
-
-            elements.push_back(value);
+            elements.push_back(this->stack.pop());
         }
 
         this->env.declare(array_decl->identifier.lexeme, elements);

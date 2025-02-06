@@ -17,7 +17,10 @@ template <typename T>
 inline bool is_matching_type(Value left, Value right);
 
 template <typename T>
-inline T as_type(Value value);
+inline T as_type(const Value &value);
+
+template <typename T>
+inline T &as_type(Value &value);
 
 template <typename T, typename U>
 inline T to_type(Value value);
@@ -273,19 +276,39 @@ public:
 
     Value operator[](const Value &index)
     {
-        if (!is_type<std::string>(*this))
-            throw BirdException("The subscript operator could not be used to interpret these values.");
+        if (is_type<std::string>(*this))
+        {
+            if (!is_type<int>(index))
+            {
+                throw BirdException("The subscript operator requires an integer index.");
+            }
 
-        if (!is_type<int>(index))
-            throw BirdException("The subscript operator requires an integer index.");
+            std::string str = as_type<std::string>(*this);
+            int idx = as_type<int>(index);
 
-        std::string str = as_type<std::string>(*this);
-        int idx = as_type<int>(index);
+            if (idx < 0 || idx >= str.size())
+                throw BirdException("Index out of bounds.");
 
-        if (idx < 0 || idx >= str.size())
-            throw BirdException("Index out of bounds.");
+            return Value(std::string(1, str[idx]));
+        }
+        if (is_type<std::vector<Value>>(*this))
+        {
+            if (!is_type<int>(index))
+            {
+                throw BirdException("The subscript operator requires an integer index.");
+            }
 
-        return Value(std::string(1, str[idx]));
+            // get reference to array
+            auto &arr = as_type<std::vector<Value>>(*this);
+            int idx = as_type<int>(index);
+
+            if (idx < 0 || idx >= arr.size())
+                throw BirdException("Index out of bounds.");
+
+            return arr[idx];
+        }
+
+        throw BirdException("The subscript operator could not be used to interpret these values.");
     }
 
     friend std::ostream &operator<<(std::ostream &os, const Value &obj)
@@ -324,7 +347,14 @@ inline bool is_matching_type(Value left, Value right)
 }
 
 template <typename T>
-inline T as_type(Value value)
+inline T as_type(const Value &value)
+{
+    return std::get<T>(value.data);
+}
+
+// we want arrays to be mutable, right?
+template <typename T>
+inline T &as_type(Value &value)
 {
     return std::get<T>(value.data);
 }

@@ -98,7 +98,6 @@ struct StructType : BirdType
 struct ArrayType : BirdType
 {
     std::shared_ptr<BirdType> element_type;
-    std::vector<std::shared_ptr<BirdType>> elements;
     ArrayType(std::shared_ptr<BirdType> element_type) : BirdType(BirdTypeType::ARRAY) {}
     ~ArrayType() {};
 };
