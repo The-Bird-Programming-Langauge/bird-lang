@@ -430,7 +430,7 @@ public:
 
     void visit_array_decl(ArrayDecl *array_decl)
     {
-        if (identifer_in_any_environment(array_decl->identifier.lexeme))
+        if (this->identifer_in_any_environment(array_decl->identifier.lexeme))
         {
             this->user_error_tracker->semantic_error("Identifier '" + array_decl->identifier.lexeme + "' is already declared.", array_decl->identifier);
             return;

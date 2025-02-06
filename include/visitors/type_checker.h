@@ -961,6 +961,21 @@ public:
 
     void visit_array_decl(ArrayDecl *array_decl)
     {
-        // TODO: find out what to do here
+        auto expected_type = this->get_type_from_token(array_decl->type_identifier);
+
+        for (const auto &element : array_decl->elements)
+        {
+            element->accept(this);
+            auto val = this->stack.pop();
+
+            if (*expected_type != *val)
+            {
+                this->user_error_tracker->type_mismatch("in array declaration", array_decl->type_identifier);
+                this->stack.push(std::make_shared<ErrorType>());
+                return;
+            }
+        }
+
+        this->stack.push(std::make_shared<ArrayType>(expected_type));
     }
 };

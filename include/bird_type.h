@@ -18,6 +18,7 @@ enum class BirdTypeType
     VOID,
     ERROR,
     STRUCT,
+    ARRAY,
     FUNCTION,
     PLACEHOLDER
 };
@@ -92,6 +93,14 @@ struct StructType : BirdType
     StructType(std::string name, std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> fields)
         : BirdType(BirdTypeType::STRUCT), name(name), fields(std::move(fields)) {}
     ~StructType() {};
+};
+
+struct ArrayType : BirdType
+{
+    std::shared_ptr<BirdType> element_type;
+    std::vector<std::shared_ptr<BirdType>> elements;
+    ArrayType(std::shared_ptr<BirdType> element_type) : BirdType(BirdTypeType::ARRAY) {}
+    ~ArrayType() {};
 };
 
 struct BirdFunction : BirdType
