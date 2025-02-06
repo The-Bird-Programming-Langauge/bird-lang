@@ -2,6 +2,7 @@
 #include "binaryen-c.h"
 #include "bird_type.h"
 #include "hoist_visitor.h"
+#include "static_visitor.h"
 #include <fstream>
 #include <algorithm>
 #include <ios>
@@ -11,19 +12,19 @@ static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i3
     switch (type->type)
     {
     case BirdTypeType::INT:
-        return 5;
+        return 8;
     case BirdTypeType::FLOAT:
-        return 9;
+        return 16;
     case BirdTypeType::BOOL:
-        return 5;
+        return 8;
     case BirdTypeType::VOID:
         return 0;
     case BirdTypeType::STRING:
-        return 5;
+        return 8;
     case BirdTypeType::STRUCT:
-        return 5;
+        return 8;
     case BirdTypeType::PLACEHOLDER:
-        return 5;
+        return 8;
     default:
         return 0;
     }
@@ -65,6 +66,8 @@ public:
     std::map<std::string, std::string> std_lib;
     std::set<std::string> struct_names;
 
+    std::unordered_map<std::string, uint32_t> str_offsets;
+
     // we need the function return types when calling functions
     std::unordered_map<std::string, TaggedType> function_return_types;
     // allows us to track the local variables of a function
@@ -72,8 +75,7 @@ public:
     std::string current_function_name;          // for indexing into maps
     std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
-    uint32_t static_offset = 1024;
-
+    uint32_t current_offset = 0;
     BinaryenModuleRef mod;
 
     ~CodeGen()
@@ -155,7 +157,7 @@ public:
             "initialize_memory",
             "env",
             "initialize_memory",
-            BinaryenTypeNone(),
+            BinaryenTypeInt32(),
             BinaryenTypeNone());
 
         BinaryenType args_set_64[3] = {BinaryenTypeInt32(), BinaryenTypeInt32(), BinaryenTypeFloat64()};
@@ -177,21 +179,33 @@ public:
             BinaryenTypeInt32());
     }
 
-    void add_memory_segment(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
+    void add_memory_segment(const std::string &str)
     {
-        str_offset = static_offset;
-        this->static_offset += str.size() + 1;
+        if (this->str_offsets.find(str) != this->str_offsets.end())
+        {
+            return;
+        }
+
+        auto str_offset = this->current_offset;
+        this->current_offset += str.size() + 1;
 
         MemorySegment segment = {
             str.c_str(),
             static_cast<BinaryenIndex>(str.size() + 1), // + 1 for '\0'
-            BinaryenConst(mod, BinaryenLiteralInt32(str_offset))};
+            BinaryenConst(this->mod, BinaryenLiteralInt32(str_offset))};
+
+        this->str_offsets[str] = str_offset;
 
         this->memory_segments.push_back(segment);
     }
 
-    void init_static_memory(BinaryenModuleRef mod)
+    void init_static_memory(std::vector<std::string> &strings)
     {
+        for (auto &str : strings)
+        {
+            add_memory_segment(str);
+        }
+
         std::vector<const char *> segments;
         std::vector<BinaryenIndex> sizes;
         bool *passive = new bool[memory_segments.size()];
@@ -208,7 +222,7 @@ public:
         }
         // since static memory is added at once we can
         // calculate the exact memory in pages to allocate
-        BinaryenIndex max_pages = (static_offset / 65536) + 1;
+        BinaryenIndex max_pages = (this->current_offset / 65536) + 2;
 
         // call to create memory with all segments
         BinaryenSetMemory(
@@ -228,10 +242,18 @@ public:
 
     void generate(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
+        this->init_std_lib();
+
         HoistVisitor hoist_visitor(&this->struct_names);
         hoist_visitor.hoist(stmts);
 
-        this->init_std_lib();
+        std::vector<std::string> static_strings;
+        StaticVisitor static_visitor(&static_strings);
+        static_visitor.static_pass(stmts);
+
+        this->init_static_memory(static_strings);
+
+        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
 
         this->current_function_name = "main";
         auto main_function_body = std::vector<BinaryenExpressionRef>();
@@ -241,9 +263,9 @@ public:
             BinaryenCall(
                 this->mod,
                 "initialize_memory",
-                nullptr,
-                0,
-                BinaryenTypeNone()));
+                &offset,
+                1,
+                BinaryenTypeInt32()));
 
         for (auto &stmt : *stmts)
         {
@@ -350,8 +372,6 @@ public:
                 main_function_body.push_back(result.value);
             }
         }
-
-        this->init_static_memory(this->mod);
 
         auto count = 0;
         for (auto &local : this->function_locals["main"])
@@ -1236,13 +1256,14 @@ public:
         case Token::Type::STR_LITERAL:
         {
             const std::string &str_value = primary->value.lexeme;
-            uint32_t str_ptr;
 
-            add_memory_segment(mod, str_value, str_ptr);
+            if (this->str_offsets.find(str_value) == this->str_offsets.end())
+            {
+                throw BirdException("string not found: " + str_value);
+            }
 
-            BinaryenExpressionRef str_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(str_ptr));
-
-            this->stack.push(TaggedExpression(str_literal, std::shared_ptr<BirdType>(new StringType())));
+            BinaryenExpressionRef str_ptr = BinaryenConst(this->mod, BinaryenLiteralInt32(this->str_offsets[str_value]));
+            this->stack.push(TaggedExpression(str_ptr, std::shared_ptr<BirdType>(new StringType())));
             break;
         }
 
@@ -1591,7 +1612,7 @@ public:
         std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
                        { 
 
-                        if (is_bird_type(field.second))
+                        if (this->is_bird_type(field.second))
                         {
                             return std::make_pair(field.first, token_to_bird_type(field.second));
                         }

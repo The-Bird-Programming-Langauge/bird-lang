@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include "helpers/compile_helper.hpp"
 
 TEST(ParserTest, ParseBlockStmt)
@@ -638,15 +637,15 @@ TEST(ParserTest, MultilineComments)
                    "*/"
                    "var x = 5;"
                    "print x;";
-  
+
     options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
     {
-          ASSERT_FALSE(error_tracker.has_errors());
+        ASSERT_FALSE(error_tracker.has_errors());
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
-  
+
 TEST(ParserTest, ParserBooleanOp)
 {
     BirdTest::TestOptions options;
@@ -690,7 +689,6 @@ TEST(ParserTest, ParserBooleanOp)
     ASSERT_TRUE(BirdTest::compile(options));
 }
 
-
 TEST(ParserTest, SingleLineComments)
 {
     BirdTest::TestOptions options;
@@ -708,4 +706,3 @@ TEST(ParserTest, SingleLineComments)
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
-

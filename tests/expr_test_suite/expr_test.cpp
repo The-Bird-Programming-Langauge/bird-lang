@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include <vector>
 #include <memory>
 #include "helpers/compile_helper.hpp"
