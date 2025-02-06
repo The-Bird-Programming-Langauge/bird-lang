@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include <algorithm>
 #include "helpers/compile_helper.hpp"
 

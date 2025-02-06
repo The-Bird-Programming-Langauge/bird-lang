@@ -18,7 +18,7 @@
 #include "visitor_adapter.h"
 #include "hoist_visitor.h"
 
-bool is_bird_type(Token token)
+static bool is_bird_type(Token token)
 {
     return token.lexeme == "int" || token.lexeme == "float" || token.lexeme == "bool" || token.lexeme == "str" || token.lexeme == "void";
 }

@@ -1604,7 +1604,7 @@ public:
         std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
                        { 
 
-                        if (is_bird_type(field.second))
+                        if (this->is_bird_type(field.second))
                         {
                             return std::make_pair(field.first, token_to_bird_type(field.second));
                         }
