@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include "helpers/compile_helper.hpp"
 
 #define STRUCT_TYPE std::shared_ptr<std::unordered_map<std::string, Value>>

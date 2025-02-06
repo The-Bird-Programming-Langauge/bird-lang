@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include "helpers/compile_helper.hpp"
 
 TEST(ConstTest, ConstImmutability)
