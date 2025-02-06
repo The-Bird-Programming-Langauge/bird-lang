@@ -5,6 +5,7 @@
 #include "stmt.h"
 #include "token.h"
 #include "visitors/visitor.h"
+#include <optional>
 
 // forward declaration
 class Expr;

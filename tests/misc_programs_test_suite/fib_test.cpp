@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include "helpers/compile_helper.hpp"
 
 // INT
@@ -20,8 +19,4 @@ TEST(MiscProgramsTestSuite, FibTest)
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
-}
-
-TEST(MiscProgramsTestSuite, BinaryTreePreorderSearch)
-{
 }
