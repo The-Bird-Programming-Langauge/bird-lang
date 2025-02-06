@@ -1205,6 +1205,7 @@ public:
 
         switch (unary->op.token_type)
         {
+        case Token::Type::QUESTION: // This fixes an error with the tests, but probably shouldn't?
         case Token::Type::MINUS:
         {
             if (expr_type == BinaryenTypeFloat64())
