@@ -723,7 +723,7 @@ public:
         subscript->index->accept(this);
         auto index = this->stack.pop();
 
-        if (subscriptable->type != BirdTypeType::STRING && subscriptable->type != BirdTypeType::ARRAY)
+        if (subscriptable->type != BirdTypeType::ARRAY)
         {
             this->user_error_tracker->type_error("unexpected subscriptable type", subscript->subscript_token);
             this->stack.push(std::make_shared<ErrorType>());
@@ -737,7 +737,8 @@ public:
             return;
         }
 
-        this->stack.push(std::make_shared<IntType>());
+        auto array_type = safe_dynamic_pointer_cast<ArrayType>(subscriptable);
+        this->stack.push(array_type->element_type);
     }
 
     void visit_struct_decl(StructDecl *struct_decl)

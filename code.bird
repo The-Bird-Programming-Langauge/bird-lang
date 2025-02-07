@@ -1,9 +1,30 @@
-var x: int[] = [1, 2, 3];
-var y: float[] = [1.1, 2.2, 3.3];
-var z: str[] = ["hello", "world", "!"];
+type pounds = float;
+type years = int;
 
-for var i: int = 0; i < 3; i += 1 {
-    print x[i];
-    print y[i];
-    print z[i];
-}
+struct Dog {
+    name: str,
+    age: years,
+    weight: pounds
+};
+
+var marci: Dog = Dog {
+    name = "marci",
+    weight = 10.7,
+    age = 4
+};
+
+var klaus: Dog = Dog {
+    name = "klaus",
+    weight = 41.3,
+    age = 10
+};
+
+var dogs: Dog[] = [ marci, klaus ];
+
+print dogs[0].name;
+print dogs[0].weight;
+print dogs[0].age;
+
+print dogs[1].name;
+print dogs[1].weight;
+print dogs[1].age;
