@@ -51,14 +51,15 @@ if (TESTS)
 
   add_library(parser STATIC ${PROJECT_SOURCE_DIR}/build/parser.tab.cc ${PROJECT_SOURCE_DIR}/build/parser.tab.hh)
   add_library(compiler_lib STATIC ${SOURCES} ${FLEX_Lexer_OUTPUTS})
+  add_library(test_helper_lib STATIC ${PROJECT_SOURCE_DIR}/tests/helpers/compiler_helper.cpp ${SOURCES} ${FLEX_Lexer_OUTPUTS} ${BISON_Parser_OUTPUTS})
+  target_compile_definitions(test_helper_lib PRIVATE RUN_WASM_FILE_LOCATION="${RUN_WASM_FILE_LOCATION}")
 
   # For each test file, create a separate test executable
   foreach(test_source ${TEST_SOURCES})
-      get_filename_component(test_name ${test_source} NAME_WE)
-      add_executable(${test_name} ${test_source})
-      target_link_libraries(${test_name} GTest::gtest GTest::gtest_main binaryen parser compiler_lib)
-      add_test(NAME ${test_name} COMMAND ${test_name})
-      target_compile_definitions(${test_name} PRIVATE RUN_WASM_FILE_LOCATION="${RUN_WASM_FILE_LOCATION}")
+    get_filename_component(test_name ${test_source} NAME_WE)
+    add_executable(${test_name} ${test_source})
+    target_link_libraries(${test_name} GTest::gtest GTest::gtest_main binaryen parser compiler_lib test_helper_lib)
+    add_test(NAME ${test_name} COMMAND ${test_name})
   endforeach()
 
 endif()

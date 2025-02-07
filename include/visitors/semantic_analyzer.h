@@ -158,9 +158,9 @@ public:
 
     void visit_assign_expr(AssignExpr *assign_expr)
     {
-        if (!this->env.contains(assign_expr->identifier.lexeme))
+        if (!this->env.contains(assign_expr->identifier.lexeme) && !this->call_table.contains(assign_expr->identifier.lexeme))
         {
-            this->user_error_tracker->semantic_error("Identifier '" + assign_expr->identifier.lexeme + "' is not initialized.", assign_expr->identifier);
+            this->user_error_tracker->semantic_error("Variable '" + assign_expr->identifier.lexeme + "' does not exist.", assign_expr->identifier);
             return;
         }
 
@@ -253,7 +253,7 @@ public:
     {
         if (primary->value.token_type == Token::Type::IDENTIFIER && !this->env.contains(primary->value.lexeme))
         {
-            this->user_error_tracker->semantic_error("Identifier '" + primary->value.lexeme + "' is not initialized.", primary->value);
+            this->user_error_tracker->semantic_error("Variable '" + primary->value.lexeme + "' does not exist.", primary->value);
             return;
         }
     }

@@ -18,7 +18,7 @@
 #include "visitor_adapter.h"
 #include "hoist_visitor.h"
 
-bool is_bird_type(Token token)
+static bool is_bird_type(Token token)
 {
     return token.lexeme == "int" || token.lexeme == "float" || token.lexeme == "bool" || token.lexeme == "str" || token.lexeme == "void";
 }
@@ -309,6 +309,32 @@ public:
         for (auto &arg : print_stmt->args)
         {
             arg->accept(this);
+            auto result = this->stack.pop();
+
+            if (result->type == BirdTypeType::VOID)
+            {
+                this->user_error_tracker->type_error("cannot print void type", print_stmt->print_token);
+            }
+
+            if (result->type == BirdTypeType::STRUCT)
+            {
+                this->user_error_tracker->type_error("cannot print struct type", print_stmt->print_token);
+            }
+
+            if (result->type == BirdTypeType::PLACEHOLDER)
+            {
+                this->user_error_tracker->type_error("cannot print struct type", print_stmt->print_token);
+            }
+
+            if (result->type == BirdTypeType::FUNCTION)
+            {
+                this->user_error_tracker->type_error("cannot print function type", print_stmt->print_token);
+            }
+
+            if (result->type == BirdTypeType::ERROR)
+            {
+                return;
+            }
         }
     }
 
@@ -387,18 +413,6 @@ public:
 
         auto right = this->stack.pop();
         auto left = this->stack.pop();
-
-        if (right->type == BirdTypeType::ALIAS && left->type == BirdTypeType::ALIAS)
-        {
-            if (right != left)
-            {
-                this->user_error_tracker->type_mismatch("in binary operation", binary->op);
-                this->stack.push(std::make_shared<ErrorType>());
-                return;
-            }
-            right = safe_dynamic_pointer_cast<AliasType>(right)->alias;
-            left = safe_dynamic_pointer_cast<AliasType>(left)->alias;
-        }
 
         auto operator_options = this->binary_operations.at(binary->op.token_type);
         if (operator_options.find({left->type, right->type}) == operator_options.end())
@@ -706,37 +720,9 @@ public:
             return;
         }
 
-        if (type_stmt->type_is_literal)
-        {
-            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, this->get_type_from_token(type_stmt->type_token));
-            this->type_table.declare(type_stmt->identifier.lexeme, alias);
-        }
-        else
-        {
-            if (!this->type_table.contains(type_stmt->type_token.lexeme))
-            {
-                this->user_error_tracker->type_error("undefined type", type_stmt->type_token);
-                return;
-            }
-            auto parent_type = this->type_table.get(type_stmt->type_token.lexeme);
+        auto type = this->get_type_from_token(type_stmt->type_token);
 
-            if (parent_type->type == BirdTypeType::STRUCT)
-            {
-                auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, parent_type);
-                this->type_table.declare(type_stmt->identifier.lexeme, alias);
-                return;
-            }
-            if (parent_type->type == BirdTypeType::ALIAS)
-            {
-                // alias types will only have one level of aliasing
-                auto alias = safe_dynamic_pointer_cast<AliasType>(parent_type);
-                auto new_alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, alias->alias);
-                this->type_table.declare(type_stmt->identifier.lexeme, new_alias);
-                return;
-            }
-
-            throw BirdException("invalid type parent");
-        }
+        this->type_table.declare(type_stmt->identifier.lexeme, type);
     }
 
     void visit_subscript(Subscript *subscript)
@@ -784,13 +770,6 @@ public:
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }
-
-        if (accessable->type == BirdTypeType::ALIAS)
-        {
-            auto alias = safe_dynamic_pointer_cast<AliasType>(accessable);
-            accessable = alias->alias;
-        }
-
         if (accessable->type == BirdTypeType::PLACEHOLDER)
         {
             auto placeholder = safe_dynamic_pointer_cast<PlaceholderType>(accessable);
@@ -822,6 +801,8 @@ public:
             }
         }
 
+        this->user_error_tracker->type_error("field does not exist on struct", direct_member_access->identifier);
+        this->stack.push(std::make_shared<ErrorType>());
         return;
     }
 
@@ -834,16 +815,30 @@ public:
             return;
         }
 
-        auto original_type = this->type_table.get(struct_initialization->identifier.lexeme);
-        auto type = original_type;
-
-        if (type->type == BirdTypeType::ALIAS)
-        {
-            auto alias = safe_dynamic_pointer_cast<AliasType>(type);
-            type = alias->alias;
-        }
+        auto type = this->type_table.get(struct_initialization->identifier.lexeme);
 
         auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
+
+        for (auto &field_assignment : struct_initialization->field_assignments)
+        {
+            auto found = false;
+            for (auto &field : struct_type->fields)
+            {
+                if (field.first == field_assignment.first)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                this->user_error_tracker->type_error("field \"" + field_assignment.first + "\" does not exist in struct " + struct_initialization->identifier.lexeme, struct_initialization->identifier);
+                this->stack.push(std::make_shared<ErrorType>());
+                return;
+            }
+        }
+
         for (auto &field : struct_type->fields)
         {
             for (auto &field_assignment : struct_initialization->field_assignments)
@@ -896,7 +891,7 @@ public:
             }
         }
 
-        this->stack.push(original_type);
+        this->stack.push(type);
     }
 
     void visit_member_assign(MemberAssign *member_assign)
@@ -952,32 +947,19 @@ public:
 
         auto to_type = this->get_type_from_token(as_cast->type);
 
-        if (expr->type == BirdTypeType::ALIAS)
-        {
-            auto alias = safe_dynamic_pointer_cast<AliasType>(expr);
-            expr = alias->alias;
-        }
-
-        auto original_type = to_type;
-        if (original_type->type == BirdTypeType::ALIAS)
-        {
-            auto alias = safe_dynamic_pointer_cast<AliasType>(original_type);
-            original_type = alias->alias;
-        }
-
-        if (original_type->type == expr->type)
+        if (*to_type == *expr)
         {
             this->stack.push(to_type);
             return;
         }
 
-        if (original_type->type == BirdTypeType::FLOAT && expr->type == BirdTypeType::INT)
+        if (to_type->type == BirdTypeType::FLOAT && expr->type == BirdTypeType::INT)
         {
             this->stack.push(to_type);
             return;
         }
 
-        if (original_type->type == BirdTypeType::INT && expr->type == BirdTypeType::FLOAT)
+        if (to_type->type == BirdTypeType::INT && expr->type == BirdTypeType::FLOAT)
         {
             this->stack.push(to_type);
             return;

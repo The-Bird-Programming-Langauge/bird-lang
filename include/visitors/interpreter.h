@@ -597,13 +597,11 @@ public:
     {
         if (type_stmt->type_is_literal)
         {
-            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, token_to_bird_type(type_stmt->type_token));
-            this->type_table.declare(type_stmt->identifier.lexeme, std::move(alias));
+            this->type_table.declare(type_stmt->identifier.lexeme, token_to_bird_type(type_stmt->type_token));
         }
         else
         {
-            auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, this->type_table.get(type_stmt->type_token.lexeme));
-            this->type_table.declare(type_stmt->identifier.lexeme, std::move(alias));
+            this->type_table.declare(type_stmt->identifier.lexeme, this->type_table.get(type_stmt->type_token.lexeme));
         }
     }
 
@@ -657,11 +655,6 @@ public:
     {
         std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance = std::make_shared<std::unordered_map<std::string, Value>>();
         auto type = this->type_table.get(struct_initialization->identifier.lexeme);
-        if (type->type == BirdTypeType::ALIAS)
-        {
-            auto alias = safe_dynamic_pointer_cast<AliasType>(type);
-            type = alias->alias;
-        }
 
         auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -683,7 +676,6 @@ public:
 
             if (!found)
             {
-                // (*struct_instance)[field.first] = Value(0);
                 if (field.second->type == BirdTypeType::BOOL)
                 {
                     (*struct_instance)[field.first] = Value(false);
@@ -713,10 +705,6 @@ public:
                     throw std::runtime_error("Cannot assign member of non-struct type.");
                 }
             }
-            // field_assignment.second->accept(this);
-            // auto result = this->stack.pop();
-
-            // (*struct_instance)[field_assignment.first] = result;
         }
 
         this->stack.push(Value(struct_instance));

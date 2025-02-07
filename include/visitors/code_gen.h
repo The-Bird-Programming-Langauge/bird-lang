@@ -2,6 +2,7 @@
 #include "binaryen-c.h"
 #include "bird_type.h"
 #include "hoist_visitor.h"
+#include "static_visitor.h"
 #include <fstream>
 #include <algorithm>
 #include <ios>
@@ -11,24 +12,19 @@ static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i3
     switch (type->type)
     {
     case BirdTypeType::INT:
-        return 5;
+        return 8;
     case BirdTypeType::FLOAT:
-        return 9;
+        return 16;
     case BirdTypeType::BOOL:
-        return 5;
+        return 8;
     case BirdTypeType::VOID:
         return 0;
     case BirdTypeType::STRING:
-        return 5;
+        return 8;
     case BirdTypeType::STRUCT:
-        return 5;
+        return 8;
     case BirdTypeType::PLACEHOLDER:
-        return 5;
-    case BirdTypeType::ALIAS:
-    {
-        std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(type);
-        return bird_type_byte_size(alias->alias);
-    }
+        return 8;
     default:
         return 0;
     }
@@ -70,6 +66,8 @@ public:
     std::map<std::string, std::string> std_lib;
     std::set<std::string> struct_names;
 
+    std::unordered_map<std::string, uint32_t> str_offsets;
+
     // we need the function return types when calling functions
     std::unordered_map<std::string, TaggedType> function_return_types;
     // allows us to track the local variables of a function
@@ -77,9 +75,7 @@ public:
     std::string current_function_name;          // for indexing into maps
     std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
-    uint32_t current_offset = 1024; // current offset is set high to allow
-                                    // js to identify a string by a higher
-                                    // offset, will fix tomorrow
+    uint32_t current_offset = 0;
     BinaryenModuleRef mod;
 
     ~CodeGen()
@@ -161,7 +157,7 @@ public:
             "initialize_memory",
             "env",
             "initialize_memory",
-            BinaryenTypeNone(),
+            BinaryenTypeInt32(),
             BinaryenTypeNone());
 
         BinaryenType args_set_64[3] = {BinaryenTypeInt32(), BinaryenTypeInt32(), BinaryenTypeFloat64()};
@@ -183,21 +179,33 @@ public:
             BinaryenTypeInt32());
     }
 
-    void add_memory_segment(BinaryenModuleRef mod, const std::string &str, uint32_t &str_offset)
+    void add_memory_segment(const std::string &str)
     {
-        str_offset = current_offset;
+        if (this->str_offsets.find(str) != this->str_offsets.end())
+        {
+            return;
+        }
+
+        auto str_offset = this->current_offset;
         this->current_offset += str.size() + 1;
 
         MemorySegment segment = {
             str.c_str(),
             static_cast<BinaryenIndex>(str.size() + 1), // + 1 for '\0'
-            BinaryenConst(mod, BinaryenLiteralInt32(str_offset))};
+            BinaryenConst(this->mod, BinaryenLiteralInt32(str_offset))};
+
+        this->str_offsets[str] = str_offset;
 
         this->memory_segments.push_back(segment);
     }
 
-    void init_static_memory(BinaryenModuleRef mod)
+    void init_static_memory(std::vector<std::string> &strings)
     {
+        for (auto &str : strings)
+        {
+            add_memory_segment(str);
+        }
+
         std::vector<const char *> segments;
         std::vector<BinaryenIndex> sizes;
         bool *passive = new bool[memory_segments.size()];
@@ -214,7 +222,7 @@ public:
         }
         // since static memory is added at once we can
         // calculate the exact memory in pages to allocate
-        BinaryenIndex max_pages = (current_offset / 65536) + 1;
+        BinaryenIndex max_pages = (this->current_offset / 65536) + 2;
 
         // call to create memory with all segments
         BinaryenSetMemory(
@@ -234,10 +242,18 @@ public:
 
     void generate(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
+        this->init_std_lib();
+
         HoistVisitor hoist_visitor(&this->struct_names);
         hoist_visitor.hoist(stmts);
 
-        this->init_std_lib();
+        std::vector<std::string> static_strings;
+        StaticVisitor static_visitor(&static_strings);
+        static_visitor.static_pass(stmts);
+
+        this->init_static_memory(static_strings);
+
+        BinaryenExpressionRef offset = BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
 
         this->current_function_name = "main";
         auto main_function_body = std::vector<BinaryenExpressionRef>();
@@ -247,9 +263,9 @@ public:
             BinaryenCall(
                 this->mod,
                 "initialize_memory",
-                nullptr,
-                0,
-                BinaryenTypeNone()));
+                &offset,
+                1,
+                BinaryenTypeInt32()));
 
         for (auto &stmt : *stmts)
         {
@@ -349,8 +365,6 @@ public:
                 // no stack push here, only type table
             }
         }
-
-        this->init_static_memory(this->mod);
 
         auto count = 0;
         for (auto &local : this->function_locals["main"])
@@ -467,11 +481,6 @@ public:
             return BinaryenTypeInt32(); // ptr
         else if (bird_type->type == BirdTypeType::PLACEHOLDER)
             return BinaryenTypeInt32();
-        else if (bird_type->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(bird_type);
-            return bird_type_to_binaryen_type(alias->alias);
-        }
 
         throw BirdException("invalid type");
     }
@@ -488,11 +497,6 @@ public:
             return BinaryenTypeNone();
         else if (token->type == BirdTypeType::STRING || token->type == BirdTypeType::STRUCT)
             return BinaryenTypeInt32();
-        else if (token->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(token);
-            return from_bird_type(alias->alias);
-        }
         else
         {
             throw BirdException("invaid type");
@@ -648,12 +652,6 @@ public:
         {
             arg->accept(this);
             auto result = this->stack.pop();
-
-            if (result.type->type == BirdTypeType::ALIAS)
-            {
-                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(result.type);
-                result.type = alias->alias;
-            }
 
             if (result.type->type == BirdTypeType::VOID)
             {
@@ -1288,13 +1286,14 @@ public:
         case Token::Type::STR_LITERAL:
         {
             const std::string &str_value = primary->value.lexeme;
-            uint32_t str_ptr;
 
-            add_memory_segment(mod, str_value, str_ptr);
+            if (this->str_offsets.find(str_value) == this->str_offsets.end())
+            {
+                throw BirdException("string not found: " + str_value);
+            }
 
-            BinaryenExpressionRef str_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(str_ptr));
-
-            this->stack.push(TaggedExpression(str_literal, std::shared_ptr<BirdType>(new StringType())));
+            BinaryenExpressionRef str_ptr = BinaryenConst(this->mod, BinaryenLiteralInt32(this->str_offsets[str_value]));
+            this->stack.push(TaggedExpression(str_ptr, std::shared_ptr<BirdType>(new StringType())));
             break;
         }
 
@@ -1551,19 +1550,6 @@ public:
             return_stmt->expr.value()->accept(this);
             auto result = this->stack.pop();
 
-            // now allows for things like fn addF(x: float, y: float) -> int {...}
-            if (func_return_type.type->type == BirdTypeType::ALIAS)
-            {
-                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(func_return_type.type);
-                func_return_type.type = alias->alias;
-            }
-
-            if (result.type->type == BirdTypeType::ALIAS)
-            {
-                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(result.type);
-                result.type = alias->alias;
-            }
-
             if (*result.type != *func_return_type.type)
             {
                 throw BirdException("return type mismatch");
@@ -1611,29 +1597,16 @@ public:
     {
         if (type_stmt->type_is_literal)
         {
-            auto alias = std::make_shared<AliasType>(
+            this->type_table.declare(
                 type_stmt->identifier.lexeme,
                 token_to_bird_type(type_stmt->type_token));
-            this->type_table.declare(type_stmt->identifier.lexeme, alias);
         }
         else
         {
             auto parent_type = this->type_table.get(type_stmt->type_token.lexeme);
-            if (parent_type->type == BirdTypeType::STRUCT)
-            {
-                auto alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, parent_type);
-                this->type_table.declare(type_stmt->identifier.lexeme, alias);
-                return;
-            }
-            if (parent_type->type == BirdTypeType::ALIAS)
-            {
-                // alias types will only have one level of aliasing
-                auto alias = safe_dynamic_pointer_cast<AliasType>(parent_type);
-                auto new_alias = std::make_shared<AliasType>(type_stmt->identifier.lexeme, alias->alias);
-                this->type_table.declare(type_stmt->identifier.lexeme, new_alias);
-                return;
-            }
-            throw BirdException("invalid type");
+            this->type_table.declare(
+                type_stmt->identifier.lexeme,
+                parent_type);
         }
     }
 
@@ -1668,7 +1641,7 @@ public:
         std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
                        { 
 
-                        if (is_bird_type(field.second))
+                        if (this->is_bird_type(field.second))
                         {
                             return std::make_pair(field.first, token_to_bird_type(field.second));
                         }
@@ -1694,12 +1667,7 @@ public:
         auto accessable = this->stack.pop();
 
         std::shared_ptr<StructType> struct_type;
-        if (accessable.type->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(accessable.type);
-            struct_type = safe_dynamic_pointer_cast<StructType>(alias->alias);
-        }
-        else if (accessable.type->type == BirdTypeType::PLACEHOLDER)
+        if (accessable.type->type == BirdTypeType::PLACEHOLDER)
         {
             std::shared_ptr<PlaceholderType> placeholder = safe_dynamic_pointer_cast<PlaceholderType>(accessable.type);
             if (this->struct_names.find(placeholder->name) == this->struct_names.end())
@@ -1751,12 +1719,6 @@ public:
     void visit_struct_initialization(StructInitialization *struct_initialization)
     {
         auto type = this->type_table.get(struct_initialization->identifier.lexeme);
-
-        while (type->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(type);
-            type = alias->alias;
-        }
 
         std::shared_ptr<StructType> struct_type = safe_dynamic_pointer_cast<StructType>(type);
         if (struct_constructors.find(struct_initialization->identifier.lexeme) == struct_constructors.end())
@@ -1914,21 +1876,10 @@ public:
         as_cast->expr->accept(this);
         auto expr = this->stack.pop();
 
-        if (expr.type->type == BirdTypeType::ALIAS)
-        {
-            std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(expr.type);
-            expr.type = alias->alias;
-        }
-
         std::shared_ptr<BirdType> to_type;
         if (this->type_table.contains(as_cast->type.lexeme))
         {
             to_type = this->type_table.get(as_cast->type.lexeme);
-            if (to_type->type == BirdTypeType::ALIAS)
-            {
-                std::shared_ptr<AliasType> alias = safe_dynamic_pointer_cast<AliasType>(to_type);
-                to_type = alias->alias;
-            }
         }
         else
         {

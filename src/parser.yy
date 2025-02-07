@@ -326,7 +326,7 @@ const_stmt:
 
 print_stmt: 
    PRINT arg_list 
-      { $$ = std::make_unique<PrintStmt>(std::move($2)); }
+      { $$ = std::make_unique<PrintStmt>(std::move($2), $1); }
 
 block: 
    LBRACE maybe_block_valid_stmts RBRACE 
