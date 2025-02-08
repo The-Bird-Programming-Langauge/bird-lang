@@ -723,7 +723,7 @@ public:
         subscript->index->accept(this);
         auto index = this->stack.pop();
 
-        if (subscriptable->type != BirdTypeType::ARRAY)
+        if (subscriptable->type != BirdTypeType::STRING && subscriptable->type != BirdTypeType::ARRAY)
         {
             this->user_error_tracker->type_error("unexpected subscriptable type", subscript->subscript_token);
             this->stack.push(std::make_shared<ErrorType>());
@@ -734,6 +734,12 @@ public:
         {
             this->user_error_tracker->type_error("expected int in subscript index", subscript->subscript_token);
             this->stack.push(std::make_shared<ErrorType>());
+            return;
+        }
+
+        if (subscriptable->type == BirdTypeType::STRING)
+        {
+            this->stack.push(std::make_shared<StringType>());
             return;
         }
 

@@ -28,3 +28,6 @@ print dogs[0].age;
 print dogs[1].name;
 print dogs[1].weight;
 print dogs[1].age;
+
+var s: str = "hello, word!";
+print s[1];
