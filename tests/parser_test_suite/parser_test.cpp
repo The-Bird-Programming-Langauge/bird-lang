@@ -20,8 +20,10 @@ TEST(ParserTest, ParseBlockStmt)
         DeclStmt *first_decl_stmt = dynamic_cast<DeclStmt *>(block->stmts[0].get());
         ASSERT_NE(first_decl_stmt, nullptr);
         EXPECT_EQ(first_decl_stmt->identifier.lexeme, "x");
-        EXPECT_EQ(first_decl_stmt->type_token.has_value(), true);
-        EXPECT_EQ(first_decl_stmt->type_token.value().lexeme, "int");
+        ASSERT_TRUE(first_decl_stmt->type.has_value());
+        ParseType::Primitive *primitive_type = dynamic_cast<ParseType::Primitive *>(first_decl_stmt->type.value().get());
+        ASSERT_NE(primitive_type, nullptr);
+        EXPECT_EQ(primitive_type->type.lexeme, "int");
 
         Primary *first_decl_value = dynamic_cast<Primary *>(first_decl_stmt->value.get());
         ASSERT_NE(first_decl_value, nullptr);
@@ -30,8 +32,10 @@ TEST(ParserTest, ParseBlockStmt)
         DeclStmt *second_decl_stmt = dynamic_cast<DeclStmt *>(block->stmts[1].get());
         ASSERT_NE(second_decl_stmt, nullptr);
         EXPECT_EQ(second_decl_stmt->identifier.lexeme, "y");
-        EXPECT_EQ(second_decl_stmt->type_token.has_value(), true);
-        EXPECT_EQ(second_decl_stmt->type_token.value().lexeme, "int");
+        ASSERT_TRUE(second_decl_stmt->type.has_value());
+        ParseType::Primitive *second_primitive_type = dynamic_cast<ParseType::Primitive *>(second_decl_stmt->type.value().get());
+        ASSERT_NE(second_primitive_type, nullptr);
+        EXPECT_EQ(second_primitive_type->type.lexeme, "int");
 
         Primary *second_decl_value = dynamic_cast<Primary *>(second_decl_stmt->value.get());
         ASSERT_NE(second_decl_value, nullptr);
@@ -82,8 +86,11 @@ TEST(ParserTest, ParseDeclStmt)
         DeclStmt *decl_stmt = dynamic_cast<DeclStmt *>(ast[0].get());
         ASSERT_NE(decl_stmt, nullptr);
         EXPECT_EQ(decl_stmt->identifier.lexeme, "x");
-        EXPECT_EQ(decl_stmt->type_token.has_value(), true);
-        EXPECT_EQ(decl_stmt->type_token.value().lexeme, "int");
+
+        ASSERT_TRUE(decl_stmt->type.has_value());
+        ParseType::Primitive *primitive_type = dynamic_cast<ParseType::Primitive *>(decl_stmt->type.value().get());
+        ASSERT_NE(primitive_type, nullptr);
+        EXPECT_EQ(primitive_type->type.lexeme, "int");
 
         Primary *primary_expr = dynamic_cast<Primary *>(decl_stmt->value.get());
         ASSERT_NE(primary_expr, nullptr);
@@ -589,7 +596,11 @@ TEST(ParserTest, ParserForLoop)
         DeclStmt *initializer = dynamic_cast<DeclStmt *>(for_stmt->initializer.value().get());
         ASSERT_NE(initializer, nullptr);
         EXPECT_EQ(initializer->identifier.lexeme, "x");
-        EXPECT_EQ(initializer->type_token->lexeme, "int");
+        ASSERT_TRUE(initializer->type.has_value());
+
+        ParseType::Primitive *primitive_type = dynamic_cast<ParseType::Primitive *>(initializer->type.value().get());
+        ASSERT_NE(primitive_type, nullptr);
+        EXPECT_EQ(primitive_type->type.lexeme, "int");
 
         Binary *condition = dynamic_cast<Binary *>(for_stmt->condition.value().get());
         ASSERT_NE(condition, nullptr);
