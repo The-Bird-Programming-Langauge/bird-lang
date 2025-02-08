@@ -438,4 +438,12 @@ public:
 
         this->env.declare(array_decl->identifier.lexeme, SemanticValue());
     }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        for (auto &el : array_init->elements)
+        {
+            el->accept(this);
+        }
+    }
 };

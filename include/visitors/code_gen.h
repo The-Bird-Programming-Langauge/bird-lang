@@ -23,6 +23,8 @@ static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i3
         return 8;
     case BirdTypeType::STRUCT:
         return 8;
+    case BirdTypeType::ARRAY:
+        return 8;
     case BirdTypeType::PLACEHOLDER:
         return 8;
     default:
@@ -468,6 +470,7 @@ public:
                 return bird_type_to_binaryen_type(this->type_table.get(token.lexeme));
             }
 
+            std::cout << "here" << std::endl;
             throw BirdException("invalid type");
         }
     }
@@ -488,7 +491,10 @@ public:
             return BinaryenTypeInt32(); // ptr
         else if (bird_type->type == BirdTypeType::PLACEHOLDER)
             return BinaryenTypeInt32();
+        else if (bird_type->type == BirdTypeType::ARRAY)
+            return BinaryenTypeInt32();
 
+        std::cout << "here 2" << std::endl;
         throw BirdException("invalid type");
     }
 
@@ -502,11 +508,12 @@ public:
             return BinaryenTypeFloat64();
         else if (token->type == BirdTypeType::VOID)
             return BinaryenTypeNone();
-        else if (token->type == BirdTypeType::STRING || token->type == BirdTypeType::STRUCT)
+        else if (token->type == BirdTypeType::STRING || token->type == BirdTypeType::STRUCT || token->type == BirdTypeType::ARRAY)
             return BinaryenTypeInt32();
         else
         {
-            throw BirdException("invaid type");
+
+            throw BirdException("invalid type");
         }
     }
 
@@ -539,22 +546,68 @@ public:
         this->stack.push(block_expr);
     }
 
+    std::shared_ptr<BirdType> get_type_from_parse_type(std::shared_ptr<ParseType::Type> type)
+    {
+        Token token;
+        if (type->tag == ParseType::Tag::PRIMITIVE)
+        {
+            token = safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type)->type;
+            auto type_name = token.lexeme;
+
+            if (type_name == "int")
+            {
+                return std::make_shared<IntType>();
+            }
+            else if (type_name == "float")
+            {
+                return std::make_shared<FloatType>();
+            }
+            else if (type_name == "bool")
+            {
+                return std::make_shared<BoolType>();
+            }
+            else if (type_name == "str")
+            {
+                return std::make_shared<StringType>();
+            }
+            else if (type_name == "void")
+            {
+                return std::make_shared<VoidType>();
+            }
+        }
+        else if (type->tag == ParseType::Tag::USER_DEFINED)
+        {
+            token = safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(type)->type;
+            auto type_name = token.lexeme;
+
+            if (this->type_table.contains(type_name))
+            {
+                return this->type_table.get(type_name);
+            }
+
+            if (this->struct_names.find(type_name) != this->struct_names.end())
+            {
+                return std::make_shared<PlaceholderType>(type_name);
+            }
+        }
+        else if (type->tag == ParseType::Tag::ARRAY)
+        {
+            auto array_type = safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
+            return std::make_shared<ArrayType>(get_type_from_parse_type(array_type->child));
+        }
+
+        throw BirdException("unknown parse type");
+    }
+
     void visit_decl_stmt(DeclStmt *decl_stmt)
     {
         decl_stmt->value->accept(this);
         TaggedExpression initializer_value = this->stack.pop();
 
         std::shared_ptr<BirdType> type;
-        if (decl_stmt->type_token.has_value()) // not inferred
+        if (decl_stmt->type.has_value()) // not inferred
         {
-            if (decl_stmt->type_is_literal)
-            {
-                type = token_to_bird_type(decl_stmt->type_token.value());
-            }
-            else
-            {
-                type = this->type_table.get(decl_stmt->type_token.value().lexeme);
-            }
+            type = this->get_type_from_parse_type(decl_stmt->type.value());
         }
         else
         {
@@ -1627,6 +1680,7 @@ public:
                             return std::make_pair(field.first, std::shared_ptr<BirdType>(new PlaceholderType(field.second.lexeme)));
                         }
 
+                        std::cout << "here 3" << std::endl;
                         throw BirdException("invalid type"); });
 
         type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, struct_fields));
@@ -1847,15 +1901,7 @@ public:
         as_cast->expr->accept(this);
         auto expr = this->stack.pop();
 
-        std::shared_ptr<BirdType> to_type;
-        if (this->type_table.contains(as_cast->type.lexeme))
-        {
-            to_type = this->type_table.get(as_cast->type.lexeme);
-        }
-        else
-        {
-            to_type = token_to_bird_type(as_cast->type);
-        }
+        std::shared_ptr<BirdType> to_type = get_type_from_parse_type(as_cast->type);
 
         if (to_type->type == BirdTypeType::INT && expr.type->type == BirdTypeType::FLOAT)
         {
@@ -1967,5 +2013,28 @@ public:
             BinaryenTypeNone());
 
         this->stack.push(TaggedExpression(block, type));
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+
+        unsigned int size = 0;
+        for (auto &element : array_init->elements)
+        {
+            element->accept(this);
+            auto val = this->stack.pop();
+
+            size += bird_type_byte_size(val.type);
+        }
+
+        BinaryenExpressionRef size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+        BinaryenExpressionRef call = BinaryenCall(
+            this->mod,
+            "mem_alloc",
+            &size_literal,
+            1,
+            BinaryenTypeInt32());
+
+        this->stack.push(call);
     }
 };

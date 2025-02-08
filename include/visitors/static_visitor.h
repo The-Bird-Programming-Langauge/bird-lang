@@ -228,4 +228,8 @@ public:
     {
         as_cast->expr->accept(this);
     }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+    }
 };

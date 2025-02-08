@@ -125,13 +125,13 @@ struct PlaceholderType : BirdType
 
 std::string bird_type_to_string(std::shared_ptr<BirdType> type);
 
-template <typename T>
-std::shared_ptr<T> safe_dynamic_pointer_cast(std::shared_ptr<BirdType> type)
+template <typename T, typename U = BirdType>
+std::shared_ptr<T> safe_dynamic_pointer_cast(std::shared_ptr<U> type)
 {
     std::shared_ptr<T> result = std::dynamic_pointer_cast<T>(type);
     if (result.get() == nullptr)
     {
-        throw BirdException("invalid cast, found " + bird_type_to_string(type));
+        throw BirdException("invalid cast");
     }
 
     return result;

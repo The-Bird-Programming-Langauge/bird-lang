@@ -26,6 +26,7 @@
    #include "../include/exceptions/bird_exception.h"
    #include "../include/exceptions/user_exception.h"
    #include "../include/exceptions/user_error_tracker.h"
+   #include "../include/parse_type.h"
 
    #include "token.h"
 
@@ -130,6 +131,7 @@ factor_expr
 unary_expr
 call_expr
 struct_initialization
+array_initialization
 subscript_expr
 direct_member_access
 grouping
@@ -182,6 +184,9 @@ param
 maybe_param_list
 param_list
 
+%type <std::shared_ptr<ParseType::Type>>
+type_identifier
+
 %right ASSIGN
    EQUAL
    PLUS_EQUAL
@@ -219,6 +224,8 @@ param_list
    DOT
 %left STRUCT_INITIALIZATION
    IDENTIFIER 
+%left ARRAY_INITIALIZATION
+   RBRACKET 
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -285,15 +292,9 @@ field_member:
 
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 
-      { $$ = std::make_unique<DeclStmt>($2, std::nullopt, false, std::move($4)); }
-   | VAR IDENTIFIER COLON TYPE_LITERAL EQUAL expr
-      { $$ = std::make_unique<DeclStmt>($2, $4, true, std::move($6)); }
-   | VAR IDENTIFIER COLON IDENTIFIER EQUAL expr
-      { $$ = std::make_unique<DeclStmt>($2, $4, false, std::move($6)); }
-   | VAR IDENTIFIER COLON TYPE_LITERAL LBRACKET RBRACKET EQUAL LBRACKET maybe_arg_list RBRACKET
-      { $$ = std::make_unique<ArrayDecl>($2, $4, std::move($9)); }
-   | VAR IDENTIFIER COLON IDENTIFIER LBRACKET RBRACKET EQUAL LBRACKET maybe_arg_list RBRACKET
-      { $$ = std::make_unique<ArrayDecl>($2, $4, std::move($9)); }
+      { $$ = std::make_unique<DeclStmt>($2, std::nullopt, std::move($4)); }
+   | VAR IDENTIFIER COLON type_identifier EQUAL expr
+      { $$ = std::make_unique<DeclStmt>($2, $4, std::move($6)); }
 
 if_stmt: 
    IF expr block %prec THEN 
@@ -322,6 +323,10 @@ const_stmt:
       { $$ = std::make_unique<ConstStmt>($2, $4, true, std::move($6)); }
    | CONST IDENTIFIER COLON IDENTIFIER EQUAL expr 
       { $$ = std::make_unique<ConstStmt>($2, $4, false, std::move($6)); }
+   | CONST IDENTIFIER COLON IDENTIFIER LBRACKET RBRACKET EQUAL expr 
+      {$$ = std::make_unique<ConstStmt>($2, $4, false, std::move($8));}
+   | CONST IDENTIFIER COLON TYPE_LITERAL LBRACKET RBRACKET EQUAL expr 
+      {$$ = std::make_unique<ConstStmt>($2, $4, false, std::move($8));}
 
 print_stmt: 
    PRINT arg_list 
@@ -438,6 +443,7 @@ expr:
    | subscript_expr { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
    | struct_initialization { $$ = std::move($1); }
+   | array_initialization { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
 
@@ -460,8 +466,7 @@ assign_expr:
       }
 
 type_cast:
-   expr AS IDENTIFIER %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
-   | expr AS TYPE_LITERAL %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
+   expr AS type_identifier %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
 
 ternary_expr: 
    expr QUESTION expr COLON expr %prec TERNARY 
@@ -530,6 +535,11 @@ struct_initialization_list:
       { $$ = std::move($1);
         $$.push_back(std::make_pair($3.lexeme, std::move($5))); }
 
+array_initialization: 
+   LBRACKET maybe_arg_list RBRACKET %prec ARRAY_INITIALIZATION {
+      $$ = std::make_unique<ArrayInit>($2);
+   }
+
 subscript_expr:
    expr LBRACKET expr RBRACKET %prec SUBSCRIPT
       { $$ = std::make_unique<Subscript>(std::move($1), std::move($3), $2); }
@@ -578,6 +588,11 @@ TERM_OP:
 
 UNARY_OP: 
    MINUS
+
+type_identifier:
+   IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
+   | TYPE_LITERAL { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
 
 %%
 

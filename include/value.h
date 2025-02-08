@@ -19,13 +19,10 @@ inline bool is_matching_type(Value left, Value right);
 template <typename T>
 inline T as_type(const Value &value);
 
-template <typename T>
-inline T &as_type(Value &value);
-
 template <typename T, typename U>
 inline T to_type(Value value);
 
-using variant = std::variant<int, double, std::string, bool, std::vector<Value>, std::shared_ptr<std::unordered_map<std::string, Value>>, std::nullptr_t>;
+using variant = std::variant<int, double, std::string, bool, std::shared_ptr<std::vector<Value>>, std::shared_ptr<std::unordered_map<std::string, Value>>, std::nullptr_t>;
 class Value
 {
 public:
@@ -33,8 +30,6 @@ public:
     bool is_mutable;
 
     Value(variant data, bool is_mutable = false) : data(data), is_mutable(is_mutable) {}
-    Value(const std::vector<Value> &array, bool is_mutable = false)
-        : data(array), is_mutable(is_mutable) {}
     Value() = default;
 
     Value operator+(Value right)
@@ -291,7 +286,7 @@ public:
 
             return Value(std::string(1, str[idx]));
         }
-        if (is_type<std::vector<Value>>(*this))
+        if (is_type<std::shared_ptr<std::vector<Value>>>(*this))
         {
             if (!is_type<int>(index))
             {
@@ -299,13 +294,13 @@ public:
             }
 
             // get reference to array
-            auto &arr = as_type<std::vector<Value>>(*this);
+            auto arr = as_type<std::shared_ptr<std::vector<Value>>>(*this);
             int idx = as_type<int>(index);
 
-            if (idx < 0 || idx >= arr.size())
+            if (idx < 0 || idx >= arr->size())
                 throw BirdException("Index out of bounds.");
 
-            return arr[idx];
+            return (*arr)[idx];
         }
 
         throw BirdException("The subscript operator could not be used to interpret these values.");
@@ -348,13 +343,6 @@ inline bool is_matching_type(Value left, Value right)
 
 template <typename T>
 inline T as_type(const Value &value)
-{
-    return std::get<T>(value.data);
-}
-
-// we want arrays to be mutable, right?
-template <typename T>
-inline T &as_type(Value &value)
 {
     return std::get<T>(value.data);
 }

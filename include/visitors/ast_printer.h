@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include "ast_node/index.h"
+#include "bird_type.h"
 
 /*
  * Visitor that prints the Abstract Syntax Tree
@@ -349,14 +350,54 @@ public:
         this->visit_assign_expr(member_assign);
     }
 
+    void print_parse_type(std::shared_ptr<ParseType::Type> type)
+    {
+        if (type->tag == ParseType::ARRAY)
+        {
+            auto array = safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
+            this->print_parse_type(array->child);
+            std::cout << "[]";
+
+            return;
+        }
+        else if (type->tag == ParseType::USER_DEFINED)
+        {
+            auto user_defined = safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(type);
+
+            std::cout << user_defined->type.lexeme;
+            return;
+        }
+        else if (type->tag == ParseType::PRIMITIVE)
+        {
+            auto primitive = safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type);
+
+            std::cout << primitive->type.lexeme;
+            return;
+        }
+
+        throw BirdException("unknown parse type");
+    }
+
     void visit_as_cast(AsCast *as_cast)
     {
         as_cast->expr->accept(this);
-        std::cout << " as " << as_cast->type.lexeme;
+        std::cout << " as ";
+        print_parse_type(as_cast->type);
     }
 
     void visit_array_decl(ArrayDecl *array_decl)
     {
         throw BirdException("implement visit_array_decl in ast printer");
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        std::cout << "[";
+        for (auto &el : array_init->elements)
+        {
+            el->accept(this);
+            std::cout << ",";
+        }
+        std::cout << "]";
     }
 };

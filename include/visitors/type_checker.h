@@ -246,13 +246,13 @@ public:
             return;
         }
 
-        if (decl_stmt->type_token.has_value())
+        if (decl_stmt->type.has_value())
         {
-            std::shared_ptr<BirdType> type = this->get_type_from_token(decl_stmt->type_token.value());
+            std::shared_ptr<BirdType> type = this->get_type_from_parse_type(decl_stmt->type.value());
 
             if (*type != *result)
             {
-                this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type_token.value());
+                this->user_error_tracker->type_mismatch("in declaration", this->get_token_from_parse_type(decl_stmt->type.value()));
                 this->env.declare(decl_stmt->identifier.lexeme, std::make_unique<ErrorType>());
                 return;
             }
@@ -538,6 +538,84 @@ public:
         {
             this->stack.push(true_expr);
         }
+    }
+
+    Token get_token_from_parse_type(std::shared_ptr<ParseType::Type> type)
+    {
+        if (type->tag == ParseType::Tag::PRIMITIVE)
+        {
+            return safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type)->type;
+        }
+        else if (type->tag == ParseType::Tag::USER_DEFINED)
+        {
+            return safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(type)->type;
+        }
+        else if (type->tag == ParseType::Tag::ARRAY)
+        {
+            auto array_type = safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
+            return this->get_token_from_parse_type(array_type->child);
+        }
+
+        throw BirdException("unknown parse type");
+    }
+
+    std::shared_ptr<BirdType> get_type_from_parse_type(std::shared_ptr<ParseType::Type> type)
+    {
+        Token token;
+        if (type->tag == ParseType::Tag::PRIMITIVE)
+        {
+            token = safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type)->type;
+            auto type_name = token.lexeme;
+
+            if (type_name == "int")
+            {
+                return std::make_shared<IntType>();
+            }
+            else if (type_name == "float")
+            {
+                return std::make_shared<FloatType>();
+            }
+            else if (type_name == "bool")
+            {
+                return std::make_shared<BoolType>();
+            }
+            else if (type_name == "str")
+            {
+                return std::make_shared<StringType>();
+            }
+            else if (type_name == "void")
+            {
+                return std::make_shared<VoidType>();
+            }
+
+            this->user_error_tracker->type_error("unknown type", token);
+            return std::make_shared<ErrorType>();
+        }
+        else if (type->tag == ParseType::Tag::USER_DEFINED)
+        {
+            token = safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(type)->type;
+            auto type_name = token.lexeme;
+
+            if (this->type_table.contains(type_name))
+            {
+                return this->type_table.get(type_name);
+            }
+
+            if (this->struct_names.find(type_name) != this->struct_names.end())
+            {
+                return std::make_shared<PlaceholderType>(type_name);
+            }
+
+            this->user_error_tracker->type_error("unknown type", token);
+            return std::make_shared<ErrorType>();
+        }
+        else if (type->tag == ParseType::Tag::ARRAY)
+        {
+            auto array_type = safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
+            return std::make_shared<ArrayType>(get_type_from_parse_type(array_type->child));
+        }
+
+        throw BirdException("unknown parse type");
     }
 
     std::shared_ptr<BirdType> get_type_from_token(Token token)
@@ -942,7 +1020,7 @@ public:
             return;
         }
 
-        auto to_type = this->get_type_from_token(as_cast->type);
+        auto to_type = this->get_type_from_parse_type(as_cast->type);
 
         if (*to_type == *expr)
         {
@@ -962,7 +1040,30 @@ public:
             return;
         }
 
-        this->user_error_tracker->type_mismatch("in 'as' type cast", as_cast->type);
+        std::cout << bird_type_to_string(to_type) << std::endl;
+        std::cout << bird_type_to_string(expr) << std::endl;
+        if (to_type->type == BirdTypeType::ARRAY && expr->type == BirdTypeType::ARRAY)
+        {
+            auto to_type_array = safe_dynamic_pointer_cast<ArrayType>(to_type);
+            auto expr_type_array = safe_dynamic_pointer_cast<ArrayType>(expr);
+
+            if (expr_type_array->element_type->type == BirdTypeType::VOID)
+            {
+                this->stack.push(to_type);
+            }
+            else if (*expr_type_array->element_type == *to_type_array->element_type)
+            {
+                this->stack.push(to_type);
+            }
+            else
+            {
+                this->user_error_tracker->type_mismatch("in 'as' type cast", get_token_from_parse_type(as_cast->type));
+                this->stack.push(std::make_shared<ErrorType>());
+                return;
+            }
+        }
+
+        this->user_error_tracker->type_mismatch("in 'as' type cast", get_token_from_parse_type(as_cast->type));
         this->stack.push(std::make_shared<ErrorType>());
     }
 
@@ -984,5 +1085,33 @@ public:
         }
 
         this->env.declare(array_decl->identifier.lexeme, std::make_shared<ArrayType>(expected_type));
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        auto elements = array_init->elements;
+        if (!elements.size())
+        {
+            this->stack.push(std::make_shared<ArrayType>(std::make_shared<VoidType>())); // resolved later?
+            return;
+        }
+
+        elements[0]->accept(this);
+        auto first_el_type = this->stack.pop();
+
+        for (int i = 1; i < elements.size(); i++)
+        {
+            elements[i]->accept(this);
+            auto type = this->stack.pop();
+
+            if (*first_el_type != *type)
+            {
+                this->user_error_tracker->type_mismatch("in array initialization", Token()); // TODO: track array init token
+                this->stack.push(std::make_shared<ErrorType>());
+                return;
+            }
+        }
+
+        this->stack.push(std::make_shared<ArrayType>(first_el_type));
     }
 };

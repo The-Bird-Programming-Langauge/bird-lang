@@ -732,16 +732,21 @@ public:
         as_cast->expr->accept(this);
         auto expr = this->stack.pop();
 
-        if (as_cast->type.lexeme == "int" && is_type<double>(expr))
+        if (as_cast->type->tag == ParseType::PRIMITIVE)
         {
-            this->stack.push(Value((int)as_type<double>(expr)));
-            return;
-        }
+            auto primitive = safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(as_cast->type);
+            auto token = primitive->type;
+            if (token.lexeme == "int" && is_type<double>(expr))
+            {
+                this->stack.push(Value((int)as_type<double>(expr)));
+                return;
+            }
 
-        if (as_cast->type.lexeme == "float" && is_type<int>(expr))
-        {
-            this->stack.push(Value((double)as_type<int>(expr)));
-            return;
+            if (token.lexeme == "float" && is_type<int>(expr))
+            {
+                this->stack.push(Value((double)as_type<int>(expr)));
+                return;
+            }
         }
 
         this->stack.push(expr);
@@ -757,6 +762,19 @@ public:
             elements.push_back(this->stack.pop());
         }
 
-        this->env.declare(array_decl->identifier.lexeme, elements);
+        this->env.declare(array_decl->identifier.lexeme, Value(std::make_shared<std::vector<Value>>(elements)));
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        std::vector<Value> elements;
+
+        for (const auto &element : array_init->elements)
+        {
+            element->accept(this);
+            elements.push_back(this->stack.pop());
+        }
+
+        this->stack.push(Value(std::make_shared<std::vector<Value>>(elements)));
     }
 };

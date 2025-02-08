@@ -57,4 +57,7 @@ public:
 
         this->struct_names->insert(struct_decl->identifier.lexeme);
     }
+    void visit_array_init(ArrayInit *array_init)
+    {
+    }
 };
