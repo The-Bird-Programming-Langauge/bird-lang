@@ -211,7 +211,7 @@ public:
         for (int i = 0; i < func->param_list.size(); ++i)
         {
             auto pair = func->param_list[i];
-            std::cout << pair.first.lexeme << ": " << pair.second.lexeme;
+            std::cout << pair.first.lexeme << ": " << pair.second->get_token().lexeme;
 
             if (i < func->param_list.size() - 1)
             {
@@ -220,7 +220,7 @@ public:
         }
         std::cout << ")";
 
-        std::cout << " -> " << (func->return_type.has_value() ? func->return_type.value().lexeme : "void") << " ";
+        std::cout << " -> " << (func->return_type.has_value() ? func->return_type.value()->get_token().lexeme : "void") << " ";
 
         func->block->accept(this);
     }

@@ -1394,19 +1394,10 @@ public:
 
         if (func->return_type.has_value())
         {
-            auto binaryen_return_type = token_to_binaryen_type(func->return_type.value());
-            // auto codegen_return_type = token_to_bird_type(func->return_type.value());
-            if (this->is_bird_type(func->return_type.value()))
-            {
-                this->function_return_types[func_name] = TaggedType(binaryen_return_type, token_to_bird_type(func->return_type.value()));
-            }
-            else
-            {
-                if (this->type_table.contains(func->return_type.value().lexeme))
-                    this->function_return_types[func_name] = TaggedType(binaryen_return_type, this->type_table.get(func->return_type.value().lexeme));
-                else
-                    throw BirdException("invalid return type");
-            }
+            auto bird_return_type = this->get_type_from_parse_type(func->return_type.value());
+            auto binaryen_return_type = this->bird_type_to_binaryen_type(bird_return_type);
+
+            this->function_return_types[func_name] = TaggedType(binaryen_return_type, bird_return_type);
         }
         else
         {
@@ -1423,14 +1414,15 @@ public:
 
         for (auto &param : func->param_list)
         {
-            param_types.push_back(token_to_binaryen_type(param.second));
-            this->function_locals[func_name].push_back(token_to_binaryen_type(param.second));
+            auto param_type = this->get_type_from_parse_type(param.second);
+            param_types.push_back(this->bird_type_to_binaryen_type(param_type));
+            this->function_locals[func_name].push_back(this->bird_type_to_binaryen_type(param_type));
         }
 
         BinaryenType params = BinaryenTypeCreate(param_types.data(), param_types.size());
 
         BinaryenType result_type = func->return_type.has_value()
-                                       ? token_to_binaryen_type(func->return_type.value())
+                                       ? this->bird_type_to_binaryen_type(this->get_type_from_parse_type(func->return_type.value()))
                                        : BinaryenTypeNone();
 
         this->environment.push_env();
@@ -1438,17 +1430,7 @@ public:
         auto index = 0;
         for (auto &param : func->param_list)
         {
-            if (this->is_bird_type(param.second))
-            {
-                this->environment.declare(param.first.lexeme, TaggedIndex(index++, token_to_bird_type(param.second)));
-            }
-            else
-            {
-                if (this->type_table.contains(param.second.lexeme))
-                    this->environment.declare(param.first.lexeme, TaggedIndex(index++, this->type_table.get(param.second.lexeme)));
-                else
-                    throw BirdException("invalid param type");
-            }
+            this->environment.declare(param.first.lexeme, TaggedIndex(index++, this->get_type_from_parse_type(param.second)));
         }
 
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts)

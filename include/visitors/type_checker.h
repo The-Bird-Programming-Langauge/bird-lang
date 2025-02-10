@@ -18,11 +18,6 @@
 #include "visitor_adapter.h"
 #include "hoist_visitor.h"
 
-static bool is_bird_type(Token token)
-{
-    return token.lexeme == "int" || token.lexeme == "float" || token.lexeme == "bool" || token.lexeme == "str" || token.lexeme == "void";
-}
-
 /*
  * Visitor that checks types of the AST
  */
@@ -663,9 +658,9 @@ public:
         std::vector<std::shared_ptr<BirdType>> params;
 
         std::transform(func->param_list.begin(), func->param_list.end(), std::back_inserter(params), [&](auto param)
-                       { return this->get_type_from_token(param.second); });
+                       { return this->get_type_from_parse_type(param.second); });
 
-        std::shared_ptr<BirdType> ret = func->return_type.has_value() ? this->get_type_from_token(func->return_type.value()) : std::shared_ptr<BirdType>(new VoidType());
+        std::shared_ptr<BirdType> ret = func->return_type.has_value() ? this->get_type_from_parse_type(func->return_type.value()) : std::shared_ptr<BirdType>(new VoidType());
         auto previous_return_type = this->return_type;
         this->return_type = ret;
 
@@ -675,13 +670,7 @@ public:
 
         for (auto &param : func->param_list)
         {
-            if (!is_bird_type(param.second))
-            {
-                this->env.declare(param.first.lexeme, this->get_type_from_token(param.second));
-                continue;
-            }
-
-            this->env.declare(param.first.lexeme, this->get_type_from_token(param.second));
+            this->env.declare(param.first.lexeme, this->get_type_from_parse_type(param.second));
         }
 
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts) // TODO: figure out how not to dynamic cast

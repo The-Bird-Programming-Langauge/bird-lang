@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include "./token.h"
+#include "parse_type.h"
 
 class Stmt;
 class Expr;
@@ -12,14 +13,14 @@ class Interpreter;
 class Callable
 {
 public:
-    std::vector<std::pair<Token, Token>> param_list;
+    std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> param_list;
     std::shared_ptr<Stmt> block;
-    std::optional<Token> return_type;
+    std::optional<std::shared_ptr<ParseType::Type>> return_type;
 
     Callable(
-        std::vector<std::pair<Token, Token>> param_list,
+        std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> param_list,
         std::shared_ptr<Stmt> block,
-        std::optional<Token> return_type)
+        std::optional<std::shared_ptr<ParseType::Type>> return_type)
         : param_list(param_list),
           block(std::move(block)),
           return_type(return_type) {}

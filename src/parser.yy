@@ -158,7 +158,7 @@ field_map
 maybe_struct_initialization_list
 struct_initialization_list
 
-%type <std::optional<Token>>
+%type <std::optional<std::shared_ptr<ParseType::Type>>>
 return_type
 
 %type <std::optional<std::unique_ptr<Stmt>>>
@@ -177,10 +177,10 @@ stmts
 maybe_arg_list
 arg_list
 
-%type <std::pair<Token,Token>>
+%type <std::pair<Token, std::shared_ptr<ParseType::Type>>>
 param
 
-%type <std::vector<std::pair<Token,Token>>> 
+%type <std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>> 
 maybe_param_list
 param_list
 
@@ -401,7 +401,7 @@ arg_list:
       { $1.push_back(std::move($3)); $$ = std::move($1); }
 
 maybe_param_list: 
-   %empty { $$ = std::vector<std::pair<Token, Token>>{}; }
+   %empty { $$ = std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>{}; }
    | param_list
 
 param_list: 
@@ -411,15 +411,12 @@ param_list:
       { $1.push_back($3); $$ = $1; }
 
 param: 
-   IDENTIFIER COLON TYPE_LITERAL 
-      { $$ = std::pair<Token, Token>($1, $3); }
-   | IDENTIFIER COLON IDENTIFIER
-      { $$ = std::pair<Token, Token>($1, $3); }
+   IDENTIFIER COLON type_identifier 
+      { $$ = std::pair<Token, std::shared_ptr<ParseType::Type>>($1, $3); }
 
 return_type: 
-   %empty { $$ = std::optional<Token>{}; }
-   | ARROW TYPE_LITERAL { $$ = std::optional<Token>($2); }
-   | ARROW IDENTIFIER { $$ = std::optional<Token>($2); }
+   %empty { $$ = std::nullopt; }
+   | ARROW type_identifier { $$ = std::optional<std::shared_ptr<ParseType::Type>>($2); }
 
 
 

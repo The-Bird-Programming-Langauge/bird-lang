@@ -60,8 +60,8 @@ TEST(ParserTest, ParseConstStmt)
         ConstStmt *const_stmt = dynamic_cast<ConstStmt *>(ast[0].get());
         ASSERT_NE(const_stmt, nullptr);
         EXPECT_EQ(const_stmt->identifier.lexeme, "z");
-        EXPECT_EQ(const_stmt->type_token.has_value(), true);
-        EXPECT_EQ(const_stmt->type_token.value().lexeme, "str");
+        EXPECT_EQ(const_stmt->type.has_value(), true);
+        EXPECT_EQ(const_stmt->type.value()->get_token().lexeme, "str");
 
         Primary *primary_expr = dynamic_cast<Primary *>(const_stmt->value.get());
         ASSERT_NE(primary_expr, nullptr);
@@ -191,13 +191,13 @@ TEST(ParserTest, ParseFuncStmt)
 
         EXPECT_EQ(func_stmt->identifier.lexeme, "add");
         ASSERT_TRUE(func_stmt->return_type.has_value());
-        EXPECT_EQ(func_stmt->return_type->lexeme, "int");
+        EXPECT_EQ(func_stmt->return_type.value()->get_token().lexeme, "int");
 
         ASSERT_EQ(func_stmt->param_list.size(), 2);
         EXPECT_EQ(func_stmt->param_list[0].first.lexeme, "first");
-        EXPECT_EQ(func_stmt->param_list[0].second.lexeme, "int");
+        EXPECT_EQ(func_stmt->param_list[0].second->get_token().lexeme, "int");
         EXPECT_EQ(func_stmt->param_list[1].first.lexeme, "second");
-        EXPECT_EQ(func_stmt->param_list[1].second.lexeme, "int");
+        EXPECT_EQ(func_stmt->param_list[1].second->get_token().lexeme, "int");
 
         Block *block_stmt = dynamic_cast<Block *>(func_stmt->block.get());
         ASSERT_NE(block_stmt, nullptr);
@@ -271,7 +271,7 @@ TEST(ParserTest, ParseFunctionNoArgs)
 
         EXPECT_EQ(func_stmt->identifier.lexeme, "function");
         ASSERT_TRUE(func_stmt->return_type.has_value());
-        EXPECT_EQ(func_stmt->return_type->lexeme, "int");
+        EXPECT_EQ(func_stmt->return_type.value()->get_token().lexeme, "int");
 
         ASSERT_EQ(func_stmt->param_list.size(), 0);
 
@@ -304,9 +304,9 @@ TEST(ParserTest, ParseFunctionNoReturnType)
 
         ASSERT_EQ(func_stmt->param_list.size(), 2);
         EXPECT_EQ(func_stmt->param_list[0].first.lexeme, "i");
-        EXPECT_EQ(func_stmt->param_list[0].second.lexeme, "int");
+        EXPECT_EQ(func_stmt->param_list[0].second->get_token().lexeme, "int");
         EXPECT_EQ(func_stmt->param_list[1].first.lexeme, "j");
-        EXPECT_EQ(func_stmt->param_list[1].second.lexeme, "str");
+        EXPECT_EQ(func_stmt->param_list[1].second->get_token().lexeme, "str");
 
         Block *block_stmt = dynamic_cast<Block *>(func_stmt->block.get());
         ASSERT_NE(block_stmt, nullptr);

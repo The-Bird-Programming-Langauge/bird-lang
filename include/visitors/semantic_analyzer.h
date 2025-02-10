@@ -297,7 +297,7 @@ public:
             stmt->accept(this);
         }
 
-        if (!found_return && func->return_type.has_value() && func->return_type.value().lexeme != "void")
+        if (!found_return && func->return_type.has_value() && func->return_type.value()->get_token().lexeme != "void")
         {
             this->user_error_tracker->semantic_error("Function '" + func->identifier.lexeme + "' does not have a return statement.", func->identifier);
         }
