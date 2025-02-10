@@ -17,6 +17,7 @@
 #include "type.h"
 #include "visitor_adapter.h"
 #include "hoist_visitor.h"
+#include "type_converter.h"
 
 /*
  * Visitor that checks types of the AST
@@ -34,8 +35,9 @@ public:
     Stack<std::shared_ptr<BirdType>> stack;
     std::optional<std::shared_ptr<BirdType>> return_type;
     UserErrorTracker *user_error_tracker;
+    TypeConverter type_converter;
 
-    TypeChecker(UserErrorTracker *user_error_tracker) : user_error_tracker(user_error_tracker)
+    TypeChecker(UserErrorTracker *user_error_tracker) : user_error_tracker(user_error_tracker), type_converter(this->type_table, this->struct_names)
     {
         this->env.push_env();
         this->call_table.push_env();
@@ -243,10 +245,10 @@ public:
 
         if (decl_stmt->type.has_value())
         {
-            std::shared_ptr<BirdType> type = this->get_type_from_parse_type(decl_stmt->type.value());
+            std::shared_ptr<BirdType> type = this->type_converter.convert(decl_stmt->type.value());
             if (*type != *result)
             {
-                this->user_error_tracker->type_mismatch("in declaration", this->get_token_from_parse_type(decl_stmt->type.value()));
+                this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type.value()->get_token());
 
                 this->env.declare(decl_stmt->identifier.lexeme, std::make_unique<ErrorType>());
                 return;
@@ -350,11 +352,11 @@ public:
 
         if (const_stmt->type.has_value())
         {
-            std::shared_ptr<BirdType> type = this->get_type_from_parse_type(const_stmt->type.value());
+            std::shared_ptr<BirdType> type = this->type_converter.convert(const_stmt->type.value());
 
             if (*type != *result)
             {
-                this->user_error_tracker->type_mismatch("in declaration", this->get_token_from_parse_type(const_stmt->type.value()));
+                this->user_error_tracker->type_mismatch("in declaration", const_stmt->type.value()->get_token());
                 this->env.declare(const_stmt->identifier.lexeme, std::make_shared<ErrorType>());
                 return;
             }
@@ -535,84 +537,6 @@ public:
         }
     }
 
-    Token get_token_from_parse_type(std::shared_ptr<ParseType::Type> type)
-    {
-        if (type->tag == ParseType::Tag::PRIMITIVE)
-        {
-            return safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type)->type;
-        }
-        else if (type->tag == ParseType::Tag::USER_DEFINED)
-        {
-            return safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(type)->type;
-        }
-        else if (type->tag == ParseType::Tag::ARRAY)
-        {
-            auto array_type = safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
-            return this->get_token_from_parse_type(array_type->child);
-        }
-
-        throw BirdException("unknown parse type");
-    }
-
-    std::shared_ptr<BirdType> get_type_from_parse_type(std::shared_ptr<ParseType::Type> type)
-    {
-        Token token;
-        if (type->tag == ParseType::Tag::PRIMITIVE)
-        {
-            token = safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type)->type;
-            auto type_name = token.lexeme;
-
-            if (type_name == "int")
-            {
-                return std::make_shared<IntType>();
-            }
-            else if (type_name == "float")
-            {
-                return std::make_shared<FloatType>();
-            }
-            else if (type_name == "bool")
-            {
-                return std::make_shared<BoolType>();
-            }
-            else if (type_name == "str")
-            {
-                return std::make_shared<StringType>();
-            }
-            else if (type_name == "void")
-            {
-                return std::make_shared<VoidType>();
-            }
-
-            this->user_error_tracker->type_error("unknown type", token);
-            return std::make_shared<ErrorType>();
-        }
-        else if (type->tag == ParseType::Tag::USER_DEFINED)
-        {
-            token = safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(type)->type;
-            auto type_name = token.lexeme;
-
-            if (this->type_table.contains(type_name))
-            {
-                return this->type_table.get(type_name);
-            }
-
-            if (this->struct_names.find(type_name) != this->struct_names.end())
-            {
-                return std::make_shared<PlaceholderType>(type_name);
-            }
-
-            this->user_error_tracker->type_error("unknown type", token);
-            return std::make_shared<ErrorType>();
-        }
-        else if (type->tag == ParseType::Tag::ARRAY)
-        {
-            auto array_type = safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
-            return std::make_shared<ArrayType>(get_type_from_parse_type(array_type->child));
-        }
-
-        throw BirdException("unknown parse type");
-    }
-
     std::shared_ptr<BirdType> get_type_from_token(Token token)
     {
         auto type_name = token.lexeme;
@@ -658,9 +582,9 @@ public:
         std::vector<std::shared_ptr<BirdType>> params;
 
         std::transform(func->param_list.begin(), func->param_list.end(), std::back_inserter(params), [&](auto param)
-                       { return this->get_type_from_parse_type(param.second); });
+                       { return this->type_converter.convert(param.second); });
 
-        std::shared_ptr<BirdType> ret = func->return_type.has_value() ? this->get_type_from_parse_type(func->return_type.value()) : std::shared_ptr<BirdType>(new VoidType());
+        std::shared_ptr<BirdType> ret = func->return_type.has_value() ? this->type_converter.convert(func->return_type.value()) : std::shared_ptr<BirdType>(new VoidType());
         auto previous_return_type = this->return_type;
         this->return_type = ret;
 
@@ -670,7 +594,7 @@ public:
 
         for (auto &param : func->param_list)
         {
-            this->env.declare(param.first.lexeme, this->get_type_from_parse_type(param.second));
+            this->env.declare(param.first.lexeme, this->type_converter.convert(param.second));
         }
 
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts) // TODO: figure out how not to dynamic cast
@@ -1009,7 +933,7 @@ public:
             return;
         }
 
-        auto to_type = this->get_type_from_parse_type(as_cast->type);
+        auto to_type = this->type_converter.convert(as_cast->type);
 
         if (*to_type == *expr)
         {
@@ -1044,13 +968,13 @@ public:
             }
             else
             {
-                this->user_error_tracker->type_mismatch("in 'as' type cast", get_token_from_parse_type(as_cast->type));
+                this->user_error_tracker->type_mismatch("in 'as' type cast", as_cast->type->get_token());
                 this->stack.push(std::make_shared<ErrorType>());
                 return;
             }
         }
 
-        this->user_error_tracker->type_mismatch("in 'as' type cast", get_token_from_parse_type(as_cast->type));
+        this->user_error_tracker->type_mismatch("in 'as' type cast", as_cast->type->get_token());
         this->stack.push(std::make_shared<ErrorType>());
     }
 

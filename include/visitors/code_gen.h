@@ -6,6 +6,7 @@
 #include <fstream>
 #include <algorithm>
 #include <ios>
+#include "type_converter.h"
 
 static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i32s
 {
@@ -77,6 +78,8 @@ public:
     std::string current_function_name;          // for indexing into maps
     std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
+    TypeConverter type_converter;
+
     uint32_t current_offset = 0;
     BinaryenModuleRef mod;
 
@@ -85,7 +88,7 @@ public:
         BinaryenModuleDispose(this->mod);
     }
 
-    CodeGen() : mod(BinaryenModuleCreate())
+    CodeGen() : type_converter(this->type_table, this->struct_names), mod(BinaryenModuleCreate())
     {
         this->environment.push_env();
         this->type_table.push_env();
@@ -545,59 +548,6 @@ public:
         this->stack.push(block_expr);
     }
 
-    std::shared_ptr<BirdType> get_type_from_parse_type(std::shared_ptr<ParseType::Type> type)
-    {
-        Token token;
-        if (type->tag == ParseType::Tag::PRIMITIVE)
-        {
-            token = safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type)->type;
-            auto type_name = token.lexeme;
-
-            if (type_name == "int")
-            {
-                return std::make_shared<IntType>();
-            }
-            else if (type_name == "float")
-            {
-                return std::make_shared<FloatType>();
-            }
-            else if (type_name == "bool")
-            {
-                return std::make_shared<BoolType>();
-            }
-            else if (type_name == "str")
-            {
-                return std::make_shared<StringType>();
-            }
-            else if (type_name == "void")
-            {
-                return std::make_shared<VoidType>();
-            }
-        }
-        else if (type->tag == ParseType::Tag::USER_DEFINED)
-        {
-            token = safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(type)->type;
-            auto type_name = token.lexeme;
-
-            if (this->type_table.contains(type_name))
-            {
-                return this->type_table.get(type_name);
-            }
-
-            if (this->struct_names.find(type_name) != this->struct_names.end())
-            {
-                return std::make_shared<PlaceholderType>(type_name);
-            }
-        }
-        else if (type->tag == ParseType::Tag::ARRAY)
-        {
-            auto array_type = safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
-            return std::make_shared<ArrayType>(get_type_from_parse_type(array_type->child));
-        }
-
-        throw BirdException("unknown parse type");
-    }
-
     void visit_decl_stmt(DeclStmt *decl_stmt)
     {
         decl_stmt->value->accept(this);
@@ -606,7 +556,7 @@ public:
         std::shared_ptr<BirdType> type;
         if (decl_stmt->type.has_value()) // not inferred
         {
-            type = this->get_type_from_parse_type(decl_stmt->type.value());
+            type = this->type_converter.convert(decl_stmt->type.value());
         }
         else
         {
@@ -1361,7 +1311,7 @@ public:
         std::shared_ptr<BirdType> type;
         if (const_stmt->type.has_value())
         {
-            type = this->get_type_from_parse_type(const_stmt->type.value());
+            type = this->type_converter.convert(const_stmt->type.value());
         }
         else
         {
@@ -1394,7 +1344,7 @@ public:
 
         if (func->return_type.has_value())
         {
-            auto bird_return_type = this->get_type_from_parse_type(func->return_type.value());
+            auto bird_return_type = this->type_converter.convert(func->return_type.value());
             auto binaryen_return_type = this->bird_type_to_binaryen_type(bird_return_type);
 
             this->function_return_types[func_name] = TaggedType(binaryen_return_type, bird_return_type);
@@ -1414,7 +1364,7 @@ public:
 
         for (auto &param : func->param_list)
         {
-            auto param_type = this->get_type_from_parse_type(param.second);
+            auto param_type = this->type_converter.convert(param.second);
             param_types.push_back(this->bird_type_to_binaryen_type(param_type));
             this->function_locals[func_name].push_back(this->bird_type_to_binaryen_type(param_type));
         }
@@ -1422,7 +1372,7 @@ public:
         BinaryenType params = BinaryenTypeCreate(param_types.data(), param_types.size());
 
         BinaryenType result_type = func->return_type.has_value()
-                                       ? this->bird_type_to_binaryen_type(this->get_type_from_parse_type(func->return_type.value()))
+                                       ? this->bird_type_to_binaryen_type(this->type_converter.convert(func->return_type.value()))
                                        : BinaryenTypeNone();
 
         this->environment.push_env();
@@ -1430,7 +1380,7 @@ public:
         auto index = 0;
         for (auto &param : func->param_list)
         {
-            this->environment.declare(param.first.lexeme, TaggedIndex(index++, this->get_type_from_parse_type(param.second)));
+            this->environment.declare(param.first.lexeme, TaggedIndex(index++, this->type_converter.convert(param.second)));
         }
 
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts)
@@ -1875,7 +1825,7 @@ public:
         as_cast->expr->accept(this);
         auto expr = this->stack.pop();
 
-        std::shared_ptr<BirdType> to_type = get_type_from_parse_type(as_cast->type);
+        std::shared_ptr<BirdType> to_type = this->type_converter.convert(as_cast->type);
 
         if (to_type->type == BirdTypeType::INT && expr.type->type == BirdTypeType::FLOAT)
         {
