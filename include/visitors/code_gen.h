@@ -1359,16 +1359,9 @@ public:
         TaggedExpression initializer = this->stack.pop();
 
         std::shared_ptr<BirdType> type;
-        if (const_stmt->type_token.has_value())
+        if (const_stmt->type.has_value())
         {
-            if (!is_bird_type(const_stmt->type_token.value()))
-            {
-                type = this->type_table.get(const_stmt->type_token.value().lexeme);
-            }
-            else
-            {
-                type = token_to_bird_type(const_stmt->type_token.value());
-            }
+            type = this->get_type_from_parse_type(const_stmt->type.value());
         }
         else
         {

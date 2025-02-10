@@ -318,15 +318,10 @@ if_stmt:
 
 const_stmt: 
    CONST IDENTIFIER EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, false, std::move($4)); }
-   | CONST IDENTIFIER COLON TYPE_LITERAL EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, $4, true, std::move($6)); }
-   | CONST IDENTIFIER COLON IDENTIFIER EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, $4, false, std::move($6)); }
-   | CONST IDENTIFIER COLON IDENTIFIER LBRACKET RBRACKET EQUAL expr 
-      {$$ = std::make_unique<ConstStmt>($2, $4, false, std::move($8));}
-   | CONST IDENTIFIER COLON TYPE_LITERAL LBRACKET RBRACKET EQUAL expr 
-      {$$ = std::make_unique<ConstStmt>($2, $4, false, std::move($8));}
+      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, std::move($4)); }
+   | CONST IDENTIFIER COLON type_identifier EQUAL expr 
+      { $$ = std::make_unique<ConstStmt>($2, std::move($4), std::move($6)); }
+   
 
 print_stmt: 
    PRINT arg_list 

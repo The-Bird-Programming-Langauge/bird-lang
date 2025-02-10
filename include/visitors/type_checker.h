@@ -353,13 +353,13 @@ public:
             return;
         }
 
-        if (const_stmt->type_token.has_value())
+        if (const_stmt->type.has_value())
         {
-            std::shared_ptr<BirdType> type = this->get_type_from_token(const_stmt->type_token.value());
+            std::shared_ptr<BirdType> type = this->get_type_from_parse_type(const_stmt->type.value());
 
             if (*type != *result)
             {
-                this->user_error_tracker->type_mismatch("in declaration", const_stmt->type_token.value());
+                this->user_error_tracker->type_mismatch("in declaration", this->get_token_from_parse_type(const_stmt->type.value()));
                 this->env.declare(const_stmt->identifier.lexeme, std::make_shared<ErrorType>());
                 return;
             }
