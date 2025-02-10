@@ -249,10 +249,10 @@ public:
         if (decl_stmt->type.has_value())
         {
             std::shared_ptr<BirdType> type = this->get_type_from_parse_type(decl_stmt->type.value());
-
             if (*type != *result)
             {
                 this->user_error_tracker->type_mismatch("in declaration", this->get_token_from_parse_type(decl_stmt->type.value()));
+
                 this->env.declare(decl_stmt->identifier.lexeme, std::make_unique<ErrorType>());
                 return;
             }
@@ -1040,8 +1040,6 @@ public:
             return;
         }
 
-        std::cout << bird_type_to_string(to_type) << std::endl;
-        std::cout << bird_type_to_string(expr) << std::endl;
         if (to_type->type == BirdTypeType::ARRAY && expr->type == BirdTypeType::ARRAY)
         {
             auto to_type_array = safe_dynamic_pointer_cast<ArrayType>(to_type);
@@ -1106,9 +1104,13 @@ public:
 
             if (*first_el_type != *type)
             {
-                this->user_error_tracker->type_mismatch("in array initialization", Token()); // TODO: track array init token
-                this->stack.push(std::make_shared<ErrorType>());
-                return;
+                Token error_token;
+                if (auto *primary_expr = dynamic_cast<Primary *>(elements[i].get()))
+                {
+                    error_token = primary_expr->value;
+                }
+
+                this->user_error_tracker->type_mismatch("in array initialization", error_token);
             }
         }
 

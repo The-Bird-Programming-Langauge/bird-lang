@@ -293,7 +293,6 @@ public:
                 throw BirdException("The subscript operator requires an integer index.");
             }
 
-            // get reference to array
             auto arr = as_type<std::shared_ptr<std::vector<Value>>>(*this);
             int idx = as_type<int>(index);
 

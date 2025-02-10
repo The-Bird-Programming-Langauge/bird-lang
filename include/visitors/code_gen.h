@@ -470,7 +470,6 @@ public:
                 return bird_type_to_binaryen_type(this->type_table.get(token.lexeme));
             }
 
-            std::cout << "here" << std::endl;
             throw BirdException("invalid type");
         }
     }

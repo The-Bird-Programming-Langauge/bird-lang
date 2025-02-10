@@ -1,2 +1,7 @@
+var y: int[][] = [ [1, 2], 
+                   [3, 4] ];
 
-var foo: int[] = [1, 2] as int[];
+print y[0][0];
+print y[0][1];
+print y[1][0];
+print y[1][1];
