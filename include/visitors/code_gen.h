@@ -1586,26 +1586,8 @@ public:
     void visit_struct_decl(StructDecl *struct_decl)
     {
         std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
-        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
-                       { 
-
-                        if (this->is_bird_type(field.second))
-                        {
-                            return std::make_pair(field.first, token_to_bird_type(field.second));
-                        }
-
-                        if (this->type_table.contains(field.second.lexeme))
-                        {
-                            return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
-                        } 
-
-                        if (this->struct_names.find(field.second.lexeme) != this->struct_names.end())
-                        {
-                            return std::make_pair(field.first, std::shared_ptr<BirdType>(new PlaceholderType(field.second.lexeme)));
-                        }
-
-                        std::cout << "here 3" << std::endl;
-                        throw BirdException("invalid type"); });
+        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, std::shared_ptr<ParseType::Type>> field)
+                       { return std::make_pair(field.first, this->type_converter.convert(field.second)); });
 
         type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, struct_fields));
     }

@@ -147,10 +147,10 @@ FACTOR_OP
 UNARY_OP
 EQUALITY_OP
 
-%type <std::pair<std::string, Token>>
+%type <std::pair<std::string, std::shared_ptr<ParseType::Type>>>
 field_member
 
-%type <std::vector<std::pair<std::string, Token>>>
+%type <std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>>
 maybe_field_map
 field_map
 
@@ -274,20 +274,18 @@ struct_decl:
       { $$ = std::make_unique<StructDecl>($2, $4); }
 
 maybe_field_map:
-   %empty { $$ = std::vector<std::pair<std::string, Token>>(); }
+   %empty { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); }
    | field_map
    | field_map COMMA
 
 field_map: 
    field_member
-      { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back($1); }
+      { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); $$.push_back($1); }
    | field_map COMMA field_member
       { $$ = std::move($1); $$.push_back($3); }
 
 field_member:
-   IDENTIFIER COLON TYPE_LITERAL
-      { $$ = std::make_pair($1.lexeme, $3); }
-   | IDENTIFIER COLON IDENTIFIER
+   IDENTIFIER COLON type_identifier
       { $$ = std::make_pair($1.lexeme, $3); }
 
 decl_stmt: 

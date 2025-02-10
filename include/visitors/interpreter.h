@@ -20,6 +20,7 @@
 #include "stack.h"
 #include "type.h"
 #include "bird_type.h"
+#include "type_converter.h"
 
 /*
  * Visitor that interprets and evaluates the AST
@@ -33,8 +34,10 @@ public:
     Environment<std::shared_ptr<BirdType>> type_table;
     Stack<Value> stack;
     std::set<std::string> struct_names;
+    TypeConverter type_converter;
 
     Interpreter()
+        : type_converter(this->type_table, this->struct_names)
     {
         this->env.push_env();
         this->call_table.push_env();
@@ -616,18 +619,8 @@ public:
     void visit_struct_decl(StructDecl *struct_decl)
     {
         std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
-        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
-                       { 
-                        if (this->type_table.contains(field.second.lexeme))
-                        {
-                            return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
-                        } 
-
-                        if (this->struct_names.find(field.second.lexeme) != this->struct_names.end()) {
-                            return std::make_pair(field.first, std::shared_ptr<BirdType>(new PlaceholderType(field.second.lexeme)));
-                        }
-
-                            return std::make_pair(field.first, token_to_bird_type(field.second)); });
+        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, std::shared_ptr<ParseType::Type>> field)
+                       { return std::make_pair(field.first, this->type_converter.convert(field.second)); });
 
         this->type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, std::move(struct_fields)));
     }

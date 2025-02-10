@@ -320,7 +320,7 @@ public:
         std::cout << "{";
         for (auto it = struct_decl->fields.begin(); it != struct_decl->fields.end(); it++)
         {
-            std::cout << it->first << ": " << it->second.lexeme << ", ";
+            std::cout << it->first << ": " << it->second->get_token().lexeme << ", ";
         }
         std::cout << "}";
     }

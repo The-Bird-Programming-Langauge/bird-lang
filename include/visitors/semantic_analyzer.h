@@ -394,15 +394,7 @@ public:
 
     void visit_struct_decl(StructDecl *struct_decl)
     {
-        // if (this->identifer_in_any_environment(struct_decl->identifier.lexeme))
-        // {
-        //     this->user_error_tracker->semantic_error("Identifier '" + struct_decl->identifier.lexeme + "' is already declared.", struct_decl->identifier);
-        //     return;
-        // }
-
         this->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
-
-        // do nothing
     }
 
     void visit_direct_member_access(DirectMemberAccess *direct_member_access)
