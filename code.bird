@@ -1,17 +1,21 @@
 
-
-struct Person  {
-    age: int,
-    name: str
+struct Person {
+        name: str,
+        age: int
 };
 
 
-for var i: int = 0; i < 1000; i += 1 {
-    const p: Person = Person {
-        name = "cole",
-        age = i
-    };
-
-    print p.age;
-    print p.name;
+fn test() {
+        var p: Person = Person {
+                name = "cole",
+                age = 23
+        };
 }
+
+test();
+
+
+var p: Person = Person {
+        name = "cole",
+        age = 23
+};

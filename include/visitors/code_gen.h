@@ -522,19 +522,18 @@ public:
     // perform garbage collection on memory data by marking and sweeping dynamically allocated blocks
     void garbage_collect()
     {
-        std::cout << "test2" << std::endl;
         // list that stores all of the javascript calls to be pushed on the stack as 1 block
         std::vector<BinaryenExpressionRef> calls;
 
         // mark all dynamically allocated blocks by traversing the environment, locate all pointers pointing to dynamically allocated blocks, and pass the pointers to the mark function
+        std::set<std::string> marked;
         for (const auto &scope : this->environment.envs)
         {
             for (const auto &[key, value] : scope)
             {
-                std::cout << "test3" << std::endl;
-                std::cout << key << std::endl;
-                if (value.type->type == BirdTypeType::STRUCT)
+                if (value.type->type == BirdTypeType::STRUCT && marked.find(key) == marked.end())
                 {
+                    marked.insert(key);
                     auto allocated_block_ptr = this->binaryen_get(key);
                     calls.push_back(
                         BinaryenCall(
@@ -1486,11 +1485,12 @@ public:
         }
 
         // perform garbage collection at the end of a function by popping the javascript calls off the stack in a block and executing the block
+
+        this->environment.pop_env();
+
         this->garbage_collect();
         auto calls_block = this->stack.pop();
         current_function_body.push_back(calls_block.value);
-
-        this->environment.pop_env();
 
         BinaryenExpressionRef body = BinaryenBlock(
             this->mod,

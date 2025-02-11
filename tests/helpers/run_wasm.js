@@ -117,12 +117,8 @@ function print_memory(memory) {
             index_row += i.toString().padStart(4, ' ');
         }
         console.log(index_row);
-
-        console.log();
     }
 }
-
-
 
 const moduleOptions = {
     env: {
@@ -181,7 +177,6 @@ const moduleOptions = {
          */
 
         mem_alloc: (size) => {
-            //console.log(`mem_alloc(${size})`); // debug
             let curr_ptr = get_free_list_head_ptr();
             let prev_ptr = curr_ptr;
 
@@ -233,7 +228,9 @@ const moduleOptions = {
 
         mark: (ptr) => // the root is any local or global variable that is dynamically allocated
         {
-            //console.log(`mark(${ptr})`); // debug
+            if (ptr === 0) {
+                return;
+            }
             const stack = [];
             stack.push(ptr);
 
@@ -274,7 +271,6 @@ const moduleOptions = {
         },
 
         sweep: () => {
-            //console.log("sweep"); // debug
             let curr_ptr = get_allocated_list_head_ptr();
 
             // no allocated block exists
@@ -283,17 +279,11 @@ const moduleOptions = {
             }
 
             let prev_ptr = curr_ptr;
-            let next_block_is_not_null = true;
 
-            while (curr_ptr < memory.byteLength && next_block_is_not_null) {
-                //console.log(`sweep : ${curr_ptr}`); // debug
+            while (curr_ptr < memory.byteLength && curr_ptr !== 0 ) {
                 let next_ptr = get_block_next_ptr(curr_ptr); // get the next allocated block to traverse to in the next iteration
                 let update_prev_ptr = true;
 
-                // the loop should stop when we reach the end of the allocated list
-                if (next_ptr === 0) {
-                    next_block_is_not_null = false;
-                }
 
                 // if the block is not marked, pop it from the allocated list and push it to the free list
                 if (!block_is_marked(curr_ptr)) {
@@ -303,6 +293,9 @@ const moduleOptions = {
                         set_allocated_list_head_ptr(next_ptr);
                     // otherwise, set the previous block's next pointer to the current block's next pointer
                     } else {
+                        if (prev_ptr === curr_ptr) {
+                            throw new Error("prev_ptr === curr_ptr");
+                        }
                         set_block_next_ptr(prev_ptr, next_ptr);
                         update_prev_ptr = false; // do not update prev_ptr if the block gets popped from the middle of the list
                     }
@@ -310,9 +303,9 @@ const moduleOptions = {
                     // add the block to the head of the free list
                     set_block_next_ptr(curr_ptr, get_free_list_head_ptr());
                     set_free_list_head_ptr(curr_ptr);
-                } else {
-                    set_block_mark(curr_ptr, 0); // clear the mark bit
-                }
+                } 
+
+                set_block_mark(curr_ptr, 0); // clear the mark bit
 
                 if (update_prev_ptr) {
                     prev_ptr = curr_ptr;
