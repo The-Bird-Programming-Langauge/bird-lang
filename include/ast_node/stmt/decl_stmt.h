@@ -27,9 +27,7 @@ public:
     DeclStmt(Token identifier, std::optional<std::shared_ptr<ParseType::Type>> type, std::unique_ptr<Expr> value)
         : identifier(identifier),
           type(std::move(type)),
-          value(std::move(value))
-    {
-    }
+          value(std::move(value)) {}
 
     void accept(Visitor *visitor)
     {
