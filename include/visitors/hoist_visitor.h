@@ -35,17 +35,14 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
-        if (type_stmt->type_is_literal)
+        auto type_name = type_stmt->type_token->get_token().lexeme;
+
+        if (this->struct_names->find(type_name) != this->struct_names->end())
         {
             return;
         }
 
-        if (this->struct_names->find(type_stmt->type_token.lexeme) != this->struct_names->end())
-        {
-            return;
-        }
-
-        this->struct_names->insert(type_stmt->type_token.lexeme);
+        this->struct_names->insert(type_name);
     }
 
     void visit_struct_decl(StructDecl *struct_decl)

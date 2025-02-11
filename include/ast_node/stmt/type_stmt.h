@@ -7,6 +7,7 @@
 #include "stmt.h"
 #include "token.h"
 #include "visitors/visitor.h"
+#include "parse_type.h"
 
 // forward declaration
 class Expr;
@@ -20,13 +21,11 @@ class TypeStmt : public Stmt
 {
 public:
     Token identifier;
-    Token type_token;
-    bool type_is_literal;
+    std::shared_ptr<ParseType::Type> type_token;
 
-    TypeStmt(Token identifier, Token type_token, bool type_is_literal)
+    TypeStmt(Token identifier, std::shared_ptr<ParseType::Type> type_token)
         : identifier(identifier),
-          type_token(type_token),
-          type_is_literal(type_is_literal) {}
+          type_token(std::move(type_token)) {}
 
     void accept(Visitor *visitor)
     {

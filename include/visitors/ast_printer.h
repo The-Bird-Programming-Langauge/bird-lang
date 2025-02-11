@@ -303,7 +303,7 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
-        std::cout << "type " << type_stmt->identifier.lexeme << " = " << type_stmt->type_token.lexeme;
+        std::cout << "type " << type_stmt->identifier.lexeme << " = " << type_stmt->type_token->get_token().lexeme;
     }
 
     void visit_subscript(Subscript *subscript)

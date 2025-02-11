@@ -1542,19 +1542,9 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
-        if (type_stmt->type_is_literal)
-        {
-            this->type_table.declare(
-                type_stmt->identifier.lexeme,
-                token_to_bird_type(type_stmt->type_token));
-        }
-        else
-        {
-            auto parent_type = this->type_table.get(type_stmt->type_token.lexeme);
-            this->type_table.declare(
-                type_stmt->identifier.lexeme,
-                parent_type);
-        }
+        this->type_table.declare(
+            type_stmt->identifier.lexeme,
+            this->type_converter.convert(type_stmt->type_token));
     }
 
     void visit_subscript(Subscript *subscript)

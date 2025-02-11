@@ -701,9 +701,9 @@ public:
             return;
         }
 
-        auto type = this->get_type_from_token(type_stmt->type_token);
-
-        this->type_table.declare(type_stmt->identifier.lexeme, type);
+        this->type_table.declare(
+            type_stmt->identifier.lexeme,
+            this->type_converter.convert(type_stmt->type_token));
     }
 
     void visit_subscript(Subscript *subscript)

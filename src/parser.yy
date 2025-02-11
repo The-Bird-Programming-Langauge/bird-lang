@@ -383,10 +383,10 @@ expr_stmt:
       { $$ = std::make_unique<ExprStmt>(std::move($1)); }
 
 type_stmt: 
-   TYPE IDENTIFIER EQUAL TYPE_LITERAL 
-      { $$ =  std::make_unique<TypeStmt>($2, $4, true); }
+   TYPE IDENTIFIER EQUAL type_identifier 
+      { $$ = std::make_unique<TypeStmt>($2, $4); }
    | TYPE IDENTIFIER EQUAL IDENTIFIER 
-      { $$ = std::make_unique<TypeStmt>($2, $4, false); }
+      { $$ = std::make_unique<TypeStmt>($2, std::make_shared<ParseType::UserDefined>($4)); }
 
 maybe_arg_list: 
    %empty { $$ = (std::vector<std::shared_ptr<Expr>>()); }
