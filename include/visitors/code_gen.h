@@ -1555,8 +1555,16 @@ public:
         subscript->index->accept(this);
         auto index = this->stack.pop();
 
-        BinaryenExpressionRef args[2] = {subscriptable.value, index.value};
+        // TODO: make this better
+        BinaryenExpressionRef args[2] = {subscriptable.value,
+                                         subscriptable.type->type == BirdTypeType::ARRAY ? BinaryenBinary(
+                                                                                               this->mod,
+                                                                                               BinaryenMulInt32(),
+                                                                                               index.value,
+                                                                                               BinaryenConst(this->mod, BinaryenLiteralInt32(8)))
+                                                                                         : index.value};
 
+        // TODO: we won't always return an int
         this->stack.push(
             TaggedExpression(
                 BinaryenCall(
@@ -1936,5 +1944,78 @@ public:
 
     void visit_array_init(ArrayInit *array_init)
     {
+        std::vector<BinaryenExpressionRef> children;
+
+        // add new function local
+        auto locals = this->function_locals[this->current_function_name];
+        this->function_locals[this->current_function_name].push_back(BinaryenTypeInt32());
+        auto identifier = std::to_string(locals.size()) + "temp";
+        this->environment.declare(identifier, TaggedIndex(locals.size(), std::make_shared<ArrayType>(
+                                                                             std::make_shared<IntType>())));
+
+        // assign the result of memory allocation to that local
+        auto size = BinaryenConst(this->mod, BinaryenLiteralInt32(3));
+        BinaryenExpressionRef set_local = this->binaryen_set(identifier,
+                                                             BinaryenCall(
+                                                                 this->mod,
+                                                                 "mem_alloc",
+                                                                 &size,
+                                                                 1,
+                                                                 BinaryenTypeInt32()));
+
+        children.push_back(set_local);
+        // push push push
+
+        std::vector<BinaryenExpressionRef> mem_set_operands;
+        mem_set_operands.push_back(this->binaryen_get(identifier));
+        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(0)));
+        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(1)));
+
+        children.push_back(
+            BinaryenCall(
+                this->mod,
+                "mem_set_32",
+                mem_set_operands.data(),
+                mem_set_operands.size(),
+                BinaryenTypeNone()));
+
+        mem_set_operands.clear();
+
+        mem_set_operands.push_back(this->binaryen_get(identifier));
+        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(8)));
+        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(2)));
+
+        children.push_back(
+            BinaryenCall(
+                this->mod,
+                "mem_set_32",
+                mem_set_operands.data(),
+                mem_set_operands.size(),
+                BinaryenTypeNone()));
+
+        mem_set_operands.clear();
+
+        mem_set_operands.push_back(this->binaryen_get(identifier));
+        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(16)));
+        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(3)));
+
+        children.push_back(
+            BinaryenCall(
+                this->mod,
+                "mem_set_32",
+                mem_set_operands.data(),
+                mem_set_operands.size(),
+                BinaryenTypeNone()));
+
+        mem_set_operands.clear();
+
+        // push the value of that local onto the stack
+
+        children.push_back(this->binaryen_get(identifier));
+
+        auto block = BinaryenBlock(this->mod, nullptr, children.data(), children.size(), BinaryenTypeInt32());
+
+        this->stack.push(TaggedExpression(block, std::make_shared<ArrayType>(
+                                                     std::make_shared<IntType>())));
     }
 };
