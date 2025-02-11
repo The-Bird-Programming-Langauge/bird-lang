@@ -14,9 +14,9 @@ TEST(ArrayTestSuite, IntArraySubscript)
         ASSERT_TRUE(is_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")));
 
         ASSERT_EQ(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->size(), 3);
-        ASSERT_EQ(as_type<int>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[0]), 1);
-        ASSERT_EQ(as_type<int>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[1]), 2);
-        ASSERT_EQ(as_type<int>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[2]), 3);
+        ASSERT_EQ(as_type<int>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(0)), 1);
+        ASSERT_EQ(as_type<int>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(1)), 2);
+        ASSERT_EQ(as_type<int>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(2)), 3);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
@@ -41,9 +41,9 @@ TEST(ArrayTestSuite, FloatArraySubscript)
         ASSERT_TRUE(is_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")));
 
         ASSERT_EQ(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->size(), 3);
-        ASSERT_EQ(as_type<double>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[0]), 1.1);
-        ASSERT_EQ(as_type<double>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[1]), 2.2);
-        ASSERT_EQ(as_type<double>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[2]), 3.3);
+        ASSERT_EQ(as_type<double>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(0)), 1.1);
+        ASSERT_EQ(as_type<double>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(1)), 2.2);
+        ASSERT_EQ(as_type<double>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(2)), 3.3);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
@@ -68,9 +68,9 @@ TEST(ArrayTestSuite, StrArraySubscript)
         ASSERT_TRUE(is_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")));
 
         ASSERT_EQ(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->size(), 3);
-        ASSERT_EQ(as_type<std::string>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[0]), "hello");
-        ASSERT_EQ(as_type<std::string>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[1]), ", ");
-        ASSERT_EQ(as_type<std::string>((*as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")))[2]), "world!");
+        ASSERT_EQ(as_type<std::string>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(0)), "hello");
+        ASSERT_EQ(as_type<std::string>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(1)), ", ");
+        ASSERT_EQ(as_type<std::string>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(2)), "world!");
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
