@@ -385,8 +385,6 @@ expr_stmt:
 type_stmt: 
    TYPE IDENTIFIER EQUAL type_identifier 
       { $$ = std::make_unique<TypeStmt>($2, $4); }
-   | TYPE IDENTIFIER EQUAL IDENTIFIER 
-      { $$ = std::make_unique<TypeStmt>($2, std::make_shared<ParseType::UserDefined>($4)); }
 
 maybe_arg_list: 
    %empty { $$ = (std::vector<std::shared_ptr<Expr>>()); }
