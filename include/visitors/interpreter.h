@@ -140,12 +140,6 @@ public:
                 struct_decl->accept(this);
                 continue;
             }
-
-            if (auto array_stmt = dynamic_cast<ArrayDecl *>(stmt.get()))
-            {
-                array_stmt->accept(this);
-                continue;
-            }
         }
 
         while (!this->stack.empty())
@@ -738,19 +732,6 @@ public:
         }
 
         this->stack.push(expr);
-    }
-
-    void visit_array_decl(ArrayDecl *array_decl)
-    {
-        std::vector<Value> elements;
-
-        for (const auto &element : array_decl->elements)
-        {
-            element->accept(this);
-            elements.push_back(this->stack.pop());
-        }
-
-        this->env.declare(array_decl->identifier.lexeme, Value(std::make_shared<std::vector<Value>>(elements)));
     }
 
     void visit_array_init(ArrayInit *array_init)

@@ -205,12 +205,6 @@ public:
                 struct_decl->accept(this);
                 continue;
             }
-
-            if (auto array_decl = dynamic_cast<ArrayDecl *>(stmt.get()))
-            {
-                array_decl->accept(this);
-                continue;
-            }
         }
 
         while (!this->stack.empty())
@@ -980,26 +974,6 @@ public:
         this->stack.push(std::make_shared<ErrorType>());
     }
 
-    void visit_array_decl(ArrayDecl *array_decl)
-    {
-        auto expected_type = this->get_type_from_token(array_decl->type_identifier);
-
-        for (const auto &element : array_decl->elements)
-        {
-            element->accept(this);
-            auto val = this->stack.pop();
-
-            if (*expected_type != *val)
-            {
-                this->user_error_tracker->type_mismatch("in array declaration", array_decl->type_identifier);
-                this->stack.push(std::make_shared<ErrorType>());
-                return;
-            }
-        }
-
-        this->env.declare(array_decl->identifier.lexeme, std::make_shared<ArrayType>(expected_type));
-    }
-
     void visit_array_init(ArrayInit *array_init)
     {
         auto elements = array_init->elements;
@@ -1026,6 +1000,9 @@ public:
                 }
 
                 this->user_error_tracker->type_mismatch("in array initialization", error_token);
+
+                this->stack.push(std::make_shared<ErrorType>());
+                return;
             }
         }
 

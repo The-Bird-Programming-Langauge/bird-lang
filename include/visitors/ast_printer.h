@@ -385,11 +385,6 @@ public:
         print_parse_type(as_cast->type);
     }
 
-    void visit_array_decl(ArrayDecl *array_decl)
-    {
-        throw BirdException("implement visit_array_decl in ast printer");
-    }
-
     void visit_array_init(ArrayInit *array_init)
     {
         std::cout << "[";

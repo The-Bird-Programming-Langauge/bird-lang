@@ -126,12 +126,6 @@ public:
                 type_stmt->accept(this);
                 continue;
             }
-
-            if (auto array_decl = dynamic_cast<ArrayDecl *>(stmt.get()))
-            {
-                array_decl->accept(this);
-                continue;
-            }
         }
     }
 
@@ -418,17 +412,6 @@ public:
     void visit_as_cast(AsCast *as_cast)
     {
         as_cast->expr->accept(this);
-    }
-
-    void visit_array_decl(ArrayDecl *array_decl)
-    {
-        if (this->identifer_in_any_environment(array_decl->identifier.lexeme))
-        {
-            this->user_error_tracker->semantic_error("Identifier '" + array_decl->identifier.lexeme + "' is already declared.", array_decl->identifier);
-            return;
-        }
-
-        this->env.declare(array_decl->identifier.lexeme, SemanticValue());
     }
 
     void visit_array_init(ArrayInit *array_init)

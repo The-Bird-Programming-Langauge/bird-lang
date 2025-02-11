@@ -28,7 +28,6 @@ class DirectMemberAccess;
 class StructInitialization;
 class MemberAssign;
 class AsCast;
-class ArrayDecl;
 class ArrayInit;
 
 /*
@@ -64,6 +63,5 @@ public:
     virtual void visit_struct_initialization(StructInitialization *) = 0;
     virtual void visit_member_assign(MemberAssign *) = 0;
     virtual void visit_as_cast(AsCast *) = 0;
-    virtual void visit_array_decl(ArrayDecl *) = 0;
     virtual void visit_array_init(ArrayInit *) = 0;
 };

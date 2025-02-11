@@ -369,13 +369,6 @@ public:
                 struct_decl->accept(this);
                 // no stack push here, only type table
             }
-
-            // if (auto array_decl = dynamic_cast<ArrayDecl *>(stmt.get()))
-            // {
-            //     array_decl->accept(this);
-            //     auto result = this->stack.pop();
-            //     main_function_body.push_back(result.value);
-            // }
         }
 
         auto count = 0;
@@ -1555,26 +1548,33 @@ public:
         subscript->index->accept(this);
         auto index = this->stack.pop();
 
+        std::shared_ptr<BirdType> type;
+        if (subscriptable.type->type == BirdTypeType::ARRAY)
+        {
+            type = safe_dynamic_pointer_cast<ArrayType>(subscriptable.type)->element_type;
+        }
+
         // TODO: make this better
         BinaryenExpressionRef args[2] = {subscriptable.value,
                                          subscriptable.type->type == BirdTypeType::ARRAY ? BinaryenBinary(
                                                                                                this->mod,
                                                                                                BinaryenMulInt32(),
                                                                                                index.value,
-                                                                                               BinaryenConst(this->mod, BinaryenLiteralInt32(8)))
+                                                                                               BinaryenConst(
+                                                                                                   this->mod,
+                                                                                                   BinaryenLiteralInt32(bird_type_byte_size(type))))
                                                                                          : index.value};
 
-        // TODO: we won't always return an int
         this->stack.push(
             TaggedExpression(
                 BinaryenCall(
                     this->mod,
-                    (from_bird_type(index.type)) == BinaryenTypeInt32() ? "mem_get_32"
-                                                                        : "mem_get_64",
+                    type->type == BirdTypeType::FLOAT ? "mem_get_64"
+                                                      : "mem_get_32",
                     args,
                     2,
                     BinaryenTypeInt32()),
-                std::shared_ptr<BirdType>(new IntType())));
+                std::shared_ptr<BirdType>(type)));
     }
 
     /*
@@ -1859,163 +1859,71 @@ public:
         }
     }
 
-    void visit_array_decl(ArrayDecl *array_decl)
-    {
-        //     auto type = token_to_bird_type(array_decl->type_identifier);
-
-        //     std::vector<BinaryenExpressionRef> vals;
-
-        //     unsigned int size = 0;
-        //     for (auto &element : array_decl->elements)
-        //     {
-        //         element->accept(this);
-        //         auto val = this->stack.pop();
-
-        //         vals.push_back(val.value);
-        //         size += bird_type_byte_size(type);
-        //     }
-
-        //     BinaryenExpressionRef size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
-        //     BinaryenExpressionRef call = BinaryenCall(
-        //         this->mod,
-        //         "mem_alloc",
-        //         &size_literal,
-        //         1,
-        //         BinaryenTypeInt32());
-
-        //     BinaryenIndex index = this->function_locals[this->current_function_name].size();
-        //     this->function_locals[this->current_function_name].push_back(BinaryenTypeInt32());
-
-        //     this->environment.declare(array_decl->identifier.lexeme, TaggedIndex(index, type));
-
-        //     std::vector<BinaryenExpressionRef> array_declaration;
-
-        //     array_declaration.push_back(BinaryenLocalSet(this->mod, index, call));
-
-        //     unsigned int offset = 0;
-        //     for (auto &val : vals)
-        //     {
-        //         BinaryenExpressionRef args[3] = {
-        //             BinaryenLocalGet(this->mod, index, BinaryenTypeInt32()),
-        //             BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
-        //             val};
-
-        //         std::string func_name = (type->type == BirdTypeType::FLOAT)
-        //                                     ? "mem_set_64"
-        //                                     : "mem_set_32";
-
-        //         array_declaration.push_back(BinaryenCall(this->mod, func_name.c_str(), args, 3, BinaryenTypeNone()));
-
-        //         offset += bird_type_byte_size(type);
-        //     }
-
-        //     BinaryenExpressionRef block = BinaryenBlock(
-        //         this->mod,
-        //         "array declaration",
-        //         array_declaration.data(),
-        //         array_declaration.size(),
-        //         BinaryenTypeNone());
-
-        //     this->stack.push(TaggedExpression(block, type));
-        // }
-
-        // void visit_array_init(ArrayInit *array_init)
-        // {
-
-        //     unsigned int size = 0;
-        //     for (auto &element : array_init->elements)
-        //     {
-        //         element->accept(this);
-        //         auto val = this->stack.pop();
-
-        //         size += bird_type_byte_size(val.type);
-        //     }
-
-        //     BinaryenExpressionRef size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
-        //     BinaryenExpressionRef call = BinaryenCall(
-        //         this->mod,
-        //         "mem_alloc",
-        //         &size_literal,
-        //         1,
-        //         BinaryenTypeInt32());
-
-        //     this->stack.push(call);
-    }
-
     void visit_array_init(ArrayInit *array_init)
     {
-        std::vector<BinaryenExpressionRef> children;
+        /* options:
+         *      - mem_set_32
+         *          - int, ptr
+         *      - mem_set_64
+         *          - float
+         */
 
-        // add new function local
+        std::vector<BinaryenExpressionRef> children;
+        std::vector<BinaryenExpressionRef> vals;
+
+        unsigned int size = 0;
+        std::shared_ptr<BirdType> type;
+        for (auto &element : array_init->elements)
+        {
+            element->accept(this);
+            auto val = this->stack.pop();
+            type = val.type;
+
+            vals.push_back(val.value);
+            size += bird_type_byte_size(val.type);
+        }
+
         auto locals = this->function_locals[this->current_function_name];
         this->function_locals[this->current_function_name].push_back(BinaryenTypeInt32());
+
         auto identifier = std::to_string(locals.size()) + "temp";
-        this->environment.declare(identifier, TaggedIndex(locals.size(), std::make_shared<ArrayType>(
-                                                                             std::make_shared<IntType>())));
+        this->environment.declare(identifier, TaggedIndex(locals.size(),
+                                                          type));
 
-        // assign the result of memory allocation to that local
-        auto size = BinaryenConst(this->mod, BinaryenLiteralInt32(3));
-        BinaryenExpressionRef set_local = this->binaryen_set(identifier,
-                                                             BinaryenCall(
-                                                                 this->mod,
-                                                                 "mem_alloc",
-                                                                 &size,
-                                                                 1,
-                                                                 BinaryenTypeInt32()));
+        auto size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+        BinaryenExpressionRef local_set = this->binaryen_set(identifier,
+                                                             BinaryenCall(this->mod,
+                                                                          "mem_alloc",
+                                                                          &size_literal,
+                                                                          1,
+                                                                          BinaryenTypeInt32()));
 
-        children.push_back(set_local);
-        // push push push
+        children.push_back(local_set);
 
-        std::vector<BinaryenExpressionRef> mem_set_operands;
-        mem_set_operands.push_back(this->binaryen_get(identifier));
-        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(0)));
-        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(1)));
+        // up to here is general
+        unsigned int offset = 0;
+        for (int i = 0; i < vals.size(); i++)
+        {
+            BinaryenExpressionRef args[3] = {
+                this->binaryen_get(identifier),
+                BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
+                vals[i]};
 
-        children.push_back(
-            BinaryenCall(
-                this->mod,
-                "mem_set_32",
-                mem_set_operands.data(),
-                mem_set_operands.size(),
-                BinaryenTypeNone()));
+            children.push_back(
+                BinaryenCall(this->mod,
+                             type->type == BirdTypeType::FLOAT ? "mem_set_64"
+                                                               : "mem_set_32",
+                             args,
+                             3,
+                             BinaryenTypeNone()));
 
-        mem_set_operands.clear();
-
-        mem_set_operands.push_back(this->binaryen_get(identifier));
-        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(8)));
-        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(2)));
-
-        children.push_back(
-            BinaryenCall(
-                this->mod,
-                "mem_set_32",
-                mem_set_operands.data(),
-                mem_set_operands.size(),
-                BinaryenTypeNone()));
-
-        mem_set_operands.clear();
-
-        mem_set_operands.push_back(this->binaryen_get(identifier));
-        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(16)));
-        mem_set_operands.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(3)));
-
-        children.push_back(
-            BinaryenCall(
-                this->mod,
-                "mem_set_32",
-                mem_set_operands.data(),
-                mem_set_operands.size(),
-                BinaryenTypeNone()));
-
-        mem_set_operands.clear();
-
-        // push the value of that local onto the stack
+            offset += bird_type_byte_size(type);
+        }
 
         children.push_back(this->binaryen_get(identifier));
 
         auto block = BinaryenBlock(this->mod, nullptr, children.data(), children.size(), BinaryenTypeInt32());
 
-        this->stack.push(TaggedExpression(block, std::make_shared<ArrayType>(
-                                                     std::make_shared<IntType>())));
+        this->stack.push(TaggedExpression(block, std::make_shared<ArrayType>(type)));
     }
 };

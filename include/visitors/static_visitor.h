@@ -231,5 +231,9 @@ public:
 
     void visit_array_init(ArrayInit *array_init)
     {
+        for (auto &element : array_init->elements)
+        {
+            element->accept(this);
+        }
     }
 };

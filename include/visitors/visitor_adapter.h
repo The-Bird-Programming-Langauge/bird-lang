@@ -29,6 +29,5 @@ public:
     void visit_struct_initialization(StructInitialization *) override {}
     void visit_member_assign(MemberAssign *) override {}
     void visit_as_cast(AsCast *) override {}
-    void visit_array_decl(ArrayDecl *) override {}
     void visit_array_init(ArrayInit *) override {}
 };
