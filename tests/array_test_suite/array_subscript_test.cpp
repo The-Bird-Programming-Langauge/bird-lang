@@ -1,4 +1,6 @@
 #include "helpers/compile_helper.hpp"
+#define STRUCT_TYPE std::shared_ptr<std::unordered_map<std::string, Value>>
+#define ARRAY_TYPE std::shared_ptr<std::vector<Value>>
 
 TEST(ArrayTestSuite, IntArraySubscript)
 {
@@ -11,17 +13,17 @@ TEST(ArrayTestSuite, IntArraySubscript)
     options.after_interpret = [&](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.env.contains("x"));
-        ASSERT_TRUE(is_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")));
+        ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
 
-        ASSERT_EQ(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->size(), 3);
-        ASSERT_EQ(as_type<int>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(0)), 1);
-        ASSERT_EQ(as_type<int>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(1)), 2);
-        ASSERT_EQ(as_type<int>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(2)), 3);
+        ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->size(), 3);
+        ASSERT_EQ(as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(0)), 1);
+        ASSERT_EQ(as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(1)), 2);
+        ASSERT_EQ(as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(2)), 3);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(output.find("1\n2\n3\n\n") != std::string::npos);
+        ASSERT_EQ(output == "1\n2\n3\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -38,17 +40,17 @@ TEST(ArrayTestSuite, FloatArraySubscript)
     options.after_interpret = [&](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.env.contains("x"));
-        ASSERT_TRUE(is_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")));
+        ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
 
-        ASSERT_EQ(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->size(), 3);
-        ASSERT_EQ(as_type<double>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(0)), 1.1);
-        ASSERT_EQ(as_type<double>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(1)), 2.2);
-        ASSERT_EQ(as_type<double>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(2)), 3.3);
+        ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->size(), 3);
+        ASSERT_EQ(as_type<double>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(0)), 1.1);
+        ASSERT_EQ(as_type<double>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(1)), 2.2);
+        ASSERT_EQ(as_type<double>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(2)), 3.3);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(output.find("1.1\n2.2\n3.3\n\n") != std::string::npos);
+        ASSERT_EQ(output == "1.1\n2.2\n3.3\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -65,17 +67,17 @@ TEST(ArrayTestSuite, StrArraySubscript)
     options.after_interpret = [&](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.env.contains("x"));
-        ASSERT_TRUE(is_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x")));
+        ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
 
-        ASSERT_EQ(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->size(), 3);
-        ASSERT_EQ(as_type<std::string>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(0)), "hello");
-        ASSERT_EQ(as_type<std::string>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(1)), ", ");
-        ASSERT_EQ(as_type<std::string>(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("x"))->at(2)), "world!");
+        ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->size(), 3);
+        ASSERT_EQ(as_type<std::string>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(0)), "hello");
+        ASSERT_EQ(as_type<std::string>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(1)), ", ");
+        ASSERT_EQ(as_type<std::string>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(2)), "world!");
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(output.find("hello\n, \nworld!\n\n") != std::string::npos);
+        ASSERT_EQ(output == "hello\n, \nworld!\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -110,36 +112,36 @@ TEST(ArrayTestSuite, StructArraySubscript)
         ASSERT_TRUE(interpreter.type_table.contains("Dog"));
 
         ASSERT_TRUE(interpreter.env.contains("dogs"));
-        ASSERT_EQ(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->size(), 2);
+        ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->size(), 2);
 
         ASSERT_EQ(as_type<std::string>(
-                      as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-                          as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->at(0))
+                      as_type<STRUCT_TYPE>(
+                          as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->at(0))
                           ->at("name")),
                   "marci");
 
         ASSERT_EQ(as_type<int>(
-                      as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-                          as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->at(0))
+                      as_type<STRUCT_TYPE>(
+                          as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->at(0))
                           ->at("age")),
                   5);
 
         ASSERT_EQ(as_type<std::string>(
-                      as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-                          as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->at(1))
+                      as_type<STRUCT_TYPE>(
+                          as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->at(1))
                           ->at("name")),
                   "klaus");
 
         ASSERT_EQ(as_type<int>(
-                      as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-                          as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->at(1))
+                      as_type<STRUCT_TYPE>(
+                          as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->at(1))
                           ->at("age")),
                   10);
     };
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(output.find("marci\n5\nklaus\n10\n\n") != std::string::npos);
+        ASSERT_EQ(output == "marci\n5\nklaus\n10\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
