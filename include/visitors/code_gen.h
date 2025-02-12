@@ -1312,10 +1312,6 @@ public:
         case Token::Type::STR_LITERAL:
         {
             const std::string &str_value = primary->value.lexeme;
-            if (this->str_offsets.find(str_value) == this->str_offsets.end())
-            {
-                throw BirdException("string not found: " + str_value);
-            }
 
             if (this->str_offsets.find(str_value) == this->str_offsets.end())
             {

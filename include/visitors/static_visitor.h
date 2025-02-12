@@ -102,6 +102,7 @@ public:
             if (auto as_cast = dynamic_cast<AsCast *>(stmt.get()))
             {
                 as_cast->accept(this);
+                continue;
             }
         }
     }
@@ -143,6 +144,7 @@ public:
             break;
         }
     }
+    
     void visit_binary(Binary *binary)
     {
         binary->left->accept(this);
