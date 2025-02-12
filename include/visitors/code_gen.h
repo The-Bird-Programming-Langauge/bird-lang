@@ -1861,13 +1861,6 @@ public:
 
     void visit_array_init(ArrayInit *array_init)
     {
-        /* options:
-         *      - mem_set_32
-         *          - int, ptr
-         *      - mem_set_64
-         *          - float
-         */
-
         std::vector<BinaryenExpressionRef> children;
         std::vector<BinaryenExpressionRef> vals;
 
@@ -1900,14 +1893,13 @@ public:
 
         children.push_back(local_set);
 
-        // up to here is general
         unsigned int offset = 0;
-        for (int i = 0; i < vals.size(); i++)
+        for (auto val : vals)
         {
             BinaryenExpressionRef args[3] = {
                 this->binaryen_get(identifier),
                 BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
-                vals[i]};
+                val};
 
             children.push_back(
                 BinaryenCall(this->mod,
