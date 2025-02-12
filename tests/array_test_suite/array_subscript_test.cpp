@@ -80,3 +80,67 @@ TEST(ArrayTestSuite, StrArraySubscript)
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(ArrayTestSuite, StructArraySubscript)
+{
+    BirdTest::TestOptions options;
+    options.code = "struct Dog {"
+                   "    name: str,"
+                   "    age: int"
+                   "};"
+
+                   "var marci: Dog = Dog {"
+                   "    name = \"marci\","
+                   "    age = 5"
+                   "};"
+
+                   "var klaus: Dog = Dog {"
+                   "    name = \"klaus\","
+                   "    age = 10"
+                   "};"
+
+                   "var dogs: Dog[] = [ marci, klaus ];"
+                   "print dogs[0].name;"
+                   "print dogs[0].age;"
+                   "print dogs[1].name;"
+                   "print dogs[1].age;";
+
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.type_table.contains("Dog"));
+
+        ASSERT_TRUE(interpreter.env.contains("dogs"));
+        ASSERT_EQ(as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->size(), 2);
+
+        ASSERT_EQ(as_type<std::string>(
+                      as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
+                          as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->at(0))
+                          ->at("name")),
+                  "marci");
+
+        ASSERT_EQ(as_type<int>(
+                      as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
+                          as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->at(0))
+                          ->at("age")),
+                  5);
+
+        ASSERT_EQ(as_type<std::string>(
+                      as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
+                          as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->at(1))
+                          ->at("name")),
+                  "klaus");
+
+        ASSERT_EQ(as_type<int>(
+                      as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
+                          as_type<std::shared_ptr<std::vector<Value>>>(interpreter.env.get("dogs"))->at(1))
+                          ->at("age")),
+                  10);
+    };
+
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_TRUE(output.find("marci\n5\nklaus\n10\n\n") != std::string::npos);
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
