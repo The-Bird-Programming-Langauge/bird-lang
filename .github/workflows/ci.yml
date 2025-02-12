@@ -29,6 +29,6 @@ jobs:
 
     - name: Build and test
       run: |
-        cmake -Bbuild -DTESTS=ON -DRUN_WASM_FILE_LOCATION="/home/runner/work/bird-lang/bird-lang/tests/helpers/run_wasm.js"
-        make -C build
+        cmake -Bbuild -DTESTS=ON -GNinja -DRUN_WASM_FILE_LOCATION="/home/runner/work/bird-lang/bird-lang/tests/helpers/run_wasm.js"
+        ninja -C build
         ctest --test-dir build --verbose
