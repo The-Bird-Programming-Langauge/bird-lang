@@ -86,7 +86,7 @@ TEST(ConstTest, ConstWithoutTypeBool)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output, "1\n0\n\n");
+        ASSERT_EQ(output, "true\nfalse\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));

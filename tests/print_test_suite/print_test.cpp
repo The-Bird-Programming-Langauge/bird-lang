@@ -7,7 +7,7 @@ TEST(PrintTest, PrintBool)
 
     options.after_compile = [](std::string &code, CodeGen &code_gen)
     {
-        EXPECT_EQ(code, "1\n\n");
+        EXPECT_EQ(code, "true\n\n");
     };
 
     EXPECT_TRUE(BirdTest::compile(options));
@@ -106,7 +106,7 @@ TEST(PrintTest, PrintMultiple)
 
     options.after_compile = [](std::string &code, CodeGen &code_gen)
     {
-        EXPECT_EQ(code, "test2.5110hello\n\n");
+        EXPECT_EQ(code, "test2.51truefalsehello\n\n");
     };
 
     EXPECT_TRUE(BirdTest::compile(options));

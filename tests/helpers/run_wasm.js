@@ -134,6 +134,11 @@ const moduleOptions = {
             process.stdout.write(value.toString());
             fs.appendFileSync(outputPath, value.toString());
         },
+        print_bool: (value) => {
+            const bool_str = value === 1 ? "true" : "false";
+            process.stdout.write(bool_str);
+            fs.appendFileSync(outputPath, bool_str);
+        },
         print_str: (ptr) => {
             const buffer = new Uint8Array(instance.exports.memory.buffer);
             let str = "";

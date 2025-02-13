@@ -102,7 +102,7 @@ TEST(ExprTest, CondExpr)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output, "1\n\n");
+        ASSERT_EQ(output, "true\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -123,7 +123,7 @@ TEST(ExprTest, CondExprIntInt)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output, "1\n\n");
+        ASSERT_EQ(output, "true\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -143,7 +143,7 @@ TEST(ExprTest, CondExprFloatIntOverflow)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output, "1\n\n");
+        ASSERT_EQ(output, "true\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -163,7 +163,7 @@ TEST(ExprTest, CondExprIntFloatOverflow)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output, "1\n\n");
+        ASSERT_EQ(output, "true\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -183,7 +183,7 @@ TEST(ExprTest, CondExprIntFloat)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output, "1\n\n");
+        ASSERT_EQ(output, "true\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));

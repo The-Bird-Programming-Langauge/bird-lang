@@ -21,7 +21,7 @@ TEST(BooleanOpTest, ShortCircuitTest)
 
     options.after_compile = [](auto &output, auto &codegen)
     {
-        ASSERT_EQ(output, "0\n1\n\n");
+        ASSERT_EQ(output, "false\ntrue\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));

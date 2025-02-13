@@ -107,6 +107,15 @@ public:
             BinaryenTypeFloat64(),
             BinaryenTypeNone());
 
+        
+            BinaryenAddFunctionImport(
+                this->mod,
+                "print_bool",
+                "env",
+                "print_bool",
+                BinaryenTypeInt32(),
+                BinaryenTypeNone());
+
         BinaryenAddFunctionImport(
             this->mod,
             "print_str",
@@ -747,7 +756,7 @@ public:
                     BinaryenExpressionRef(
                         BinaryenCall(
                             this->mod,
-                            "print_i32",
+                            "print_bool",
                             &result.value,
                             1,
                             BinaryenTypeNone())));
