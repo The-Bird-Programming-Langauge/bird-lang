@@ -115,6 +115,14 @@ public:
             BinaryenTypeInt32(),
             BinaryenTypeNone());
 
+        BinaryenAddFunctionImport(
+            this->mod,
+            "print_endline",
+            "env",
+            "print_endline",
+            BinaryenTypeNone(),
+            BinaryenTypeNone());
+
         BinaryenType args[2] = {BinaryenTypeInt32(), BinaryenTypeInt32()}; // pointer and index
         BinaryenType args_type = BinaryenTypeCreate(args, 2);
         BinaryenAddFunctionImport(
@@ -722,54 +730,49 @@ public:
             {
                 throw BirdException("unsupported print type");
             }
-
-            if (result.type->type == BirdTypeType::INT)
+            else if (result.type->type == BirdTypeType::INT)
             {
-                BinaryenExpressionRef consoleLogCall =
-                    BinaryenCall(
-                        this->mod,
-                        "print_i32",
-                        &result.value,
-                        1,
-                        BinaryenTypeNone());
-
-                calls.push_back(consoleLogCall);
+                calls.push_back(
+                    BinaryenExpressionRef(
+                        BinaryenCall(
+                            this->mod,
+                            "print_i32",
+                            &result.value,
+                            1,
+                            BinaryenTypeNone())));
             }
             else if (result.type->type == BirdTypeType::BOOL)
             {
-                BinaryenExpressionRef consoleLogCall =
-                    BinaryenCall(
-                        this->mod,
-                        "print_i32",
-                        &result.value,
-                        1,
-                        BinaryenTypeNone());
-
-                calls.push_back(consoleLogCall);
+                calls.push_back(
+                    BinaryenExpressionRef(
+                        BinaryenCall(
+                            this->mod,
+                            "print_i32",
+                            &result.value,
+                            1,
+                            BinaryenTypeNone())));
             }
             else if (result.type->type == BirdTypeType::FLOAT)
             {
-                BinaryenExpressionRef consoleLogCall =
-                    BinaryenCall(
-                        this->mod,
-                        "print_f64",
-                        &result.value,
-                        1,
-                        BinaryenTypeNone());
-
-                calls.push_back(consoleLogCall);
+                calls.push_back(
+                    BinaryenExpressionRef(
+                        BinaryenCall(
+                            this->mod,
+                            "print_f64",
+                            &result.value,
+                            1,
+                            BinaryenTypeNone())));
             }
             else if (result.type->type == BirdTypeType::STRING)
             {
-                BinaryenExpressionRef consoleLogCall =
-                    BinaryenCall(
-                        this->mod,
-                        "print_str",
-                        &result.value,
-                        1,
-                        BinaryenTypeNone());
-
-                calls.push_back(consoleLogCall);
+                calls.push_back(
+                    BinaryenExpressionRef(
+                        BinaryenCall(
+                            this->mod,
+                            "print_str",
+                            &result.value,
+                            1,
+                            BinaryenTypeNone())));
             }
             else if (result.type->type == BirdTypeType::STRUCT)
             {
@@ -780,6 +783,16 @@ public:
                 throw BirdException("Unsupported print datatype: " + bird_type_to_string(result.type));
             }
         }
+
+        // print an endline character
+        calls.push_back(
+            BinaryenExpressionRef(
+                BinaryenCall(
+                    this->mod,
+                    "print_endline",
+                    nullptr,
+                    0,
+                    BinaryenTypeNone())));
 
         // push all of the calls to the stack as 1 block
         this->stack.push(

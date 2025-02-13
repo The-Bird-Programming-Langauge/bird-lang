@@ -1,1 +1,1 @@
-print "test", "test", 1;
+print "test", 2.5, 1, true, false, "hello";
