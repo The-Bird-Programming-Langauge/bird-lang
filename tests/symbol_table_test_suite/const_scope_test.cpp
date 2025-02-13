@@ -68,5 +68,7 @@ TEST(SymbolTableTest, ConstScopeInFunction)
         ASSERT_EQ(output, "42\n\n");
     };
 
+    ASSERT_TRUE(false);
+
     ASSERT_TRUE(BirdTest::compile(options));
 }
