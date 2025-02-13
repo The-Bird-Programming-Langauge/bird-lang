@@ -6,6 +6,7 @@
 #include <fstream>
 #include <algorithm>
 #include <ios>
+#include <map>
 
 static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i32s
 {
@@ -44,6 +45,7 @@ struct Tagged
 using TaggedExpression = Tagged<BinaryenExpressionRef>;
 using TaggedIndex = Tagged<BinaryenIndex>;
 using TaggedType = Tagged<BinaryenType>;
+using TaggedBinaryOpFn = Tagged<std::function<BinaryenOp(void)>>;
 
 /*
  * used to avoid multiple BinaryenMemorySet calls
@@ -59,6 +61,61 @@ struct MemorySegment
 
 class CodeGen : public Visitor
 {
+    // and and or are short circuiting operators, so we need to handle them differently
+    const std::map<Token::Type, std::map<std::pair<BirdTypeType, BirdTypeType>, TaggedBinaryOpFn>> binary_operations = {
+        {Token::Type::PLUS, {
+                                {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenAddInt32, std::make_shared<IntType>())},
+                                {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenAddFloat64, std::make_shared<FloatType>())},
+                                {{BirdTypeType::STRING, BirdTypeType::STRING}, TaggedBinaryOpFn(BinaryenAddInt32, std::make_shared<StringType>())},
+                            }},
+        {Token::Type::MINUS, {
+                                 {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenSubInt32, std::make_shared<IntType>())},
+                                 {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenSubFloat64, std::make_shared<FloatType>())},
+                             }},
+        {Token::Type::STAR, {
+                                {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenMulInt32, std::make_shared<IntType>())},
+                                {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenMulFloat64, std::make_shared<FloatType>())},
+                            }},
+        {Token::Type::SLASH, {
+                                 {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenDivSInt32, std::make_shared<IntType>())},
+                                 {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenDivFloat64, std::make_shared<FloatType>())},
+                             }},
+        {Token::Type::EQUAL_EQUAL, {
+                                       {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenEqInt32, std::make_shared<BoolType>())},
+                                       {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenEqFloat64, std::make_shared<BoolType>())},
+                                       {{BirdTypeType::STRING, BirdTypeType::STRING}, TaggedBinaryOpFn(BinaryenEqInt32, std::make_shared<BoolType>())},
+                                       {{BirdTypeType::BOOL, BirdTypeType::BOOL}, TaggedBinaryOpFn(BinaryenEqInt32, std::make_shared<BoolType>())},
+                                   }},
+        {Token::Type::BANG_EQUAL, {
+                                      {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenNeInt32, std::make_shared<BoolType>())},
+                                      {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenNeFloat64, std::make_shared<BoolType>())},
+                                      {{BirdTypeType::STRING, BirdTypeType::STRING}, TaggedBinaryOpFn(BinaryenNeInt32, std::make_shared<BoolType>())},
+                                      {{BirdTypeType::BOOL, BirdTypeType::BOOL}, TaggedBinaryOpFn(BinaryenNeInt32, std::make_shared<BoolType>())},
+                                  }},
+        {Token::Type::GREATER, {
+                                   {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenGtSInt32, std::make_shared<BoolType>())},
+                                   {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenGtFloat64, std::make_shared<BoolType>())},
+                               }},
+        {Token::Type::GREATER_EQUAL, {
+                                         {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenGeSInt32, std::make_shared<BoolType>())},
+                                         {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenGeFloat64, std::make_shared<BoolType>())},
+                                     }},
+        {Token::Type::LESS, {
+                                {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenLtSInt32, std::make_shared<BoolType>())},
+                                {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenLtFloat64, std::make_shared<BoolType>())},
+                            }},
+        {Token::Type::LESS_EQUAL, {
+                                      {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenLeSInt32, std::make_shared<BoolType>())},
+                                      {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, TaggedBinaryOpFn(BinaryenLeFloat64, std::make_shared<BoolType>())},
+                                  }},
+        {Token::Type::XOR, {
+                               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, TaggedBinaryOpFn(BinaryenXorInt32, std::make_shared<BoolType>())},
+                           }},
+        {Token::Type::PERCENT, {
+                                   {{BirdTypeType::INT, BirdTypeType::INT}, TaggedBinaryOpFn(BinaryenRemSInt32, std::make_shared<IntType>())},
+                               }},
+    };
+
 public:
     Environment<TaggedIndex> environment; // tracks the index of local variables
     Environment<std::shared_ptr<BirdType>> type_table;
@@ -946,269 +1003,26 @@ public:
 
     void visit_binary(Binary *binary)
     {
+        switch (binary->op.token_type)
+        {
+        case Token::Type::AND:
+        case Token::Type::OR:
+            visit_binary_short_circuit(binary);
+            break;
+        default:
+            visit_binary_normal(binary);
+        }
+    }
+
+    void visit_binary_short_circuit(Binary *binary)
+    {
         binary->left->accept(this);
         binary->right->accept(this);
 
         auto right = this->stack.pop();
         auto left = this->stack.pop();
-
-        bool float_flag = (BinaryenExpressionGetType(left.value) == BinaryenTypeFloat64() ||
-                           BinaryenExpressionGetType(right.value) == BinaryenTypeFloat64());
-
-        if (float_flag && BinaryenExpressionGetType(left.value) == BinaryenTypeInt32())
-        {
-            left =
-                BinaryenUnary(
-                    mod,
-                    BinaryenConvertSInt32ToFloat64(),
-                    left.value);
-        }
-        else if (float_flag && BinaryenExpressionGetType(right.value) == BinaryenTypeInt32())
-        {
-            right =
-                BinaryenUnary(
-                    mod,
-                    BinaryenConvertSInt32ToFloat64(),
-                    right.value);
-        }
-
-        // TODO: print bool for relational operators, currently pushes them as CodeGenInt
         switch (binary->op.token_type)
         {
-        case Token::Type::PLUS:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenAddFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new FloatType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenAddInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new IntType())));
-
-            break;
-        }
-        case Token::Type::MINUS:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenSubFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new FloatType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenSubInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new IntType())));
-
-            break;
-        }
-        case Token::Type::SLASH:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenDivFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new FloatType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenDivSInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new IntType())));
-
-            break;
-        }
-        case Token::Type::STAR:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenMulFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new FloatType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenMulInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new IntType())));
-
-            break;
-        }
-        case Token::Type::GREATER:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenGtFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenGtSInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())));
-
-            break;
-        }
-        case Token::Type::PERCENT:
-        {
-            (float_flag)
-                ? throw BirdException("modular operation requires integer values")
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenRemSInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new IntType())));
-
-            break;
-        }
-        case Token::Type::GREATER_EQUAL:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenGeFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenGeSInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())));
-
-            break;
-        }
-        case Token::Type::LESS:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod, BinaryenLtFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenLtSInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())));
-
-            break;
-        }
-        case Token::Type::LESS_EQUAL:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenLeFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenLeSInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())));
-
-            break;
-        }
-        case Token::Type::EQUAL_EQUAL:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenEqFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenEqInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())));
-
-            break;
-        }
-        case Token::Type::BANG_EQUAL:
-        {
-            (float_flag)
-                ? this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenNeFloat64(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())))
-                : this->stack.push(
-                      TaggedExpression(
-                          BinaryenBinary(
-                              this->mod,
-                              BinaryenNeInt32(),
-                              left.value,
-                              right.value),
-                          std::shared_ptr<BirdType>(new BoolType())));
-
-            break;
-        }
         case Token::Type::AND:
         {
             this->stack.push(
@@ -1233,22 +1047,38 @@ public:
                     std::shared_ptr<BirdType>(new BoolType())));
             break;
         }
-        case Token::Type::XOR:
+        default:
+            throw BirdException("unsupported short circuit operation: " + binary->op.lexeme);
+        }
+    }
+
+    void
+    visit_binary_normal(Binary *binary)
+    {
+        binary->left->accept(this);
+        binary->right->accept(this);
+
+        auto right = this->stack.pop();
+        auto left = this->stack.pop();
+        try
         {
+            auto binary_op = this->binary_operations.at(binary->op.token_type);
+            std::cout << "left type: " << bird_type_to_string(left.type) << std::endl;
+            std::cout << "right type: " << bird_type_to_string(right.type) << std::endl;
+            auto binary_op_fn = binary_op.at({left.type->type, right.type->type});
+
             this->stack.push(
                 TaggedExpression(
                     BinaryenBinary(
                         this->mod,
-                        BinaryenNeInt32(),
+                        binary_op_fn.value(),
                         left.value,
                         right.value),
-                    std::shared_ptr<BirdType>(new BoolType())));
-            break;
+                    binary_op_fn.type));
         }
-        default:
+        catch (std::out_of_range &e)
         {
-            throw BirdException("undefined binary operator for code gen");
-        }
+            throw BirdException("unsupported binary operation: " + binary->op.lexeme);
         }
     }
 
@@ -1266,7 +1096,19 @@ public:
 
         switch (unary->op.token_type)
         {
-        case Token::Type::QUESTION: // This fixes an error with the tests, but probably shouldn't?
+        case Token::Type::QUESTION:
+        {
+            this->stack.push(
+                TaggedExpression(
+                    BinaryenSelect(
+                        this->mod,
+                        expr.value,
+                        BinaryenConst(mod, BinaryenLiteralInt32(1)),
+                        BinaryenConst(mod, BinaryenLiteralInt32(0)),
+                        BinaryenTypeInt32()),
+                    std::shared_ptr<BirdType>(new BoolType())));
+            break;
+        }
         case Token::Type::MINUS:
         {
             if (expr_type == BinaryenTypeFloat64())

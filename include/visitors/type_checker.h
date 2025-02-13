@@ -56,7 +56,7 @@ public:
     };
 
     // map of binary operations and their return types
-    std::map<Token::Type, std::map<std::pair<BirdTypeType, BirdTypeType>, BirdTypeType>> binary_operations = {
+    const std::map<Token::Type, std::map<std::pair<BirdTypeType, BirdTypeType>, BirdTypeType>> binary_operations = {
         {Token::Type::PLUS, {
                                 {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
                                 {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::FLOAT},
@@ -113,7 +113,6 @@ public:
                            }},
         {Token::Type::PERCENT, {
                                    {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
-                                   {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::FLOAT},
                                }},
     };
 
