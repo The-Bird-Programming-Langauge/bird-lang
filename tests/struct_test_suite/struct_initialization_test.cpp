@@ -107,7 +107,7 @@ TEST(StructTest, AllPrimitiveTypesStructInitialization)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output == "1\n2\nhello\n1\n\n", true);
+        ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -147,7 +147,7 @@ TEST(StructTest, HoistedStructInitialization)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output == "1\n2\nhello\n1\n\n", true);
+        ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
@@ -187,7 +187,7 @@ TEST(StructTest, ParamsOutOfOrderStructInitialization)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output == "1\n2\nhello\n1\n\n", true);
+        ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -227,7 +227,7 @@ TEST(StructTest, NoParamsStructInitialization)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output == "0\n0\n\n0\n\n", true);
+        ASSERT_EQ(output == "0\n0\n\nfalse\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -329,7 +329,7 @@ TEST(StructTest, SomeParamsStructInitialization)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output == "1\n0\nhello\n0\n\n", true);
+        ASSERT_EQ(output == "1\n0\nhello\nfalse\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));

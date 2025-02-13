@@ -15,7 +15,7 @@ TEST(BooleanOpTest, AndOrPrecedenceTest)
 
     options.after_compile = [](auto &output, auto &codegen)
     {
-        ASSERT_EQ(output, "0\n\n");
+        ASSERT_EQ(output, "false\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));

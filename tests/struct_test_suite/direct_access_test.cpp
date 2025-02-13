@@ -35,7 +35,7 @@ TEST(StructTest, DirectAccessTest)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output == "1\n2\nhello\n1\n\n", true);
+        ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));

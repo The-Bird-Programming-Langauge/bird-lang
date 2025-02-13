@@ -78,7 +78,7 @@ TEST(VarTest, VarWithoutTypeBoolTrue)
 
     options.after_compile = [&](std::string &output, CodeGen &code_gen)
     {
-        ASSERT_TRUE(output.find("1") != std::string::npos);
+        ASSERT_TRUE(output.find("true") != std::string::npos);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -98,7 +98,7 @@ TEST(VarTest, VarWithoutTypeBoolFalse)
 
     options.after_compile = [&](std::string &output, CodeGen &code_gen)
     {
-        ASSERT_TRUE(output.find("0") != std::string::npos);
+        ASSERT_TRUE(output.find("false") != std::string::npos);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
