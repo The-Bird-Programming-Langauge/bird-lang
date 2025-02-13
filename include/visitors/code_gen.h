@@ -711,6 +711,8 @@ public:
 
     void visit_print_stmt(PrintStmt *print_stmt)
     {
+        std::vector<BinaryenExpressionRef> calls;
+
         for (auto &arg : print_stmt->args)
         {
             arg->accept(this);
@@ -731,7 +733,7 @@ public:
                         1,
                         BinaryenTypeNone());
 
-                this->stack.push(consoleLogCall);
+                calls.push_back(consoleLogCall);
             }
             else if (result.type->type == BirdTypeType::BOOL)
             {
@@ -743,7 +745,7 @@ public:
                         1,
                         BinaryenTypeNone());
 
-                this->stack.push(consoleLogCall);
+                calls.push_back(consoleLogCall);
             }
             else if (result.type->type == BirdTypeType::FLOAT)
             {
@@ -755,7 +757,7 @@ public:
                         1,
                         BinaryenTypeNone());
 
-                this->stack.push(consoleLogCall);
+                calls.push_back(consoleLogCall);
             }
             else if (result.type->type == BirdTypeType::STRING)
             {
@@ -767,7 +769,7 @@ public:
                         1,
                         BinaryenTypeNone());
 
-                this->stack.push(consoleLogCall);
+                calls.push_back(consoleLogCall);
             }
             else if (result.type->type == BirdTypeType::STRUCT)
             {
@@ -778,6 +780,16 @@ public:
                 throw BirdException("Unsupported print datatype: " + bird_type_to_string(result.type));
             }
         }
+
+        // push all of the calls to the stack as 1 block
+        this->stack.push(
+            TaggedExpression(
+                BinaryenBlock(
+                    this->mod,
+                    nullptr,
+                    calls.data(),
+                    calls.size(),
+                    BinaryenTypeNone())));
     }
 
     void visit_expr_stmt(ExprStmt *expr_stmt)
