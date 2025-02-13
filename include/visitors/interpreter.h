@@ -43,7 +43,7 @@ public:
 
     void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
-        HoistVisitor hoist_visitor(&this->struct_names);
+        HoistVisitor hoist_visitor(this->struct_names);
         hoist_visitor.hoist(stmts);
 
         for (auto &stmt : *stmts)

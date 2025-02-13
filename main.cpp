@@ -52,8 +52,8 @@ void repl()
     Interpreter interpreter;
     std::string code;
     UserErrorTracker error_tracker(code);
-    SemanticAnalyzer semantic_analyzer(&error_tracker);
-    TypeChecker type_checker(&error_tracker);
+    SemanticAnalyzer semantic_analyzer(error_tracker);
+    TypeChecker type_checker(error_tracker);
     while (true)
     {
         std::cout << ">";
@@ -99,7 +99,7 @@ void repl()
 
 void compile(std::string filename)
 {
-    auto code = read_file(filename);
+    const auto code = read_file(filename);
     UserErrorTracker error_tracker(code);
 
     Parser parser(code, &error_tracker);
@@ -115,7 +115,7 @@ void compile(std::string filename)
     printer.print_ast(&ast);
 #endif
 
-    SemanticAnalyzer semantic_analyzer(&error_tracker);
+    SemanticAnalyzer semantic_analyzer(error_tracker);
     semantic_analyzer.analyze_semantics(&ast);
 
     if (error_tracker.has_errors())
@@ -123,7 +123,7 @@ void compile(std::string filename)
         error_tracker.print_errors_and_exit();
     }
 
-    TypeChecker type_checker(&error_tracker);
+    TypeChecker type_checker(error_tracker);
     type_checker.check_types(&ast);
 
     if (error_tracker.has_errors())
@@ -153,7 +153,7 @@ void interpret(std::string filename)
     printer.print_ast(&ast);
 #endif
 
-    SemanticAnalyzer semantic_analyzer(&error_tracker);
+    SemanticAnalyzer semantic_analyzer(error_tracker);
     semantic_analyzer.analyze_semantics(&ast);
 
     if (error_tracker.has_errors())
@@ -161,7 +161,7 @@ void interpret(std::string filename)
         error_tracker.print_errors_and_exit();
     }
 
-    TypeChecker type_checker(&error_tracker);
+    TypeChecker type_checker(error_tracker);
     type_checker.check_types(&ast);
 
     if (error_tracker.has_errors())

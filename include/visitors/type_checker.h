@@ -38,9 +38,9 @@ public:
 
     Stack<std::shared_ptr<BirdType>> stack;
     std::optional<std::shared_ptr<BirdType>> return_type;
-    UserErrorTracker *user_error_tracker;
+    UserErrorTracker &user_error_tracker;
 
-    TypeChecker(UserErrorTracker *user_error_tracker) : user_error_tracker(user_error_tracker)
+    TypeChecker(UserErrorTracker &user_error_tracker) : user_error_tracker(user_error_tracker)
     {
         this->env.push_env();
         this->call_table.push_env();
@@ -119,7 +119,7 @@ public:
 
     void check_types(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
-        HoistVisitor hoist_visitor(&this->struct_names);
+        HoistVisitor hoist_visitor(this->struct_names);
         hoist_visitor.hoist(stmts);
         for (auto &stmt : *stmts)
         {
@@ -238,7 +238,7 @@ public:
 
         if (result->type == BirdTypeType::VOID)
         {
-            this->user_error_tracker->type_error("cannot declare void type", decl_stmt->identifier);
+            this->user_error_tracker.type_error("cannot declare void type", decl_stmt->identifier);
             this->env.declare(decl_stmt->identifier.lexeme, std::make_shared<ErrorType>());
             return;
         }
@@ -249,7 +249,7 @@ public:
 
             if (*type != *result)
             {
-                this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type_token.value());
+                this->user_error_tracker.type_mismatch("in declaration", decl_stmt->type_token.value());
                 this->env.declare(decl_stmt->identifier.lexeme, std::make_unique<ErrorType>());
                 return;
             }
@@ -262,7 +262,7 @@ public:
     {
         if (!this->env.contains(assign_expr->identifier.lexeme))
         {
-            this->user_error_tracker->type_error("identifier not declared", assign_expr->identifier);
+            this->user_error_tracker.type_error("identifier not declared", assign_expr->identifier);
             this->env.set(assign_expr->identifier.lexeme, std::make_shared<ErrorType>());
             return;
         }
@@ -276,7 +276,7 @@ public:
         {
             if (*previous != *result)
             {
-                this->user_error_tracker->type_mismatch("in assignment", assign_expr->assign_operator);
+                this->user_error_tracker.type_mismatch("in assignment", assign_expr->assign_operator);
                 this->env.set(assign_expr->identifier.lexeme, std::make_shared<ErrorType>());
                 return;
             }
@@ -290,7 +290,7 @@ public:
 
         if (type_map.find({previous->type, result->type}) == type_map.end())
         {
-            this->user_error_tracker->type_mismatch("in assignment", assign_expr->assign_operator);
+            this->user_error_tracker.type_mismatch("in assignment", assign_expr->assign_operator);
             this->env.set(assign_expr->identifier.lexeme, std::make_shared<ErrorType>());
             return;
         }
@@ -313,22 +313,22 @@ public:
 
             if (result->type == BirdTypeType::VOID)
             {
-                this->user_error_tracker->type_error("cannot print void type", print_stmt->print_token);
+                this->user_error_tracker.type_error("cannot print void type", print_stmt->print_token);
             }
 
             if (result->type == BirdTypeType::STRUCT)
             {
-                this->user_error_tracker->type_error("cannot print struct type", print_stmt->print_token);
+                this->user_error_tracker.type_error("cannot print struct type", print_stmt->print_token);
             }
 
             if (result->type == BirdTypeType::PLACEHOLDER)
             {
-                this->user_error_tracker->type_error("cannot print struct type", print_stmt->print_token);
+                this->user_error_tracker.type_error("cannot print struct type", print_stmt->print_token);
             }
 
             if (result->type == BirdTypeType::FUNCTION)
             {
-                this->user_error_tracker->type_error("cannot print function type", print_stmt->print_token);
+                this->user_error_tracker.type_error("cannot print function type", print_stmt->print_token);
             }
 
             if (result->type == BirdTypeType::ERROR)
@@ -345,7 +345,7 @@ public:
 
         if (result->type == BirdTypeType::VOID)
         {
-            this->user_error_tracker->type_error("cannot declare void type", const_stmt->identifier);
+            this->user_error_tracker.type_error("cannot declare void type", const_stmt->identifier);
             this->env.declare(const_stmt->identifier.lexeme, std::make_shared<ErrorType>());
             return;
         }
@@ -356,7 +356,7 @@ public:
 
             if (*type != *result)
             {
-                this->user_error_tracker->type_mismatch("in declaration", const_stmt->type_token.value());
+                this->user_error_tracker.type_mismatch("in declaration", const_stmt->type_token.value());
                 this->env.declare(const_stmt->identifier.lexeme, std::make_shared<ErrorType>());
                 return;
             }
@@ -372,7 +372,7 @@ public:
 
         if (condition_result->type != BirdTypeType::BOOL)
         {
-            this->user_error_tracker->type_error("expected bool in while statement condition", while_stmt->while_token);
+            this->user_error_tracker.type_error("expected bool in while statement condition", while_stmt->while_token);
         }
 
         while_stmt->stmt->accept(this);
@@ -394,7 +394,7 @@ public:
 
             if (condition_result->type != BirdTypeType::BOOL)
             {
-                this->user_error_tracker->type_error("expected bool in for statement condition", for_stmt->for_token);
+                this->user_error_tracker.type_error("expected bool in for statement condition", for_stmt->for_token);
             }
         }
 
@@ -417,7 +417,7 @@ public:
         auto operator_options = this->binary_operations.at(binary->op.token_type);
         if (operator_options.find({left->type, right->type}) == operator_options.end())
         {
-            this->user_error_tracker->type_mismatch("in binary operation", binary->op);
+            this->user_error_tracker.type_mismatch("in binary operation", binary->op);
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }
@@ -443,7 +443,7 @@ public:
             }
             else
             {
-                this->user_error_tracker->type_error("expected int or float in unary operation, found: " + bird_type_to_string(result), unary->op);
+                this->user_error_tracker.type_error("expected int or float in unary operation, found: " + bird_type_to_string(result), unary->op);
                 this->stack.push(std::make_shared<ErrorType>());
             }
             break;
@@ -456,7 +456,7 @@ public:
             }
             else
             {
-                this->user_error_tracker->type_error("expected bool int unary operation, found: " + bird_type_to_string(result), unary->op);
+                this->user_error_tracker.type_error("expected bool int unary operation, found: " + bird_type_to_string(result), unary->op);
                 this->stack.push(std::make_shared<ErrorType>());
             }
             break;
@@ -473,7 +473,7 @@ public:
             }
             else
             {
-                this->user_error_tracker->type_error("expected struct in unary operation, found: " + bird_type_to_string(result), unary->op);
+                this->user_error_tracker.type_error("expected struct in unary operation, found: " + bird_type_to_string(result), unary->op);
                 this->stack.push(std::make_shared<ErrorType>());
             }
             break;
@@ -535,13 +535,13 @@ public:
 
         if (*true_expr != *false_expr)
         {
-            this->user_error_tracker->type_mismatch("in ternary operation", ternary->ternary_token);
+            this->user_error_tracker.type_mismatch("in ternary operation", ternary->ternary_token);
             true_expr = std::make_shared<ErrorType>();
         }
 
         if (condition->type != BirdTypeType::BOOL)
         {
-            this->user_error_tracker->type_error("expected bool in ternary condition", ternary->ternary_token);
+            this->user_error_tracker.type_error("expected bool in ternary condition", ternary->ternary_token);
             this->stack.push(std::make_shared<ErrorType>());
         }
         else
@@ -586,7 +586,7 @@ public:
                 return std::make_shared<PlaceholderType>(type_name);
             }
 
-            this->user_error_tracker->type_error("unknown type", token);
+            this->user_error_tracker.type_error("unknown type", token);
             return std::make_shared<ErrorType>();
         }
     }
@@ -632,7 +632,7 @@ public:
 
         if (condition->type != BirdTypeType::BOOL)
         {
-            this->user_error_tracker->type_error("expected bool in if statement condition", if_stmt->if_token);
+            this->user_error_tracker.type_error("expected bool in if statement condition", if_stmt->if_token);
         }
 
         if_stmt->then_branch->accept(this);
@@ -667,7 +667,7 @@ public:
 
             if (*arg != *param)
             {
-                this->user_error_tracker->type_mismatch("in function call", call->identifier);
+                this->user_error_tracker.type_mismatch("in function call", call->identifier);
             }
         }
 
@@ -685,19 +685,19 @@ public:
             {
                 if (*result != *this->return_type.value())
                 {
-                    this->user_error_tracker->type_mismatch("in return statement", return_stmt->return_token);
+                    this->user_error_tracker.type_mismatch("in return statement", return_stmt->return_token);
                 }
             }
             else
             {
-                this->user_error_tracker->type_error("unexpected return value in void function", return_stmt->return_token);
+                this->user_error_tracker.type_error("unexpected return value in void function", return_stmt->return_token);
             }
         }
         else
         {
             if (!this->return_type.has_value() || this->return_type.value()->type != BirdTypeType::VOID)
             {
-                this->user_error_tracker->type_error("expected return value in non-void function", return_stmt->return_token);
+                this->user_error_tracker.type_error("expected return value in non-void function", return_stmt->return_token);
             }
         }
     }
@@ -716,7 +716,7 @@ public:
     {
         if (this->type_table.contains(type_stmt->identifier.lexeme))
         {
-            this->user_error_tracker->type_error("type already declared", type_stmt->identifier);
+            this->user_error_tracker.type_error("type already declared", type_stmt->identifier);
             return;
         }
 
@@ -735,14 +735,14 @@ public:
 
         if (subscriptable->type != BirdTypeType::STRING)
         {
-            this->user_error_tracker->type_error("expected string in subscriptable", subscript->subscript_token);
+            this->user_error_tracker.type_error("expected string in subscriptable", subscript->subscript_token);
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }
 
         if (index->type != BirdTypeType::INT)
         {
-            this->user_error_tracker->type_error("expected int in subscript index", subscript->subscript_token);
+            this->user_error_tracker.type_error("expected int in subscript index", subscript->subscript_token);
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }
@@ -775,7 +775,7 @@ public:
             auto placeholder = safe_dynamic_pointer_cast<PlaceholderType>(accessable);
             if (this->struct_names.find(placeholder->name) == this->struct_names.end())
             {
-                this->user_error_tracker->type_error("struct not declared", Token());
+                this->user_error_tracker.type_error("struct not declared", Token());
                 this->stack.push(std::make_shared<ErrorType>());
                 return;
             }
@@ -785,7 +785,7 @@ public:
 
         if (accessable->type != BirdTypeType::STRUCT)
         {
-            this->user_error_tracker->type_error("expected struct in direct member access, found: " + bird_type_to_string(accessable), direct_member_access->identifier);
+            this->user_error_tracker.type_error("expected struct in direct member access, found: " + bird_type_to_string(accessable), direct_member_access->identifier);
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }
@@ -801,7 +801,7 @@ public:
             }
         }
 
-        this->user_error_tracker->type_error("field does not exist on struct", direct_member_access->identifier);
+        this->user_error_tracker.type_error("field does not exist on struct", direct_member_access->identifier);
         this->stack.push(std::make_shared<ErrorType>());
         return;
     }
@@ -810,7 +810,7 @@ public:
     {
         if (!this->type_table.contains(struct_initialization->identifier.lexeme))
         {
-            this->user_error_tracker->type_error("struct not declared", struct_initialization->identifier);
+            this->user_error_tracker.type_error("struct not declared", struct_initialization->identifier);
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }
@@ -833,7 +833,7 @@ public:
 
             if (!found)
             {
-                this->user_error_tracker->type_error("field \"" + field_assignment.first + "\" does not exist in struct " + struct_initialization->identifier.lexeme, struct_initialization->identifier);
+                this->user_error_tracker.type_error("field \"" + field_assignment.first + "\" does not exist in struct " + struct_initialization->identifier.lexeme, struct_initialization->identifier);
                 this->stack.push(std::make_shared<ErrorType>());
                 return;
             }
@@ -858,7 +858,7 @@ public:
                         auto placeholder = safe_dynamic_pointer_cast<PlaceholderType>(field.second);
                         if (this->struct_names.find(placeholder->name) == this->struct_names.end())
                         {
-                            this->user_error_tracker->type_error("struct not declared", Token());
+                            this->user_error_tracker.type_error("struct not declared", Token());
                             this->stack.push(std::make_shared<ErrorType>());
                             return;
                         }
@@ -871,7 +871,7 @@ public:
                         auto placeholder = safe_dynamic_pointer_cast<PlaceholderType>(field_type);
                         if (this->struct_names.find(placeholder->name) == this->struct_names.end())
                         {
-                            this->user_error_tracker->type_error("struct not declared", Token());
+                            this->user_error_tracker.type_error("struct not declared", Token());
                             this->stack.push(std::make_shared<ErrorType>());
                             return;
                         }
@@ -881,7 +881,7 @@ public:
 
                     if (*field.second != *field_type)
                     {
-                        this->user_error_tracker->type_mismatch("in struct initialization", struct_initialization->identifier);
+                        this->user_error_tracker.type_mismatch("in struct initialization", struct_initialization->identifier);
                         this->stack.push(std::make_shared<ErrorType>());
                         return;
                     }
@@ -907,7 +907,7 @@ public:
 
         if (accessable->type != BirdTypeType::STRUCT)
         {
-            this->user_error_tracker->type_error("expected struct in member assign", member_assign->identifier);
+            this->user_error_tracker.type_error("expected struct in member assign", member_assign->identifier);
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }
@@ -923,7 +923,7 @@ public:
 
                 if (*f.second != *value)
                 {
-                    this->user_error_tracker->type_mismatch("in member assign", member_assign->identifier);
+                    this->user_error_tracker.type_mismatch("in member assign", member_assign->identifier);
                     this->stack.push(std::make_shared<ErrorType>());
                     return;
                 }
@@ -965,7 +965,7 @@ public:
             return;
         }
 
-        this->user_error_tracker->type_mismatch("in 'as' type cast", as_cast->type);
+        this->user_error_tracker.type_mismatch("in 'as' type cast", as_cast->type);
         this->stack.push(std::make_shared<ErrorType>());
     }
 };

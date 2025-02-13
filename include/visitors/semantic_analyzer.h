@@ -26,12 +26,12 @@ public:
     Environment<SemanticValue> env;
     Environment<SemanticCallable> call_table;
     Environment<SemanticType> type_table;
-    UserErrorTracker *user_error_tracker;
+    UserErrorTracker &user_error_tracker;
     int loop_depth;
     int function_depth;
     bool found_return;
 
-    SemanticAnalyzer(UserErrorTracker *user_error_tracker) : user_error_tracker(user_error_tracker)
+    SemanticAnalyzer(UserErrorTracker &user_error_tracker) : user_error_tracker(user_error_tracker)
     {
         this->env.push_env();
         this->call_table.push_env();
@@ -145,7 +145,7 @@ public:
     {
         if (this->identifer_in_any_environment(decl_stmt->identifier.lexeme))
         {
-            this->user_error_tracker->semantic_error("Identifier '" + decl_stmt->identifier.lexeme + "' is already declared.", decl_stmt->identifier);
+            this->user_error_tracker.semantic_error("Identifier '" + decl_stmt->identifier.lexeme + "' is already declared.", decl_stmt->identifier);
             return;
         }
 
@@ -160,7 +160,7 @@ public:
     {
         if (!this->env.contains(assign_expr->identifier.lexeme) && !this->call_table.contains(assign_expr->identifier.lexeme))
         {
-            this->user_error_tracker->semantic_error("Variable '" + assign_expr->identifier.lexeme + "' does not exist.", assign_expr->identifier);
+            this->user_error_tracker.semantic_error("Variable '" + assign_expr->identifier.lexeme + "' does not exist.", assign_expr->identifier);
             return;
         }
 
@@ -168,7 +168,7 @@ public:
 
         if (!previous_value.is_mutable)
         {
-            this->user_error_tracker->semantic_error("Identifier '" + assign_expr->identifier.lexeme + "' is not mutable.", assign_expr->identifier);
+            this->user_error_tracker.semantic_error("Identifier '" + assign_expr->identifier.lexeme + "' is not mutable.", assign_expr->identifier);
             return;
         }
 
@@ -192,7 +192,7 @@ public:
     {
         if (this->identifer_in_any_environment(const_stmt->identifier.lexeme))
         {
-            this->user_error_tracker->semantic_error("Identifier '" + const_stmt->identifier.lexeme + "' is already declared.", const_stmt->identifier);
+            this->user_error_tracker.semantic_error("Identifier '" + const_stmt->identifier.lexeme + "' is already declared.", const_stmt->identifier);
             return;
         }
 
@@ -253,7 +253,7 @@ public:
     {
         if (primary->value.token_type == Token::Type::IDENTIFIER && !this->env.contains(primary->value.lexeme))
         {
-            this->user_error_tracker->semantic_error("Variable '" + primary->value.lexeme + "' does not exist.", primary->value);
+            this->user_error_tracker.semantic_error("Variable '" + primary->value.lexeme + "' does not exist.", primary->value);
             return;
         }
     }
@@ -272,7 +272,7 @@ public:
 
         if (this->identifer_in_any_environment(func->identifier.lexeme))
         {
-            this->user_error_tracker->semantic_error("Identifier '" + func->identifier.lexeme + "' is already declared.", func->identifier);
+            this->user_error_tracker.semantic_error("Identifier '" + func->identifier.lexeme + "' is already declared.", func->identifier);
             return;
         }
 
@@ -293,7 +293,7 @@ public:
 
         if (!found_return && func->return_type.has_value() && func->return_type.value().lexeme != "void")
         {
-            this->user_error_tracker->semantic_error("Function '" + func->identifier.lexeme + "' does not have a return statement.", func->identifier);
+            this->user_error_tracker.semantic_error("Function '" + func->identifier.lexeme + "' does not have a return statement.", func->identifier);
         }
 
         this->env.pop_env();
@@ -316,7 +316,7 @@ public:
     {
         if (!this->call_table.contains(call->identifier.lexeme))
         {
-            this->user_error_tracker->semantic_error("Function call identifier '" + call->identifier.lexeme + "' is not declared.", call->identifier);
+            this->user_error_tracker.semantic_error("Function call identifier '" + call->identifier.lexeme + "' is not declared.", call->identifier);
             return;
         }
 
@@ -324,7 +324,7 @@ public:
 
         if (function.param_count != call->args.size())
         {
-            this->user_error_tracker->semantic_error("Function call identifer '" + call->identifier.lexeme + "' does not use the correct number of arguments.", call->identifier);
+            this->user_error_tracker.semantic_error("Function call identifer '" + call->identifier.lexeme + "' does not use the correct number of arguments.", call->identifier);
             return;
         }
     }
@@ -334,7 +334,7 @@ public:
         this->found_return = true;
         if (this->function_depth == 0)
         {
-            this->user_error_tracker->semantic_error("Return statement is declared outside of a function.", return_stmt->return_token);
+            this->user_error_tracker.semantic_error("Return statement is declared outside of a function.", return_stmt->return_token);
             return;
         }
 
@@ -348,7 +348,7 @@ public:
     {
         if (this->loop_depth == 0)
         {
-            this->user_error_tracker->semantic_error("Break statement is declared outside of a loop.", break_stmt->break_token);
+            this->user_error_tracker.semantic_error("Break statement is declared outside of a loop.", break_stmt->break_token);
             return;
         }
     }
@@ -357,7 +357,7 @@ public:
     {
         if (this->loop_depth == 0)
         {
-            this->user_error_tracker->semantic_error("Continue statement is declared outside of a loop.", continue_stmt->continue_token);
+            this->user_error_tracker.semantic_error("Continue statement is declared outside of a loop.", continue_stmt->continue_token);
             return;
         }
     }
@@ -366,7 +366,7 @@ public:
     {
         if (this->identifer_in_any_environment(type_stmt->identifier.lexeme))
         {
-            this->user_error_tracker->semantic_error("Identifier '" + type_stmt->identifier.lexeme + "' is already declared.", type_stmt->identifier);
+            this->user_error_tracker.semantic_error("Identifier '" + type_stmt->identifier.lexeme + "' is already declared.", type_stmt->identifier);
             return;
         }
 
@@ -390,7 +390,7 @@ public:
     {
         // if (this->identifer_in_any_environment(struct_decl->identifier.lexeme))
         // {
-        //     this->user_error_tracker->semantic_error("Identifier '" + struct_decl->identifier.lexeme + "' is already declared.", struct_decl->identifier);
+        //     this->user_error_tracker.semantic_error("Identifier '" + struct_decl->identifier.lexeme + "' is already declared.", struct_decl->identifier);
         //     return;
         // }
 

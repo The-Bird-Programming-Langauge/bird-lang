@@ -260,11 +260,11 @@ public:
     {
         this->init_std_lib();
 
-        HoistVisitor hoist_visitor(&this->struct_names);
+        HoistVisitor hoist_visitor(this->struct_names);
         hoist_visitor.hoist(stmts);
 
         std::vector<std::string> static_strings;
-        StaticVisitor static_visitor(&static_strings);
+        StaticVisitor static_visitor(static_strings);
         static_visitor.static_pass(stmts);
 
         this->init_static_memory(static_strings);

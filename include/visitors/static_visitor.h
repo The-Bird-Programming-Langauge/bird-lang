@@ -9,12 +9,9 @@
 class StaticVisitor : public VisitorAdapter
 {
 public:
-    std::vector<std::string> *static_strings;
+    std::vector<std::string> &static_strings;
 
-    StaticVisitor(std::vector<std::string> *static_strings)
-    {
-        this->static_strings = static_strings;
-    }
+    StaticVisitor(std::vector<std::string> &static_strings) : static_strings(static_strings) {}
     ~StaticVisitor() {}
 
     void static_pass(std::vector<std::unique_ptr<Stmt>> *stmts)
@@ -137,14 +134,14 @@ public:
         {
         case Token::Type::STR_LITERAL:
         {
-            this->static_strings->push_back(primary->value.lexeme);
+            this->static_strings.push_back(primary->value.lexeme);
             break;
         }
         default:
             break;
         }
     }
-    
+
     void visit_binary(Binary *binary)
     {
         binary->left->accept(this);

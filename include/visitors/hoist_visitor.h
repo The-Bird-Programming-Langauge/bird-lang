@@ -8,12 +8,10 @@
 
 class HoistVisitor : public VisitorAdapter
 {
+    std::set<std::string> &struct_names;
+
 public:
-    std::set<std::string> *struct_names;
-    HoistVisitor(std::set<std::string> *struct_names)
-    {
-        this->struct_names = struct_names;
-    }
+    HoistVisitor(std::set<std::string> &struct_names) : struct_names(struct_names) {}
 
     void hoist(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
@@ -40,21 +38,21 @@ public:
             return;
         }
 
-        if (this->struct_names->find(type_stmt->type_token.lexeme) != this->struct_names->end())
+        if (this->struct_names.find(type_stmt->type_token.lexeme) != this->struct_names.end())
         {
             return;
         }
 
-        this->struct_names->insert(type_stmt->type_token.lexeme);
+        this->struct_names.insert(type_stmt->type_token.lexeme);
     }
 
     void visit_struct_decl(StructDecl *struct_decl)
     {
-        if (this->struct_names->find(struct_decl->identifier.lexeme) != this->struct_names->end())
+        if (this->struct_names.find(struct_decl->identifier.lexeme) != this->struct_names.end())
         {
             return;
         }
 
-        this->struct_names->insert(struct_decl->identifier.lexeme);
+        this->struct_names.insert(struct_decl->identifier.lexeme);
     }
 };
