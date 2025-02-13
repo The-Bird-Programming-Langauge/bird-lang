@@ -132,11 +132,14 @@ unary_expr
 call_expr
 struct_initialization
 array_initialization
-subscript_expr
 direct_member_access
+index_assign
 grouping
 and_expr
 or_expr
+
+%type <std::unique_ptr<Subscript>>
+subscript_expr
 
 %type <Token> 
 primary
@@ -429,6 +432,7 @@ expr:
    | type_cast {$$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
    | subscript_expr { $$ = std::move($1); }
+   | index_assign { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
    | struct_initialization { $$ = std::move($1); }
    | array_initialization { $$ = std::move($1); }
@@ -436,22 +440,17 @@ expr:
    | grouping { $$ = std::move($1); }
 
 
-assign_expr: 
-   expr ASSIGN_OP expr %prec ASSIGN 
-      { 
-         if(auto *identifier = dynamic_cast<Primary *>($1.get()))
-         {
-            if (identifier->value.token_type != Token::Type::IDENTIFIER)
-            {
-               // TODO: throw an error here
-            }
-            $$ = std::make_unique<AssignExpr>(identifier->value, $2, std::move($3));
-         }
-         if (auto *member_access = dynamic_cast<DirectMemberAccess *>($1.get()))
-         {
-            $$ = std::make_unique<MemberAssign>(std::move(member_access->accessable), member_access->identifier, $2, std::move($3));
-         }
-      }
+assign_expr:
+   primary ASSIGN_OP expr %prec ASSIGN 
+   { $$ = std::make_unique<AssignExpr>($1, $2, std::move($3)); }
+   | direct_member_access ASSIGN_OP expr %prec ASSIGN { 
+      auto member_access = dynamic_cast<MemberAssign *>($1.get());
+      $$ = std::make_unique<MemberAssign>(std::move(member_access->accessable), member_access->identifier, $2, std::move($3));
+   }
+
+index_assign:
+   subscript_expr ASSIGN_OP expr %prec ASSIGN 
+   { $$ = std::make_unique<IndexAssign>(std::move($1), std::move($3), $2); }
 
 type_cast:
    expr AS type_identifier %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}

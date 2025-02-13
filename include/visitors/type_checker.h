@@ -1008,4 +1008,22 @@ public:
 
         this->stack.push(std::make_shared<ArrayType>(first_el_type));
     }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->accept(this);
+        auto lhs_type = this->stack.pop();
+
+        index_assign->rhs->accept(this);
+        auto rhs_type = this->stack.pop();
+
+        if (lhs_type->type != rhs_type->type)
+        {
+            this->user_error_tracker->type_mismatch("in assignment", index_assign->lhs->subscript_token);
+            this->stack.push(std::make_shared<ErrorType>());
+            return;
+        }
+
+        this->stack.push(lhs_type);
+    }
 };

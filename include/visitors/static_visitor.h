@@ -236,4 +236,10 @@ public:
             element->accept(this);
         }
     }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->subscriptable->accept(this);
+        index_assign->rhs->accept(this);
+    }
 };

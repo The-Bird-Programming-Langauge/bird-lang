@@ -1918,4 +1918,9 @@ public:
 
         this->stack.push(TaggedExpression(block, std::make_shared<ArrayType>(type)));
     }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        throw BirdException("implement visit_index_assign");
+    }
 };

@@ -421,4 +421,10 @@ public:
             el->accept(this);
         }
     }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->accept(this);
+        index_assign->rhs->accept(this);
+    }
 };

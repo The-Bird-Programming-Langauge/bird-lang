@@ -1,24 +1,21 @@
-struct Pirate {
-    captain: str,
-    crew: str[]
-};
+var x: int[] = [ 5, 1, 9, 3, 0, 6, 2, 4, 7, 8 ];
 
-var straw_hats: Pirate = Pirate {
-    captain = "luffy",
-    crew = [
-        "zoro",
-        "nami",
-        "usopp",
-        "sanji",
-        "chopper",
-        "robin",
-        "franky",
-        "brook",
-        "jinbei"
-    ]
-};
+print "unsorted";
+for var i: int = 0; i < 10; i += 1 {
+    print x[i];
+}
 
-print straw_hats.captain;
-for var i: int = 0; i < 9; i += 1 {
-    print straw_hats.crew[i];
+for var i: int = 0; i < 10 - 1; i += 1 {
+    for var j: int = 0; j < 10 - 1 - i; j += 1 {
+        if (x[j] > x[j + 1]) {
+            var temp: int = x[j];
+            x[j] = x[j + 1];
+            x[j + 1] = temp;
+        }
+    }
+}
+
+print "sorted";
+for var i: int = 0; i < 10; i += 1 {
+    print x[i];
 }

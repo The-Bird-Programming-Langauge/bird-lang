@@ -146,3 +146,27 @@ TEST(ArrayTestSuite, StructArraySubscript)
 
     ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(ArrayTestSuite, HighDimensionalSubscript)
+{
+    BirdTest::TestOptions options;
+    options.code = "var y: int[][][] = [ [ [ 1, 2 ], [ 3, 4 ] ], "
+                   "                     [ [ 5, 6 ], [ 7, 8 ] ] ];"
+                   "print y[0][0][0];"
+                   "print y[0][0][1];"
+                   "print y[0][1][0];"
+                   "print y[0][1][1];"
+                   "print y[1][0][0];"
+                   "print y[1][0][1];"
+                   "print y[1][1][0];"
+                   "print y[1][1][1];";
+
+    // options.after_interpret = [&](Interpreter &interpreter) {};
+
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_EQ(output, "1\n2\n3\n4\n5\n6\n7\n8\n\n");
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}

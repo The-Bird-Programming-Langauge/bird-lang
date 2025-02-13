@@ -746,4 +746,28 @@ public:
 
         this->stack.push(Value(std::make_shared<std::vector<Value>>(elements)));
     }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->subscriptable->accept(this);
+        auto lhs = this->stack.pop();
+
+        index_assign->lhs->index->accept(this);
+        auto index = this->stack.pop();
+
+        index_assign->rhs->accept(this);
+        auto rhs = this->stack.pop();
+
+        if (is_type<std::shared_ptr<std::vector<Value>>>(lhs))
+        {
+            auto arr = as_type<std::shared_ptr<std::vector<Value>>>(lhs);
+            int idx = as_type<int>(index);
+
+            (*arr)[idx] = rhs;
+        }
+        else
+        {
+            throw BirdException("expected array");
+        }
+    }
 };

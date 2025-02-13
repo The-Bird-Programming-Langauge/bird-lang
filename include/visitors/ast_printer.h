@@ -395,4 +395,11 @@ public:
         }
         std::cout << "]";
     }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->accept(this);
+        std::cout << " " << index_assign->op.lexeme << " ";
+        index_assign->rhs->accept(this);
+    }
 };
