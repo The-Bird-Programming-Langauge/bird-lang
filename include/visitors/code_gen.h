@@ -489,7 +489,6 @@ public:
         else if (bird_type->type == BirdTypeType::ARRAY)
             return BinaryenTypeInt32();
 
-        std::cout << "here 2" << std::endl;
         throw BirdException("invalid type");
     }
 
@@ -1835,6 +1834,8 @@ public:
 
     BinaryenExpressionRef binaryen_set(std::string identifier, BinaryenExpressionRef value)
     {
+        // std::cout << identifier << ": " << this->environment.get_depth(identifier) << std::endl;
+
         TaggedIndex tagged_index = this->environment.get(identifier);
         if (this->environment.get_depth(identifier) != 0 && this->current_function_name != "main")
         {
@@ -1921,6 +1922,28 @@ public:
 
     void visit_index_assign(IndexAssign *index_assign)
     {
-        throw BirdException("implement visit_index_assign");
+        index_assign->lhs->subscriptable->accept(this);
+        auto lhs = this->stack.pop();
+
+        index_assign->lhs->index->accept(this);
+        auto index = this->stack.pop();
+
+        index_assign->rhs->accept(this);
+        auto rhs = this->stack.pop();
+
+        auto index_literal = BinaryenBinary(
+            this->mod, BinaryenMulInt32(),
+            index.value, rhs.type->type == BirdTypeType::FLOAT ? BinaryenConst(this->mod, BinaryenLiteralInt32(16)) : BinaryenConst(this->mod, BinaryenLiteralInt32(8)));
+
+        BinaryenExpressionRef args[3] = {lhs.value, index_literal, rhs.value};
+
+        this->stack.push(
+            BinaryenCall(
+                this->mod,
+                rhs.type->type == BirdTypeType::FLOAT ? "mem_set_64"
+                                                      : "mem_set_32",
+                args,
+                3,
+                BinaryenTypeNone()));
     }
 };
