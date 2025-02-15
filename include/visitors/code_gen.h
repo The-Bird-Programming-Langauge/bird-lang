@@ -860,6 +860,7 @@ public:
         if (initializer.value)
         {
             initializer_and_loop.push_back(initializer.value);
+            initializer_and_loop.push_back(BinaryenDrop(this->mod, initializer.value));
         }
 
         initializer_and_loop.push_back(for_loop);
@@ -871,13 +872,7 @@ public:
             initializer_and_loop.size(),
             BinaryenTypeNone());
 
-        this->stack.push(
-            condition.value ? BinaryenIf(
-                                  this->mod,
-                                  condition.value,
-                                  block,
-                                  nullptr)
-                            : block);
+        this->stack.push(block);
 
         this->environment.pop_env();
     }
