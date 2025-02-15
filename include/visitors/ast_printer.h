@@ -266,7 +266,7 @@ public:
         {
             for_stmt->increment.value()->accept(this);
         }
-        std::cout << ") do ";
+        std::cout << ") ";
         for_stmt->body->accept(this);
     }
 
@@ -388,10 +388,13 @@ public:
     void visit_array_init(ArrayInit *array_init)
     {
         std::cout << "[";
-        for (auto &el : array_init->elements)
+        for (int i = 0; i < array_init->elements.size(); i++)
         {
-            el->accept(this);
-            std::cout << ",";
+            array_init->elements[i]->accept(this);
+            if (i < array_init->elements.size() - 1)
+            {
+                std::cout << ", ";
+            }
         }
         std::cout << "]";
     }
