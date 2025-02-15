@@ -139,7 +139,13 @@ public:
     void visit_decl_stmt(DeclStmt *decl_stmt)
     {
         std::cout << "var ";
-        std::cout << decl_stmt->identifier.lexeme << " = ";
+        std::cout << decl_stmt->identifier.lexeme;
+        if (decl_stmt->type.has_value())
+        {
+            std::cout << ": ";
+            print_parse_type(decl_stmt->type.value());
+        }
+        std::cout << " = ";
         decl_stmt->value->accept(this);
     }
 
@@ -198,7 +204,13 @@ public:
     void visit_const_stmt(ConstStmt *const_stmt)
     {
         std::cout << "const ";
-        std::cout << const_stmt->identifier.lexeme << " = ";
+        std::cout << const_stmt->identifier.lexeme;
+        if (const_stmt->type.has_value())
+        {
+            std::cout << ": ";
+            print_parse_type(const_stmt->type.value());
+        }
+        std::cout << " = ";
         const_stmt->value->accept(this);
     }
 
