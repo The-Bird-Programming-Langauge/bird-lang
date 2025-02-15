@@ -860,27 +860,33 @@ public:
         if (initializer.value)
         {
             initializer_and_loop.push_back(initializer.value);
-            initializer_and_loop.push_back(BinaryenDrop(this->mod, initializer.value));
         }
 
-        initializer_and_loop.push_back(for_loop);
+        BinaryenExpressionRef block;
+        if (condition.value)
+        {
+            block = BinaryenIf(
+                this->mod,
+                condition.value,
+                for_loop,
+                initializer.value ? BinaryenDrop(this->mod, initializer.value)
+                                  : nullptr);
+        }
+        else
+        {
+            block = for_loop;
+        }
 
-        auto block = BinaryenBlock(
+        initializer_and_loop.push_back(block);
+
+        auto exit_block = BinaryenBlock(
             this->mod,
             "EXIT",
             initializer_and_loop.data(),
             initializer_and_loop.size(),
             BinaryenTypeNone());
 
-        auto drop_initializer = initializer.value ? BinaryenDrop(this->mod, initializer.value) : nullptr;
-
-        this->stack.push(
-            condition.value ? BinaryenIf(
-                                  this->mod,
-                                  condition.value,
-                                  block,
-                                  drop_initializer)
-                            : block);
+        this->stack.push(exit_block);
 
         this->environment.pop_env();
     }
