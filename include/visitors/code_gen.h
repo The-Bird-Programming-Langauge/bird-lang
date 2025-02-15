@@ -872,7 +872,15 @@ public:
             initializer_and_loop.size(),
             BinaryenTypeNone());
 
-        this->stack.push(block);
+        auto drop_initializer = initializer.value ? BinaryenDrop(this->mod, initializer.value) : nullptr;
+
+        this->stack.push(
+            condition.value ? BinaryenIf(
+                                  this->mod,
+                                  condition.value,
+                                  block,
+                                  drop_initializer)
+                            : block);
 
         this->environment.pop_env();
     }
