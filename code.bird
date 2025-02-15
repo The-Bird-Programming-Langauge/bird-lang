@@ -1,21 +1,31 @@
-var x: int[] = [ 5, 3, 2, 6, 4, 1, 9, 7, 8 ];
+var x: int[] = [ 5, 3];
 
-print "before";
-for var i: int = 0; i < 9; i += 1 {
-    print x[i];
-}
+x[0] += x[1];
+print x[0];
 
-for var i: int = 0; i < 9 - 1; i += 1 {
-    for var j: int = 0; j < 9 - 1 - i; j += 1 {
-        if (x[j] > x[j + 1]) {
-            var temp: int = x[j];
-            x[j] = x[j + 1];
-            x[j + 1] = temp;
-        }
-    }
-}
+x[0] -= x[1];
+print x[0];
 
-print "after";
-for var i: int = 0; i < 9; i += 1 {
-    print x[i];
-}
+x[0] *= x[1];
+print x[0];
+
+x[0] /= x[1];
+print x[0];
+
+x[0] %= x[1];
+print x[0];
+
+
+var y: float[] = [1.2, 2.4];
+
+y[0] += y[1];
+print y[0];
+
+y[0] -= y[1];
+print y[0];
+
+y[0] *= y[1];
+print y[0];
+
+y[0] /= y[1];
+print y[0];
