@@ -65,7 +65,9 @@ STRUCT "struct"
 SELF "self"
 AS "as"
 AND "and"
+XOR "xor"
 OR "or"
+NOT "not"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -136,6 +138,7 @@ direct_member_access
 index_assign
 grouping
 and_expr
+xor_expr
 or_expr
 
 %type <std::unique_ptr<Subscript>>
@@ -147,7 +150,7 @@ ASSIGN_OP
 COMPARISON_OP
 TERM_OP
 FACTOR_OP
-UNARY_OP
+PREFIX_UNARY_OP
 EQUALITY_OP
 
 %type <std::pair<std::string, std::shared_ptr<ParseType::Type>>>
@@ -200,6 +203,7 @@ type_identifier
 %right TERNARY
    QUESTION
 %left OR
+%left XOR
 %left AND
 %left EQUALITY
    EQUAL_EQUAL
@@ -217,6 +221,7 @@ type_identifier
    SLASH
    PERCENT
 %right UNARY
+   NOT
 %left CAST
    AS
 %left CALL
@@ -427,6 +432,7 @@ expr:
    | term_expr { $$ = std::move($1); }
    | factor_expr { $$ = std::move($1); }
    | and_expr { $$ = std::move($1); }
+   | xor_expr { $$ = std::move($1); }
    | or_expr { $$ = std::move($1); }
    | unary_expr { $$ = std::move($1); }
    | type_cast {$$ = std::move($1); }
@@ -480,12 +486,16 @@ factor_expr:
       { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
 unary_expr: 
-   UNARY_OP expr %prec UNARY 
+   PREFIX_UNARY_OP expr %prec UNARY 
       { $$ = std::make_unique<Unary>($1, std::move($2)); }
    | expr QUESTION %prec UNARY  {$$ = std::make_unique<Unary>($2, std::move($1));}
 
 and_expr:
    expr AND expr %prec AND
+      { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
+
+xor_expr:
+   expr XOR expr %prec XOR
       { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
 or_expr:
@@ -573,8 +583,9 @@ TERM_OP:
    PLUS
    | MINUS
 
-UNARY_OP: 
+PREFIX_UNARY_OP: 
    MINUS
+   | NOT
 
 type_identifier:
    IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }

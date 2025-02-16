@@ -144,7 +144,7 @@ public:
             break;
         }
     }
-
+    
     void visit_binary(Binary *binary)
     {
         binary->left->accept(this);

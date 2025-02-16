@@ -25,7 +25,9 @@ public:
         WHILE,
         AS,
         AND,
+        XOR,
         OR,
+        NOT,
 
         // types
         TYPE_LITERAL,

@@ -182,6 +182,22 @@ public:
             "mem_alloc",
             BinaryenTypeInt32(),
             BinaryenTypeInt32());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "mark",
+            "env",
+            "mark",
+            BinaryenTypeInt32(),
+            BinaryenTypeNone());
+
+        BinaryenAddFunctionImport(
+            this->mod,
+            "sweep",
+            "env",
+            "sweep",
+            BinaryenTypeNone(),
+            BinaryenTypeNone());
     }
 
     void add_memory_segment(const std::string &str)
@@ -509,6 +525,53 @@ public:
 
             throw BirdException("invalid type");
         }
+    }
+
+    // perform garbage collection on memory data by marking and sweeping dynamically allocated blocks
+    void garbage_collect()
+    {
+        // list that stores all of the javascript calls to be pushed on the stack as 1 block
+        std::vector<BinaryenExpressionRef> calls;
+
+        // mark all dynamically allocated blocks by traversing the environment, locate all pointers pointing to dynamically allocated blocks, and pass the pointers to the mark function
+        std::set<std::string> marked;
+        for (const auto &scope : this->environment.envs)
+        {
+            for (const auto &[key, value] : scope)
+            {
+                if (value.type->type == BirdTypeType::STRUCT && marked.find(key) == marked.end())
+                {
+                    marked.insert(key);
+                    auto allocated_block_ptr = this->binaryen_get(key);
+                    calls.push_back(
+                        BinaryenCall(
+                            this->mod,
+                            "mark",
+                            &allocated_block_ptr,
+                            1,
+                            BinaryenTypeNone()));
+                }
+            }
+        }
+
+        // sweep all unmarked dynamically allocated blocks
+        calls.push_back(
+            BinaryenCall(
+                this->mod,
+                "sweep",
+                nullptr,
+                0,
+                BinaryenTypeNone()));
+
+        // push all of the calls to the stack as 1 block
+        this->stack.push(
+            TaggedExpression(
+                BinaryenBlock(
+                    this->mod,
+                    nullptr,
+                    calls.data(),
+                    calls.size(),
+                    BinaryenTypeNone())));
     }
 
     void visit_block(Block *block)
@@ -1180,6 +1243,18 @@ public:
                     std::shared_ptr<BirdType>(new BoolType())));
             break;
         }
+        case Token::Type::XOR:
+        {
+            this->stack.push(
+                TaggedExpression(
+                    BinaryenBinary(
+                        this->mod,
+                        BinaryenNeInt32(),
+                        left.value,
+                        right.value),
+                    std::shared_ptr<BirdType>(new BoolType())));
+            break;
+        }
         default:
         {
             throw BirdException("undefined binary operator for code gen");
@@ -1199,28 +1274,53 @@ public:
 
         BinaryenType expr_type = BinaryenExpressionGetType(expr.value);
 
-        if (expr_type == BinaryenTypeFloat64())
+        switch (unary->op.token_type)
         {
-            this->stack.push(
-                TaggedExpression(
-                    BinaryenUnary(
-                        mod,
-                        BinaryenNegFloat64(),
-                        expr.value),
-                    std::shared_ptr<BirdType>(new BoolType())));
-        }
-        else if (expr_type == BinaryenTypeInt32())
+        case Token::Type::QUESTION: // This fixes an error with the tests, but probably shouldn't?
+        case Token::Type::MINUS:
         {
-            BinaryenExpressionRef zero = BinaryenConst(mod, BinaryenLiteralInt32(0));
+            if (expr_type == BinaryenTypeFloat64())
+            {
+                this->stack.push(
+                    TaggedExpression(
+                        BinaryenUnary(
+                            mod,
+                            BinaryenNegFloat64(),
+                            expr.value),
+                        std::shared_ptr<BirdType>(new BoolType())));
+            }
+            else if (expr_type == BinaryenTypeInt32())
+            {
+                BinaryenExpressionRef zero = BinaryenConst(mod, BinaryenLiteralInt32(0));
 
+                this->stack.push(
+                    TaggedExpression(
+                        BinaryenBinary(
+                            mod,
+                            BinaryenSubInt32(),
+                            zero,
+                            expr.value),
+                        std::shared_ptr<BirdType>(new IntType())));
+            }
+            break;
+        }
+        case Token::Type::NOT:
+        {
             this->stack.push(
                 TaggedExpression(
-                    BinaryenBinary(
-                        mod,
-                        BinaryenSubInt32(),
-                        zero,
-                        expr.value),
-                    std::shared_ptr<BirdType>(new IntType())));
+                    BinaryenSelect(
+                        this->mod,
+                        BinaryenUnary(this->mod, BinaryenEqZInt32(), expr.value),
+                        BinaryenConst(mod, BinaryenLiteralInt32(1)),
+                        BinaryenConst(mod, BinaryenLiteralInt32(0)),
+                        BinaryenTypeInt32()),
+                    std::shared_ptr<BirdType>(new BoolType)));
+            break;
+        }
+        default:
+        {
+            throw BirdException("undefined unary operator for code gen");
+        }
         }
     }
 
@@ -1402,7 +1502,13 @@ public:
             }
         }
 
+        // perform garbage collection at the end of a function by popping the javascript calls off the stack in a block and executing the block
+
         this->environment.pop_env();
+
+        this->garbage_collect();
+        auto calls_block = this->stack.pop();
+        current_function_body.push_back(calls_block.value);
 
         BinaryenExpressionRef body = BinaryenBlock(
             this->mod,
@@ -1707,8 +1813,8 @@ public:
                 auto func_name =
                     type->type == BirdTypeType::FLOAT
                         ? "mem_set_64"
-                    : type->type == BirdTypeType::STRUCT ? "mem_set_ptr"
-                                                         : "mem_set_32";
+                    : type->type == BirdTypeType::STRUCT || type->type == BirdTypeType::PLACEHOLDER ? "mem_set_ptr"
+                                                                                                    : "mem_set_32";
 
                 constructor_body.push_back(
                     BinaryenCall(
@@ -1794,8 +1900,8 @@ public:
         auto func_name =
             value.type->type == BirdTypeType::FLOAT
                 ? "mem_set_64"
-            : value.type->type == BirdTypeType::STRUCT ? "mem_set_ptr"
-                                                       : "mem_set_32";
+            : value.type->type == BirdTypeType::STRUCT || value.type->type == BirdTypeType::PLACEHOLDER ? "mem_set_ptr"
+                                                                                                        : "mem_set_32";
 
         this->stack.push(
             TaggedExpression(
