@@ -2051,7 +2051,8 @@ public:
 
         auto index_literal = BinaryenBinary(
             this->mod, BinaryenMulInt32(),
-            index.value, lhs_val.type->type == BirdTypeType::FLOAT ? BinaryenConst(this->mod, BinaryenLiteralInt32(9)) : BinaryenConst(this->mod, BinaryenLiteralInt32(5)));
+            index.value,
+            BinaryenConst(this->mod, BinaryenLiteralInt32(bird_type_byte_size(lhs_val.type))));
 
         bool float_flag = (lhs_val.type->type == BirdTypeType::FLOAT && rhs_val.type->type == BirdTypeType::FLOAT);
 
