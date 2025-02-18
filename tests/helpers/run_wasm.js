@@ -33,6 +33,9 @@ const BLOCK_MARK_OFFSET = 8;
 const BLOCK_HEADER_SIZE = 9;
 const FREE_LIST_START = 9;
 
+const FLOAT_SIZE = 9;
+const INT_SIZE = 5;
+
 function get_null_ptr_address() {
     return base_offset + NULL_PTR;
 }
@@ -210,7 +213,7 @@ const moduleOptions = {
             }
 
             // we have found a block that is big enough
-            if (get_block_size(curr_ptr) - size > BLOCK_HEADER_SIZE + 8) { // we can split the block
+            if (get_block_size(curr_ptr) - size > BLOCK_HEADER_SIZE + FLOAT_SIZE * 2) { // we can split the block
                 const new_block_ptr = curr_ptr + size + BLOCK_HEADER_SIZE;
 
                 set_block_size(new_block_ptr, get_block_size(curr_ptr) - size - BLOCK_HEADER_SIZE); // set the size of the new block
@@ -255,7 +258,7 @@ const moduleOptions = {
 
                 let curr_value_is_64_bit;
 
-                for (let value_ptr = block_ptr + BLOCK_HEADER_SIZE; value_ptr < block_ptr + get_block_size(block_ptr); value_ptr += curr_value_is_64_bit ? 9 : 5) {
+                for (let value_ptr = block_ptr + BLOCK_HEADER_SIZE; value_ptr < block_ptr + get_block_size(block_ptr); value_ptr += curr_value_is_64_bit ? FLOAT_SIZE : INT_SIZE) {
                     curr_value_is_64_bit = value_is_64_bit(value_ptr);
 
                     // check if the current value is a pointer
@@ -283,7 +286,7 @@ const moduleOptions = {
             let curr_ptr = get_allocated_list_head_ptr();
 
             // no allocated block exists
-            if (curr_ptr === 0) {
+            if (curr_ptr === 0 || curr_ptr === get_null_ptr_address()) {
                 return;
             }
 
