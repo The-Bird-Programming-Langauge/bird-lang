@@ -19,15 +19,15 @@ class ConstStmt : public Stmt
 {
 public:
     Token identifier;
-    std::optional<Token> type_token;
-    bool type_is_literal;
+    std::optional<std::shared_ptr<ParseType::Type>> type;
     std::unique_ptr<Expr> value;
 
-    ConstStmt(Token identifier, std::optional<Token> type_token, bool type_is_literal, std::unique_ptr<Expr> value)
+    ConstStmt(Token identifier, std::optional<std::shared_ptr<ParseType::Type>> type, std::unique_ptr<Expr> value)
         : identifier(identifier),
-          type_token(type_token),
-          type_is_literal(type_is_literal),
-          value(std::move(value)) {}
+          type(std::move(type)),
+          value(std::move(value))
+    {
+    }
 
     void accept(Visitor *visitor)
     {

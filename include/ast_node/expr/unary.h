@@ -14,7 +14,7 @@
 class Unary : public Expr
 {
 public:
-    Token op; // must be of type -
+    Token op;
     std::unique_ptr<Expr> expr;
 
     Unary(Token op, std::unique_ptr<Expr> expr)

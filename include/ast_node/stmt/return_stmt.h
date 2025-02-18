@@ -18,7 +18,7 @@ class Expr;
 class ReturnStmt : public Stmt
 {
 public:
-    Token return_token;
+    Token return_token; // for error handling
     std::optional<std::unique_ptr<Expr>> expr;
 
     ReturnStmt(Token return_token, std::optional<std::unique_ptr<Expr>> expr)

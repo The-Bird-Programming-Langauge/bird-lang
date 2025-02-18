@@ -12,3 +12,5 @@
 #include "struct_initialization.h"
 #include "member_assign.h"
 #include "as_cast.h"
+#include "array_init.h"
+#include "index_assign.h"

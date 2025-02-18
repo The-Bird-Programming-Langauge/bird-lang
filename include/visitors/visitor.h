@@ -28,6 +28,8 @@ class DirectMemberAccess;
 class StructInitialization;
 class MemberAssign;
 class AsCast;
+class ArrayInit;
+class IndexAssign;
 
 /*
  * the interface for all visitors,
@@ -62,4 +64,6 @@ public:
     virtual void visit_struct_initialization(StructInitialization *) = 0;
     virtual void visit_member_assign(MemberAssign *) = 0;
     virtual void visit_as_cast(AsCast *) = 0;
+    virtual void visit_array_init(ArrayInit *) = 0;
+    virtual void visit_index_assign(IndexAssign *) = 0;
 };

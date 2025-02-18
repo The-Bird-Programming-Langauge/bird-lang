@@ -1,6 +1,7 @@
 #include "helpers/compile_helper.hpp"
 
 #define STRUCT_TYPE std::shared_ptr<std::unordered_map<std::string, Value>>
+#define ARRAY_TYPE std::shared_ptr<std::vector<Value>>
 
 static void struct_init_helper(Interpreter &interpreter)
 {
@@ -465,4 +466,47 @@ TEST(StructTest, StructWithAdditionalField)
     };
 
     ASSERT_FALSE(BirdTest::compile(options));
+}
+
+TEST(StructTest, StructWithArrayField)
+{
+    BirdTest::TestOptions options;
+    options.code = "struct A {"
+                   "    a: int[]"
+                   "};"
+
+                   "var b: A = A {"
+                   "    a = [ 1, 2, 3 ]"
+                   "};"
+
+                   "print b.a[0];"
+                   "print b.a[1];"
+                   "print b.a[2];";
+
+    options.after_interpret = [&](Interpreter &interpreter)
+    {
+        ASSERT_TRUE(interpreter.env.contains("b"));
+        bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("b"));
+        ASSERT_TRUE(is_correct_type);
+
+        auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("b"));
+        ASSERT_TRUE(is_type<ARRAY_TYPE>((*instance)["a"]));
+
+        auto array_instance = as_type<ARRAY_TYPE>((*instance)["a"]);
+        ASSERT_EQ(array_instance->size(), 3);
+
+        std::vector<int> expected = {1, 2, 3};
+
+        for (int i = 0; i < array_instance->size(); i++)
+        {
+            ASSERT_EQ(as_type<int>((*array_instance)[i]), expected[i]);
+        }
+    };
+
+    options.after_compile = [&](std::string &output, CodeGen &codegen)
+    {
+        ASSERT_EQ(output == "1\n2\n3\n\n", true);
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
 }

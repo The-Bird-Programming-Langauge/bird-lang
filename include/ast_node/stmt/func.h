@@ -23,14 +23,14 @@ class Func : public Stmt
 {
 public:
   Token identifier;
-  std::optional<Token> return_type;
+  std::optional<std::shared_ptr<ParseType::Type>> return_type;
   // the first item in the pair is an identifier, the second is a type
-  std::vector<std::pair<Token, Token>> param_list; // TODO: make this an actual type
+  std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> param_list; // TODO: make this an actual type
   std::shared_ptr<Stmt> block;
 
   Func(Token identifier,
-       std::optional<Token> return_type,
-       std::vector<std::pair<Token, Token>> param_list,
+       std::optional<std::shared_ptr<ParseType::Type>> return_type,
+       std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> param_list,
        std::unique_ptr<Stmt> block)
       : identifier(identifier),
         return_type(return_type),
