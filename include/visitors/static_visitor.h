@@ -9,101 +9,16 @@
 class StaticVisitor : public VisitorAdapter
 {
 public:
-    std::vector<std::string> *static_strings;
+    std::vector<std::string> &static_strings;
 
-    StaticVisitor(std::vector<std::string> *static_strings)
-    {
-        this->static_strings = static_strings;
-    }
+    StaticVisitor(std::vector<std::string> &static_strings) : static_strings(static_strings) {}
     ~StaticVisitor() {}
 
     void static_pass(std::vector<std::unique_ptr<Stmt>> *stmts)
     {
         for (auto &stmt : *stmts)
         {
-            if (auto decl_stmt = dynamic_cast<DeclStmt *>(stmt.get()))
-            {
-                decl_stmt->accept(this);
-                continue;
-            }
-
-            if (auto expr_stmt = dynamic_cast<ExprStmt *>(stmt.get()))
-            {
-                expr_stmt->accept(this);
-                continue;
-            }
-
-            if (auto assign_expr = dynamic_cast<AssignExpr *>(stmt.get()))
-            {
-                assign_expr->accept(this);
-                continue;
-            }
-
-            if (auto print_stmt = dynamic_cast<PrintStmt *>(stmt.get()))
-            {
-                print_stmt->accept(this);
-                continue;
-            }
-
-            if (auto block = dynamic_cast<Block *>(stmt.get()))
-            {
-                block->accept(this);
-                continue;
-            }
-
-            if (auto func = dynamic_cast<Func *>(stmt.get()))
-            {
-                func->accept(this);
-                continue;
-            }
-
-            if (auto if_stmt = dynamic_cast<IfStmt *>(stmt.get()))
-            {
-                if_stmt->accept(this);
-                continue;
-            }
-
-            if (auto return_stmt = dynamic_cast<ReturnStmt *>(stmt.get()))
-            {
-                return_stmt->accept(this);
-                continue;
-            }
-
-            if (auto ternary_expr = dynamic_cast<Ternary *>(stmt.get()))
-            {
-                ternary_expr->accept(this);
-                continue;
-            }
-
-            if (auto member_assign = dynamic_cast<MemberAssign *>(stmt.get()))
-            {
-                member_assign->accept(this);
-                continue;
-            }
-
-            if (auto const_stmt = dynamic_cast<ConstStmt *>(stmt.get()))
-            {
-                const_stmt->accept(this);
-                continue;
-            }
-
-            if (auto for_stmt = dynamic_cast<ForStmt *>(stmt.get()))
-            {
-                for_stmt->accept(this);
-                continue;
-            }
-
-            if (auto while_stmt = dynamic_cast<WhileStmt *>(stmt.get()))
-            {
-                while_stmt->accept(this);
-                continue;
-            }
-
-            if (auto as_cast = dynamic_cast<AsCast *>(stmt.get()))
-            {
-                as_cast->accept(this);
-                continue;
-            }
+            stmt->accept(this);
         }
     }
 
@@ -137,14 +52,14 @@ public:
         {
         case Token::Type::STR_LITERAL:
         {
-            this->static_strings->push_back(primary->value.lexeme);
+            this->static_strings.push_back(primary->value.lexeme);
             break;
         }
         default:
             break;
         }
     }
-    
+
     void visit_binary(Binary *binary)
     {
         binary->left->accept(this);
