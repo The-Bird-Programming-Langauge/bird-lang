@@ -13,21 +13,21 @@ static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i3
     switch (type->type)
     {
     case BirdTypeType::INT:
-        return 8;
+        return 5;
     case BirdTypeType::FLOAT:
-        return 16;
+        return 9;
     case BirdTypeType::BOOL:
-        return 8;
+        return 5;
     case BirdTypeType::VOID:
         return 0;
     case BirdTypeType::STRING:
-        return 8;
+        return 5;
     case BirdTypeType::STRUCT:
-        return 8;
+        return 5;
     case BirdTypeType::ARRAY:
-        return 8;
+        return 5;
     case BirdTypeType::PLACEHOLDER:
-        return 8;
+        return 5;
     default:
         return 0;
     }
@@ -2051,7 +2051,7 @@ public:
 
         auto index_literal = BinaryenBinary(
             this->mod, BinaryenMulInt32(),
-            index.value, lhs_val.type->type == BirdTypeType::FLOAT ? BinaryenConst(this->mod, BinaryenLiteralInt32(16)) : BinaryenConst(this->mod, BinaryenLiteralInt32(8)));
+            index.value, lhs_val.type->type == BirdTypeType::FLOAT ? BinaryenConst(this->mod, BinaryenLiteralInt32(9)) : BinaryenConst(this->mod, BinaryenLiteralInt32(5)));
 
         bool float_flag = (lhs_val.type->type == BirdTypeType::FLOAT && rhs_val.type->type == BirdTypeType::FLOAT);
 

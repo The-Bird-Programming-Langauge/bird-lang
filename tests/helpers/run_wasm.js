@@ -33,6 +33,10 @@ const BLOCK_MARK_OFFSET = 8;
 const BLOCK_HEADER_SIZE = 9;
 const FREE_LIST_START = 9;
 
+function get_null_ptr_address() {
+    return base_offset + NULL_PTR;
+}
+
 function get_free_list_head_ptr() {
     // console.log(`get_free_list_head_ptr : ${memory.getUint32(base_offset + FREE_HEAD_PTR)}`); // debug
     return memory.getUint32(base_offset + FREE_HEAD_PTR);
@@ -144,27 +148,28 @@ const moduleOptions = {
             fs.appendFileSync(outputPath, str + "\n");
         },
         mem_get_32: (ptr, byte_offset) => {
-            return memory.getUint32(ptr + BLOCK_HEADER_SIZE + 4 + byte_offset);
+            // console.log("mem get 32", ptr, byte_offset);
+            return memory.getUint32(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
         },
 
         mem_get_64: (ptr, byte_offset) => {
-            return memory.getFloat64(ptr + BLOCK_HEADER_SIZE + 4 + byte_offset);
+            return memory.getFloat64(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
         },
         /**
          * The first byte of the pointer is used to store the pointer bit 
          * 
          */
         mem_set_32: (ptr, offset, value) => {
-            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset, 0);
-            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 4, value);
+            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0);
+            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
         },
         mem_set_64: (ptr, offset, value) => {
-            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset, 0b10);
-            memory.setFloat64(ptr + BLOCK_HEADER_SIZE + offset + 4, value);
+            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b10);
+            memory.setFloat64(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
         },
         mem_set_ptr: (ptr, offset, value) => {
-            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset, 0b01);
-            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 4, value);
+            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b01);
+            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
         },
 
         /**
@@ -193,7 +198,7 @@ const moduleOptions = {
                 if (curr_ptr + 1 > memory.byteLength) { // we have reached the end of the memory
                     throw new Error("Out of memory");
                 }
-                if (get_block_next_ptr(curr_ptr) == 0) { // we have reached the end of the list
+                if (get_block_next_ptr(curr_ptr) === get_null_ptr_address()) { // we have reached the end of the list
                     wasmMemory.grow(1);
                     memory = new DataView(instance.exports.memory.buffer);
                     set_block_size(curr_ptr, memory.byteLength - curr_ptr);
@@ -265,7 +270,7 @@ const moduleOptions = {
                         }
 
                         // if the value's reference pointer is not null, push it to the stack
-                        if (value_reference_ptr !== 0) {
+                        if (value_reference_ptr !== get_null_ptr_address()) {
                             stack.push(value_reference_ptr);
                         }
                     }
@@ -291,7 +296,7 @@ const moduleOptions = {
                 let update_prev_ptr = true;
 
                 // the loop should stop when we reach the end of the allocated list
-                if (next_ptr === 0) {
+                if (next_ptr === get_null_ptr_address()) {
                     next_block_is_not_null = false;
                 }
 
@@ -325,8 +330,8 @@ const moduleOptions = {
             base_offset = offset;
             // initialize the memory header
             memory.setUint8(base_offset + NULL_PTR, 0); // set the null pointer to 0
-            set_free_list_head_ptr(FREE_LIST_START); // set the free list head pointer to the first free block
-            set_allocated_list_head_ptr(0); // set the allocated list head pointer to 0
+            set_free_list_head_ptr(FREE_LIST_START + base_offset); // set the free list head pointer to the first free block
+            set_allocated_list_head_ptr(0 + base_offset); // set the allocated list head pointer to 0
 
             // create the first free block
             set_block_size(base_offset + FREE_LIST_START, memory.byteLength); // set the size to take up the entire memory
