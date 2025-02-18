@@ -346,69 +346,20 @@ public:
             {
                 func_stmt->accept(this);
                 // no stack push here, automatically added
+                continue;
+            }
+            if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get()))
+            {
+                type_stmt->accept(this);
+                // no stack push here, only type table
+                continue;
             }
 
-            if (auto decl_stmt = dynamic_cast<DeclStmt *>(stmt.get()))
+            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
             {
-                decl_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
-            }
-
-            if (auto const_stmt = dynamic_cast<ConstStmt *>(stmt.get()))
-            {
-                const_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
-            }
-
-            if (auto print_stmt = dynamic_cast<PrintStmt *>(stmt.get()))
-            {
-                print_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
-            }
-
-            if (auto if_stmt = dynamic_cast<IfStmt *>(stmt.get()))
-            {
-                if_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
-            }
-
-            if (auto block = dynamic_cast<Block *>(stmt.get()))
-            {
-                block->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
-            }
-
-            if (auto expr_stmt = dynamic_cast<ExprStmt *>(stmt.get()))
-            {
-                expr_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(BinaryenDrop(this->mod, result.value));
-            }
-
-            if (auto ternary_stmt = dynamic_cast<Ternary *>(stmt.get()))
-            {
-                ternary_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(BinaryenDrop(this->mod, result.value));
-            }
-
-            if (auto while_stmt = dynamic_cast<WhileStmt *>(stmt.get()))
-            {
-                while_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
-            }
-
-            if (auto for_stmt = dynamic_cast<ForStmt *>(stmt.get()))
-            {
-                for_stmt->accept(this);
-                auto result = this->stack.pop();
-                main_function_body.push_back(result.value);
+                struct_decl->accept(this);
+                // no stack push here, only type table
+                continue;
             }
 
             if (auto return_stmt = dynamic_cast<ReturnStmt *>(stmt.get()))
@@ -426,17 +377,9 @@ public:
                 throw BirdException("continue statement not allowed in main function");
             }
 
-            if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get()))
-            {
-                type_stmt->accept(this);
-                // no stack push here, only type table
-            }
-
-            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
-            {
-                struct_decl->accept(this);
-                // no stack push here, only type table
-            }
+            stmt->accept(this);
+            auto result = this->stack.pop();
+            main_function_body.push_back(result.value);
         }
 
         auto count = 0;
