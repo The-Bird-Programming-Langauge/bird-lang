@@ -17,17 +17,7 @@ public:
     {
         for (auto &stmt : *stmts)
         {
-            if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get()))
-            {
-                type_stmt->accept(this);
-                continue;
-            }
-
-            if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get()))
-            {
-                struct_decl->accept(this);
-                continue;
-            }
+            stmt->accept(this);
         }
     }
 
