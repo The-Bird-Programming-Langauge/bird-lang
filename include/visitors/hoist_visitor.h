@@ -25,12 +25,12 @@ public:
     {
         auto type_name = type_stmt->type_token->get_token().lexeme;
 
-        if (this->struct_names.find(type_stmt->type_token.lexeme) != this->struct_names.end())
+        if (this->struct_names.find(type_stmt->type_token->get_token().lexeme) != this->struct_names.end())
         {
             return;
         }
 
-        this->struct_names.insert(type_stmt->type_token.lexeme);
+        this->struct_names.insert(type_stmt->type_token->get_token().lexeme);
     }
 
     void visit_struct_decl(StructDecl *struct_decl)
