@@ -165,8 +165,6 @@ TEST(ForLoopTest, FalseForLoop)
                    "    print x;"
                    "}";
 
-    options.compile = false;
-
     options.after_interpret = [&](Interpreter &interpreter)
     {
         ASSERT_TRUE(interpreter.env.contains("x"));

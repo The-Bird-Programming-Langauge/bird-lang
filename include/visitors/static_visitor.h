@@ -143,4 +143,18 @@ public:
     {
         as_cast->expr->accept(this);
     }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        for (auto &element : array_init->elements)
+        {
+            element->accept(this);
+        }
+    }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->subscriptable->accept(this);
+        index_assign->rhs->accept(this);
+    }
 };

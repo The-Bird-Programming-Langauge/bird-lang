@@ -20,6 +20,7 @@
 #include "stack.h"
 #include "type.h"
 #include "bird_type.h"
+#include "type_converter.h"
 
 /*
  * Visitor that interprets and evaluates the AST
@@ -33,8 +34,10 @@ public:
     Environment<std::shared_ptr<BirdType>> type_table;
     Stack<Value> stack;
     std::set<std::string> struct_names;
+    TypeConverter type_converter;
 
     Interpreter()
+        : type_converter(this->type_table, this->struct_names)
     {
         this->env.push_env();
         this->call_table.push_env();
@@ -507,14 +510,9 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
-        if (type_stmt->type_is_literal)
-        {
-            this->type_table.declare(type_stmt->identifier.lexeme, token_to_bird_type(type_stmt->type_token));
-        }
-        else
-        {
-            this->type_table.declare(type_stmt->identifier.lexeme, this->type_table.get(type_stmt->type_token.lexeme));
-        }
+        this->type_table.declare(
+            type_stmt->identifier.lexeme,
+            this->type_converter.convert(type_stmt->type_token));
     }
 
     void visit_subscript(Subscript *Subscript)
@@ -531,18 +529,8 @@ public:
     void visit_struct_decl(StructDecl *struct_decl)
     {
         std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
-        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
-                       { 
-                        if (this->type_table.contains(field.second.lexeme))
-                        {
-                            return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
-                        } 
-
-                        if (this->struct_names.find(field.second.lexeme) != this->struct_names.end()) {
-                            return std::make_pair(field.first, std::shared_ptr<BirdType>(new PlaceholderType(field.second.lexeme)));
-                        }
-
-                            return std::make_pair(field.first, token_to_bird_type(field.second)); });
+        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, std::shared_ptr<ParseType::Type>> field)
+                       { return std::make_pair(field.first, this->type_converter.convert(field.second)); });
 
         this->type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, std::move(struct_fields)));
     }
@@ -647,18 +635,60 @@ public:
         as_cast->expr->accept(this);
         auto expr = this->stack.pop();
 
-        if (as_cast->type.lexeme == "int" && is_type<double>(expr))
+        if (as_cast->type->tag == ParseType::PRIMITIVE)
         {
-            this->stack.push(Value((int)as_type<double>(expr)));
-            return;
-        }
+            auto primitive = safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(as_cast->type);
+            auto token = primitive->type;
+            if (token.lexeme == "int" && is_type<double>(expr))
+            {
+                this->stack.push(Value((int)as_type<double>(expr)));
+                return;
+            }
 
-        if (as_cast->type.lexeme == "float" && is_type<int>(expr))
-        {
-            this->stack.push(Value((double)as_type<int>(expr)));
-            return;
+            if (token.lexeme == "float" && is_type<int>(expr))
+            {
+                this->stack.push(Value((double)as_type<int>(expr)));
+                return;
+            }
         }
 
         this->stack.push(expr);
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        std::vector<Value> elements;
+
+        for (const auto &element : array_init->elements)
+        {
+            element->accept(this);
+            elements.push_back(this->stack.pop());
+        }
+
+        this->stack.push(Value(std::make_shared<std::vector<Value>>(elements)));
+    }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->subscriptable->accept(this);
+        auto lhs = this->stack.pop();
+
+        index_assign->lhs->index->accept(this);
+        auto index = this->stack.pop();
+
+        index_assign->rhs->accept(this);
+        auto rhs = this->stack.pop();
+
+        if (is_type<std::shared_ptr<std::vector<Value>>>(lhs))
+        {
+            auto arr = as_type<std::shared_ptr<std::vector<Value>>>(lhs);
+            int idx = as_type<int>(index);
+
+            (*arr)[idx] = rhs;
+        }
+        else
+        {
+            throw BirdException("expected array");
+        }
     }
 };

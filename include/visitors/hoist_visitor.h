@@ -23,10 +23,7 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
-        if (type_stmt->type_is_literal)
-        {
-            return;
-        }
+        auto type_name = type_stmt->type_token->get_token().lexeme;
 
         if (this->struct_names.find(type_stmt->type_token.lexeme) != this->struct_names.end())
         {
@@ -44,5 +41,9 @@ public:
         }
 
         this->struct_names.insert(struct_decl->identifier.lexeme);
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
     }
 };

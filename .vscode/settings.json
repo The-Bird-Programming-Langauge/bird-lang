@@ -91,7 +91,11 @@
                 "numbers": "cpp",
                 "format": "cpp",
                 "version": "cpp",
-                "bird_type.h": "c"
+                "bird_type.h": "c",
+                "user_error_tracker.h": "c",
+                "bird_exception.h": "c",
+                "parse_type.h": "c",
+                "filesystem": "cpp"
         },
         "C_Cpp.errorSquiggles": "enabled"
 }

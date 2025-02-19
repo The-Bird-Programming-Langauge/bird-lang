@@ -7,25 +7,28 @@
 #include <algorithm>
 #include <ios>
 #include <map>
+#include "type_converter.h"
 
 static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i32s
 {
     switch (type->type)
     {
     case BirdTypeType::INT:
-        return 8;
+        return 5;
     case BirdTypeType::FLOAT:
-        return 16;
+        return 9;
     case BirdTypeType::BOOL:
-        return 8;
+        return 5;
     case BirdTypeType::VOID:
         return 0;
     case BirdTypeType::STRING:
-        return 8;
+        return 5;
     case BirdTypeType::STRUCT:
-        return 8;
+        return 5;
+    case BirdTypeType::ARRAY:
+        return 5;
     case BirdTypeType::PLACEHOLDER:
-        return 8;
+        return 5;
     default:
         return 0;
     }
@@ -132,6 +135,8 @@ public:
     std::string current_function_name;          // for indexing into maps
     std::vector<MemorySegment> memory_segments; // store memory segments to add at once
 
+    TypeConverter type_converter;
+
     uint32_t current_offset = 0;
     BinaryenModuleRef mod;
 
@@ -140,7 +145,7 @@ public:
         BinaryenModuleDispose(this->mod);
     }
 
-    CodeGen() : mod(BinaryenModuleCreate())
+    CodeGen() : type_converter(this->type_table, this->struct_names), mod(BinaryenModuleCreate())
     {
         this->environment.push_env();
         this->type_table.push_env();
@@ -497,6 +502,8 @@ public:
             return BinaryenTypeInt32(); // ptr
         else if (bird_type->type == BirdTypeType::PLACEHOLDER)
             return BinaryenTypeInt32();
+        else if (bird_type->type == BirdTypeType::ARRAY)
+            return BinaryenTypeInt32();
 
         throw BirdException("invalid type");
     }
@@ -511,11 +518,12 @@ public:
             return BinaryenTypeFloat64();
         else if (token->type == BirdTypeType::VOID)
             return BinaryenTypeNone();
-        else if (token->type == BirdTypeType::STRING || token->type == BirdTypeType::STRUCT)
+        else if (token->type == BirdTypeType::STRING || token->type == BirdTypeType::STRUCT || token->type == BirdTypeType::ARRAY)
             return BinaryenTypeInt32();
         else
         {
-            throw BirdException("invaid type");
+
+            throw BirdException("invalid type");
         }
     }
 
@@ -601,16 +609,9 @@ public:
         TaggedExpression initializer_value = this->stack.pop();
 
         std::shared_ptr<BirdType> type;
-        if (decl_stmt->type_token.has_value()) // not inferred
+        if (decl_stmt->type.has_value()) // not inferred
         {
-            if (decl_stmt->type_is_literal)
-            {
-                type = token_to_bird_type(decl_stmt->type_token.value());
-            }
-            else
-            {
-                type = this->type_table.get(decl_stmt->type_token.value().lexeme);
-            }
+            type = this->type_converter.convert(decl_stmt->type.value());
         }
         else
         {
@@ -924,22 +925,31 @@ public:
             initializer_and_loop.push_back(initializer.value);
         }
 
-        initializer_and_loop.push_back(for_loop);
+        BinaryenExpressionRef block;
+        if (condition.value)
+        {
+            block = BinaryenIf(
+                this->mod,
+                condition.value,
+                for_loop,
+                initializer.value ? BinaryenDrop(this->mod, initializer.value)
+                                  : nullptr);
+        }
+        else
+        {
+            block = for_loop;
+        }
 
-        auto block = BinaryenBlock(
+        initializer_and_loop.push_back(block);
+
+        auto exit_block = BinaryenBlock(
             this->mod,
             "EXIT",
             initializer_and_loop.data(),
             initializer_and_loop.size(),
             BinaryenTypeNone());
 
-        this->stack.push(
-            condition.value ? BinaryenIf(
-                                  this->mod,
-                                  condition.value,
-                                  block,
-                                  nullptr)
-                            : block);
+        this->stack.push(exit_block);
 
         this->environment.pop_env();
     }
@@ -1185,16 +1195,9 @@ public:
         TaggedExpression initializer = this->stack.pop();
 
         std::shared_ptr<BirdType> type;
-        if (const_stmt->type_token.has_value())
+        if (const_stmt->type.has_value())
         {
-            if (!is_bird_type(const_stmt->type_token.value()))
-            {
-                type = this->type_table.get(const_stmt->type_token.value().lexeme);
-            }
-            else
-            {
-                type = token_to_bird_type(const_stmt->type_token.value());
-            }
+            type = this->type_converter.convert(const_stmt->type.value());
         }
         else
         {
@@ -1227,19 +1230,10 @@ public:
 
         if (func->return_type.has_value())
         {
-            auto binaryen_return_type = token_to_binaryen_type(func->return_type.value());
-            // auto codegen_return_type = token_to_bird_type(func->return_type.value());
-            if (this->is_bird_type(func->return_type.value()))
-            {
-                this->function_return_types[func_name] = TaggedType(binaryen_return_type, token_to_bird_type(func->return_type.value()));
-            }
-            else
-            {
-                if (this->type_table.contains(func->return_type.value().lexeme))
-                    this->function_return_types[func_name] = TaggedType(binaryen_return_type, this->type_table.get(func->return_type.value().lexeme));
-                else
-                    throw BirdException("invalid return type");
-            }
+            auto bird_return_type = this->type_converter.convert(func->return_type.value());
+            auto binaryen_return_type = this->bird_type_to_binaryen_type(bird_return_type);
+
+            this->function_return_types[func_name] = TaggedType(binaryen_return_type, bird_return_type);
         }
         else
         {
@@ -1256,14 +1250,15 @@ public:
 
         for (auto &param : func->param_list)
         {
-            param_types.push_back(token_to_binaryen_type(param.second));
-            this->function_locals[func_name].push_back(token_to_binaryen_type(param.second));
+            auto param_type = this->type_converter.convert(param.second);
+            param_types.push_back(this->bird_type_to_binaryen_type(param_type));
+            this->function_locals[func_name].push_back(this->bird_type_to_binaryen_type(param_type));
         }
 
         BinaryenType params = BinaryenTypeCreate(param_types.data(), param_types.size());
 
         BinaryenType result_type = func->return_type.has_value()
-                                       ? token_to_binaryen_type(func->return_type.value())
+                                       ? this->bird_type_to_binaryen_type(this->type_converter.convert(func->return_type.value()))
                                        : BinaryenTypeNone();
 
         this->environment.push_env();
@@ -1271,17 +1266,7 @@ public:
         auto index = 0;
         for (auto &param : func->param_list)
         {
-            if (this->is_bird_type(param.second))
-            {
-                this->environment.declare(param.first.lexeme, TaggedIndex(index++, token_to_bird_type(param.second)));
-            }
-            else
-            {
-                if (this->type_table.contains(param.second.lexeme))
-                    this->environment.declare(param.first.lexeme, TaggedIndex(index++, this->type_table.get(param.second.lexeme)));
-                else
-                    throw BirdException("invalid param type");
-            }
+            this->environment.declare(param.first.lexeme, TaggedIndex(index++, this->type_converter.convert(param.second)));
         }
 
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts)
@@ -1449,19 +1434,9 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
-        if (type_stmt->type_is_literal)
-        {
-            this->type_table.declare(
-                type_stmt->identifier.lexeme,
-                token_to_bird_type(type_stmt->type_token));
-        }
-        else
-        {
-            auto parent_type = this->type_table.get(type_stmt->type_token.lexeme);
-            this->type_table.declare(
-                type_stmt->identifier.lexeme,
-                parent_type);
-        }
+        this->type_table.declare(
+            type_stmt->identifier.lexeme,
+            this->type_converter.convert(type_stmt->type_token));
     }
 
     void visit_subscript(Subscript *subscript)
@@ -1472,17 +1447,33 @@ public:
         subscript->index->accept(this);
         auto index = this->stack.pop();
 
-        BinaryenExpressionRef args[2] = {subscriptable.value, index.value};
+        std::shared_ptr<BirdType> type;
+        if (subscriptable.type->type == BirdTypeType::ARRAY)
+        {
+            type = safe_dynamic_pointer_cast<ArrayType>(subscriptable.type)->element_type;
+        }
+
+        // TODO: make this better
+        BinaryenExpressionRef args[2] = {subscriptable.value,
+                                         subscriptable.type->type == BirdTypeType::ARRAY ? BinaryenBinary(
+                                                                                               this->mod,
+                                                                                               BinaryenMulInt32(),
+                                                                                               index.value,
+                                                                                               BinaryenConst(
+                                                                                                   this->mod,
+                                                                                                   BinaryenLiteralInt32(bird_type_byte_size(type))))
+                                                                                         : index.value};
 
         this->stack.push(
             TaggedExpression(
                 BinaryenCall(
                     this->mod,
-                    "mem_get",
+                    type->type == BirdTypeType::FLOAT ? "mem_get_64"
+                                                      : "mem_get_32",
                     args,
                     2,
                     BinaryenTypeInt32()),
-                std::shared_ptr<BirdType>(new IntType())));
+                std::shared_ptr<BirdType>(type)));
     }
 
     /*
@@ -1492,25 +1483,8 @@ public:
     void visit_struct_decl(StructDecl *struct_decl)
     {
         std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
-        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
-                       { 
-
-                        if (this->is_bird_type(field.second))
-                        {
-                            return std::make_pair(field.first, token_to_bird_type(field.second));
-                        }
-
-                        if (this->type_table.contains(field.second.lexeme))
-                        {
-                            return std::make_pair(field.first, this->type_table.get(field.second.lexeme));
-                        } 
-
-                        if (this->struct_names.find(field.second.lexeme) != this->struct_names.end())
-                        {
-                            return std::make_pair(field.first, std::shared_ptr<BirdType>(new PlaceholderType(field.second.lexeme)));
-                        }
-
-                        throw BirdException("invalid type"); });
+        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, std::shared_ptr<ParseType::Type>> field)
+                       { return std::make_pair(field.first, this->type_converter.convert(field.second)); });
 
         type_table.declare(struct_decl->identifier.lexeme, std::make_shared<StructType>(struct_decl->identifier.lexeme, struct_fields));
     }
@@ -1730,15 +1704,7 @@ public:
         as_cast->expr->accept(this);
         auto expr = this->stack.pop();
 
-        std::shared_ptr<BirdType> to_type;
-        if (this->type_table.contains(as_cast->type.lexeme))
-        {
-            to_type = this->type_table.get(as_cast->type.lexeme);
-        }
-        else
-        {
-            to_type = token_to_bird_type(as_cast->type);
-        }
+        std::shared_ptr<BirdType> to_type = this->type_converter.convert(as_cast->type);
 
         if (to_type->type == BirdTypeType::INT && expr.type->type == BirdTypeType::FLOAT)
         {
@@ -1768,6 +1734,8 @@ public:
 
     BinaryenExpressionRef binaryen_set(std::string identifier, BinaryenExpressionRef value)
     {
+        // std::cout << identifier << ": " << this->environment.get_depth(identifier) << std::endl;
+
         TaggedIndex tagged_index = this->environment.get(identifier);
         if (this->environment.get_depth(identifier) != 0 && this->current_function_name != "main")
         {
@@ -1790,5 +1758,151 @@ public:
         {
             return BinaryenGlobalGet(this->mod, std::to_string(tagged_index.value).c_str(), from_bird_type(tagged_index.type));
         }
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        std::vector<BinaryenExpressionRef> children;
+        std::vector<BinaryenExpressionRef> vals;
+
+        unsigned int size = 0;
+        std::shared_ptr<BirdType> type;
+        for (auto &element : array_init->elements)
+        {
+            element->accept(this);
+            auto val = this->stack.pop();
+            type = val.type;
+
+            vals.push_back(val.value);
+            size += bird_type_byte_size(val.type);
+        }
+
+        auto locals = this->function_locals[this->current_function_name];
+        this->function_locals[this->current_function_name].push_back(BinaryenTypeInt32());
+
+        auto identifier = std::to_string(locals.size()) + "temp";
+        this->environment.declare(identifier, TaggedIndex(locals.size(),
+                                                          type));
+
+        auto size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+        BinaryenExpressionRef local_set = this->binaryen_set(identifier,
+                                                             BinaryenCall(this->mod,
+                                                                          "mem_alloc",
+                                                                          &size_literal,
+                                                                          1,
+                                                                          BinaryenTypeInt32()));
+
+        children.push_back(local_set);
+
+        unsigned int offset = 0;
+        for (auto val : vals)
+        {
+            BinaryenExpressionRef args[3] = {
+                this->binaryen_get(identifier),
+                BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
+                val};
+
+            children.push_back(
+                BinaryenCall(this->mod,
+                             type->type == BirdTypeType::FLOAT ? "mem_set_64"
+                                                               : "mem_set_32",
+                             args,
+                             3,
+                             BinaryenTypeNone()));
+
+            offset += bird_type_byte_size(type);
+        }
+
+        children.push_back(this->binaryen_get(identifier));
+
+        auto block = BinaryenBlock(this->mod, nullptr, children.data(), children.size(), BinaryenTypeInt32());
+
+        this->stack.push(TaggedExpression(block, std::make_shared<ArrayType>(type)));
+    }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->subscriptable->accept(this);
+        auto lhs = this->stack.pop();
+
+        index_assign->lhs->accept(this);
+        auto lhs_val = this->stack.pop();
+
+        index_assign->lhs->index->accept(this);
+        auto index = this->stack.pop();
+
+        index_assign->rhs->accept(this);
+        auto rhs_val = this->stack.pop();
+
+        auto index_literal = BinaryenBinary(
+            this->mod, BinaryenMulInt32(),
+            index.value,
+            BinaryenConst(this->mod, BinaryenLiteralInt32(bird_type_byte_size(lhs_val.type))));
+
+        bool float_flag = (lhs_val.type->type == BirdTypeType::FLOAT && rhs_val.type->type == BirdTypeType::FLOAT);
+
+        BinaryenExpressionRef result;
+        switch (index_assign->op.token_type)
+        {
+        case Token::Type::EQUAL:
+        {
+            result = rhs_val.value;
+
+            break;
+        }
+        case Token::Type::PLUS_EQUAL:
+        {
+            result = (float_flag)
+                         ? BinaryenBinary(this->mod, BinaryenAddFloat64(), lhs_val.value, rhs_val.value)
+                         : BinaryenBinary(this->mod, BinaryenAddInt32(), lhs_val.value, rhs_val.value);
+            break;
+        }
+        case Token::Type::MINUS_EQUAL:
+        {
+            result = (float_flag)
+                         ? BinaryenBinary(this->mod, BinaryenSubFloat64(), lhs_val.value, rhs_val.value)
+                         : BinaryenBinary(this->mod, BinaryenSubInt32(), lhs_val.value, rhs_val.value);
+
+            break;
+        }
+        case Token::Type::STAR_EQUAL:
+        {
+            result = (float_flag)
+                         ? BinaryenBinary(this->mod, BinaryenMulFloat64(), lhs_val.value, rhs_val.value)
+                         : BinaryenBinary(this->mod, BinaryenMulInt32(), lhs_val.value, rhs_val.value);
+
+            break;
+        }
+        case Token::Type::SLASH_EQUAL:
+        {
+            result = (float_flag)
+                         ? BinaryenBinary(this->mod, BinaryenDivFloat64(), lhs_val.value, rhs_val.value)
+                         : BinaryenBinary(this->mod, BinaryenDivSInt32(), lhs_val.value, rhs_val.value);
+
+            break;
+        }
+        case Token::Type::PERCENT_EQUAL:
+        {
+            result = (float_flag)
+                         ? throw BirdException("Modular operation requires integer values")
+                         : BinaryenBinary(this->mod, BinaryenRemSInt32(), lhs_val.value, rhs_val.value);
+
+            break;
+        }
+        default:
+            throw BirdException("Unidentified assignment operator " + index_assign->op.lexeme);
+            break;
+        }
+
+        BinaryenExpressionRef args[3] = {lhs.value, index_literal, result};
+
+        this->stack.push(
+            BinaryenCall(
+                this->mod,
+                lhs_val.type->type == BirdTypeType::FLOAT ? "mem_set_64"
+                                                          : "mem_set_32",
+                args,
+                3,
+                BinaryenTypeNone()));
     }
 };

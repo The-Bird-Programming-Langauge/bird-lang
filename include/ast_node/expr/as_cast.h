@@ -4,6 +4,7 @@
 
 #include "token.h"
 #include "visitors/visitor.h"
+#include "parse_type.h"
 #include "expr.h"
 
 /*
@@ -19,9 +20,9 @@ class AsCast : public Expr
 {
 public:
     std::unique_ptr<Expr> expr;
-    Token type;
+    std::shared_ptr<ParseType::Type> type;
 
-    AsCast(std::unique_ptr<Expr> expr, Token type) : expr(std::move(expr)), type(type) {}
+    AsCast(std::unique_ptr<Expr> expr, std::shared_ptr<ParseType::Type> type) : expr(std::move(expr)), type(type) {}
 
     void accept(Visitor *visitor)
     {

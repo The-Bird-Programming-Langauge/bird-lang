@@ -210,7 +210,7 @@ public:
             stmt->accept(this);
         }
 
-        if (!found_return && func->return_type.has_value() && func->return_type.value().lexeme != "void")
+        if (!found_return && func->return_type.has_value() && func->return_type.value()->get_token().lexeme != "void")
         {
             this->user_error_tracker.semantic_error("Function '" + func->identifier.lexeme + "' does not have a return statement.", func->identifier);
         }
@@ -307,15 +307,7 @@ public:
 
     void visit_struct_decl(StructDecl *struct_decl)
     {
-        // if (this->identifer_in_any_environment(struct_decl->identifier.lexeme))
-        // {
-        //     this->user_error_tracker.semantic_error("Identifier '" + struct_decl->identifier.lexeme + "' is already declared.", struct_decl->identifier);
-        //     return;
-        // }
-
         this->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
-
-        // do nothing
     }
 
     void visit_direct_member_access(DirectMemberAccess *direct_member_access)
@@ -339,5 +331,19 @@ public:
     void visit_as_cast(AsCast *as_cast)
     {
         as_cast->expr->accept(this);
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        for (auto &el : array_init->elements)
+        {
+            el->accept(this);
+        }
+    }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->accept(this);
+        index_assign->rhs->accept(this);
     }
 };
