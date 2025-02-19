@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include "ast_node/index.h"
+#include "bird_type.h"
 
 /*
  * Visitor that prints the Abstract Syntax Tree
@@ -138,7 +139,13 @@ public:
     void visit_decl_stmt(DeclStmt *decl_stmt)
     {
         std::cout << "var ";
-        std::cout << decl_stmt->identifier.lexeme << " = ";
+        std::cout << decl_stmt->identifier.lexeme;
+        if (decl_stmt->type.has_value())
+        {
+            std::cout << ": ";
+            print_parse_type(decl_stmt->type.value());
+        }
+        std::cout << " = ";
         decl_stmt->value->accept(this);
     }
 
@@ -174,8 +181,9 @@ public:
 
     void visit_unary(Unary *unary)
     {
-        std::cout << unary->op.lexeme;
+        std::cout << "(" << unary->op.lexeme << " ";
         unary->expr->accept(this);
+        std::cout << ")";
     }
 
     void visit_primary(Primary *primary)
@@ -197,7 +205,13 @@ public:
     void visit_const_stmt(ConstStmt *const_stmt)
     {
         std::cout << "const ";
-        std::cout << const_stmt->identifier.lexeme << " = ";
+        std::cout << const_stmt->identifier.lexeme;
+        if (const_stmt->type.has_value())
+        {
+            std::cout << ": ";
+            print_parse_type(const_stmt->type.value());
+        }
+        std::cout << " = ";
         const_stmt->value->accept(this);
     }
 
@@ -210,7 +224,7 @@ public:
         for (int i = 0; i < func->param_list.size(); ++i)
         {
             auto pair = func->param_list[i];
-            std::cout << pair.first.lexeme << ": " << pair.second.lexeme;
+            std::cout << pair.first.lexeme << ": " << pair.second->get_token().lexeme;
 
             if (i < func->param_list.size() - 1)
             {
@@ -219,7 +233,7 @@ public:
         }
         std::cout << ")";
 
-        std::cout << " -> " << (func->return_type.has_value() ? func->return_type.value().lexeme : "void") << " ";
+        std::cout << " -> " << (func->return_type.has_value() ? func->return_type.value()->get_token().lexeme : "void") << " ";
 
         func->block->accept(this);
     }
@@ -265,7 +279,7 @@ public:
         {
             for_stmt->increment.value()->accept(this);
         }
-        std::cout << ") do ";
+        std::cout << ") ";
         for_stmt->body->accept(this);
     }
 
@@ -302,7 +316,7 @@ public:
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
-        std::cout << "type " << type_stmt->identifier.lexeme << " = " << type_stmt->type_token.lexeme;
+        std::cout << "type " << type_stmt->identifier.lexeme << " = " << type_stmt->type_token->get_token().lexeme;
     }
 
     void visit_subscript(Subscript *subscript)
@@ -319,7 +333,7 @@ public:
         std::cout << "{";
         for (auto it = struct_decl->fields.begin(); it != struct_decl->fields.end(); it++)
         {
-            std::cout << it->first << ": " << it->second.lexeme << ", ";
+            std::cout << it->first << ": " << it->second->get_token().lexeme << ", ";
         }
         std::cout << "}";
     }
@@ -349,9 +363,59 @@ public:
         this->visit_assign_expr(member_assign);
     }
 
+    void print_parse_type(std::shared_ptr<ParseType::Type> type)
+    {
+        if (type->tag == ParseType::ARRAY)
+        {
+            auto array = safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
+            this->print_parse_type(array->child);
+            std::cout << "[]";
+
+            return;
+        }
+        else if (type->tag == ParseType::USER_DEFINED)
+        {
+            auto user_defined = safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(type);
+
+            std::cout << user_defined->type.lexeme;
+            return;
+        }
+        else if (type->tag == ParseType::PRIMITIVE)
+        {
+            auto primitive = safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type);
+
+            std::cout << primitive->type.lexeme;
+            return;
+        }
+
+        throw BirdException("unknown parse type");
+    }
+
     void visit_as_cast(AsCast *as_cast)
     {
         as_cast->expr->accept(this);
-        std::cout << " as " << as_cast->type.lexeme;
+        std::cout << " as ";
+        print_parse_type(as_cast->type);
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        std::cout << "[";
+        for (int i = 0; i < array_init->elements.size(); i++)
+        {
+            array_init->elements[i]->accept(this);
+            if (i < array_init->elements.size() - 1)
+            {
+                std::cout << ", ";
+            }
+        }
+        std::cout << "]";
+    }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->accept(this);
+        std::cout << " " << index_assign->op.lexeme << " ";
+        index_assign->rhs->accept(this);
     }
 };

@@ -10,6 +10,7 @@
 #include "stmt.h"
 #include "token.h"
 #include "visitors/visitor.h"
+#include "parse_type.h"
 
 // forward declaration
 class Expr;
@@ -23,9 +24,9 @@ class StructDecl : public Stmt
 {
 public:
     Token identifier;
-    std::vector<std::pair<std::string, Token>> fields;
+    std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>> fields;
 
-    StructDecl(Token identifier, std::vector<std::pair<std::string, Token>> fields)
+    StructDecl(Token identifier, std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>> fields)
         : identifier(identifier),
           fields(fields)
     {

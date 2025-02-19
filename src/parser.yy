@@ -26,6 +26,7 @@
    #include "../include/exceptions/bird_exception.h"
    #include "../include/exceptions/user_exception.h"
    #include "../include/exceptions/user_error_tracker.h"
+   #include "../include/parse_type.h"
 
    #include "token.h"
 
@@ -64,7 +65,10 @@ STRUCT "struct"
 SELF "self"
 AS "as"
 AND "and"
+XOR "xor"
 OR "or"
+NOT "not"
+
 EQUAL "="
 PLUS_EQUAL "+="
 MINUS_EQUAL "-="
@@ -126,11 +130,16 @@ factor_expr
 unary_expr
 call_expr
 struct_initialization
-subscript_expr
+array_initialization
 direct_member_access
+index_assign
 grouping
 and_expr
+xor_expr
 or_expr
+
+%type <std::unique_ptr<Subscript>>
+subscript_expr
 
 %type <Token> 
 primary
@@ -138,13 +147,13 @@ ASSIGN_OP
 COMPARISON_OP
 TERM_OP
 FACTOR_OP
-UNARY_OP
+PREFIX_UNARY_OP
 EQUALITY_OP
 
-%type <std::pair<std::string, Token>>
+%type <std::pair<std::string, std::shared_ptr<ParseType::Type>>>
 field_member
 
-%type <std::vector<std::pair<std::string, Token>>>
+%type <std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>>
 maybe_field_map
 field_map
 
@@ -152,7 +161,7 @@ field_map
 maybe_struct_initialization_list
 struct_initialization_list
 
-%type <std::optional<Token>>
+%type <std::optional<std::shared_ptr<ParseType::Type>>>
 return_type
 
 %type <std::optional<std::unique_ptr<Stmt>>>
@@ -171,12 +180,15 @@ stmts
 maybe_arg_list
 arg_list
 
-%type <std::pair<Token,Token>>
+%type <std::pair<Token, std::shared_ptr<ParseType::Type>>>
 param
 
-%type <std::vector<std::pair<Token,Token>>> 
+%type <std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>> 
 maybe_param_list
 param_list
+
+%type <std::shared_ptr<ParseType::Type>>
+type_identifier
 
 %right ASSIGN
    EQUAL
@@ -188,6 +200,7 @@ param_list
 %right TERNARY
    QUESTION
 %left OR
+%left XOR
 %left AND
 %left EQUALITY
    EQUAL_EQUAL
@@ -205,6 +218,7 @@ param_list
    SLASH
    PERCENT
 %right UNARY
+   NOT
 %left CAST
    AS
 %left CALL
@@ -215,6 +229,8 @@ param_list
    DOT
 %left STRUCT_INITIALIZATION
    IDENTIFIER 
+%left ARRAY_INITIALIZATION
+   RBRACKET 
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -263,29 +279,25 @@ struct_decl:
       { $$ = std::make_unique<StructDecl>($2, $4); }
 
 maybe_field_map:
-   %empty { $$ = std::vector<std::pair<std::string, Token>>(); }
+   %empty { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); }
    | field_map
    | field_map COMMA
 
 field_map: 
    field_member
-      { $$ = std::vector<std::pair<std::string, Token>>(); $$.push_back($1); }
+      { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); $$.push_back($1); }
    | field_map COMMA field_member
       { $$ = std::move($1); $$.push_back($3); }
 
 field_member:
-   IDENTIFIER COLON TYPE_LITERAL
-      { $$ = std::make_pair($1.lexeme, $3); }
-   | IDENTIFIER COLON IDENTIFIER
+   IDENTIFIER COLON type_identifier
       { $$ = std::make_pair($1.lexeme, $3); }
 
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 
-      { $$ = std::make_unique<DeclStmt>($2, std::nullopt, false, std::move($4)); }
-   | VAR IDENTIFIER COLON TYPE_LITERAL EQUAL expr
-      { $$ = std::make_unique<DeclStmt>($2, $4, true, std::move($6)); }
-   | VAR IDENTIFIER COLON IDENTIFIER EQUAL expr
-      { $$ = std::make_unique<DeclStmt>($2, $4, false, std::move($6)); }
+      { $$ = std::make_unique<DeclStmt>($2, std::nullopt, std::move($4)); }
+   | VAR IDENTIFIER COLON type_identifier EQUAL expr
+      { $$ = std::make_unique<DeclStmt>($2, $4, std::move($6)); }
 
 if_stmt: 
    IF expr block %prec THEN 
@@ -309,11 +321,10 @@ if_stmt:
 
 const_stmt: 
    CONST IDENTIFIER EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, false, std::move($4)); }
-   | CONST IDENTIFIER COLON TYPE_LITERAL EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, $4, true, std::move($6)); }
-   | CONST IDENTIFIER COLON IDENTIFIER EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, $4, false, std::move($6)); }
+      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, std::move($4)); }
+   | CONST IDENTIFIER COLON type_identifier EQUAL expr 
+      { $$ = std::make_unique<ConstStmt>($2, std::move($4), std::move($6)); }
+   
 
 print_stmt: 
    PRINT arg_list 
@@ -377,10 +388,8 @@ expr_stmt:
       { $$ = std::make_unique<ExprStmt>(std::move($1)); }
 
 type_stmt: 
-   TYPE IDENTIFIER EQUAL TYPE_LITERAL 
-      { $$ =  std::make_unique<TypeStmt>($2, $4, true); }
-   | TYPE IDENTIFIER EQUAL IDENTIFIER 
-      { $$ = std::make_unique<TypeStmt>($2, $4, false); }
+   TYPE IDENTIFIER EQUAL type_identifier 
+      { $$ = std::make_unique<TypeStmt>($2, $4); }
 
 maybe_arg_list: 
    %empty { $$ = (std::vector<std::shared_ptr<Expr>>()); }
@@ -393,7 +402,7 @@ arg_list:
       { $1.push_back(std::move($3)); $$ = std::move($1); }
 
 maybe_param_list: 
-   %empty { $$ = std::vector<std::pair<Token, Token>>{}; }
+   %empty { $$ = std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>{}; }
    | param_list
 
 param_list: 
@@ -403,15 +412,12 @@ param_list:
       { $1.push_back($3); $$ = $1; }
 
 param: 
-   IDENTIFIER COLON TYPE_LITERAL 
-      { $$ = std::pair<Token, Token>($1, $3); }
-   | IDENTIFIER COLON IDENTIFIER
-      { $$ = std::pair<Token, Token>($1, $3); }
+   IDENTIFIER COLON type_identifier 
+      { $$ = std::pair<Token, std::shared_ptr<ParseType::Type>>($1, $3); }
 
 return_type: 
-   %empty { $$ = std::optional<Token>{}; }
-   | ARROW TYPE_LITERAL { $$ = std::optional<Token>($2); }
-   | ARROW IDENTIFIER { $$ = std::optional<Token>($2); }
+   %empty { $$ = std::nullopt; }
+   | ARROW type_identifier { $$ = std::optional<std::shared_ptr<ParseType::Type>>($2); }
 
 
 
@@ -423,37 +429,34 @@ expr:
    | term_expr { $$ = std::move($1); }
    | factor_expr { $$ = std::move($1); }
    | and_expr { $$ = std::move($1); }
+   | xor_expr { $$ = std::move($1); }
    | or_expr { $$ = std::move($1); }
    | unary_expr { $$ = std::move($1); }
    | type_cast {$$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
    | subscript_expr { $$ = std::move($1); }
+   | index_assign { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
    | struct_initialization { $$ = std::move($1); }
+   | array_initialization { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
 
 
-assign_expr: 
-   expr ASSIGN_OP expr %prec ASSIGN 
-      { 
-         if(auto *identifier = dynamic_cast<Primary *>($1.get()))
-         {
-            if (identifier->value.token_type != Token::Type::IDENTIFIER)
-            {
-               // TODO: throw an error here
-            }
-            $$ = std::make_unique<AssignExpr>(identifier->value, $2, std::move($3));
-         }
-         if (auto *member_access = dynamic_cast<DirectMemberAccess *>($1.get()))
-         {
-            $$ = std::make_unique<MemberAssign>(std::move(member_access->accessable), member_access->identifier, $2, std::move($3));
-         }
-      }
+assign_expr:
+   primary ASSIGN_OP expr %prec ASSIGN 
+   { $$ = std::make_unique<AssignExpr>($1, $2, std::move($3)); }
+   | direct_member_access ASSIGN_OP expr %prec ASSIGN { 
+      auto member_access = dynamic_cast<MemberAssign *>($1.get());
+      $$ = std::make_unique<MemberAssign>(std::move(member_access->accessable), member_access->identifier, $2, std::move($3));
+   }
+
+index_assign:
+   subscript_expr ASSIGN_OP expr %prec ASSIGN 
+   { $$ = std::make_unique<IndexAssign>(std::move($1), std::move($3), $2); }
 
 type_cast:
-   expr AS IDENTIFIER %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
-   | expr AS TYPE_LITERAL %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
+   expr AS type_identifier %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
 
 ternary_expr: 
    expr QUESTION expr COLON expr %prec TERNARY 
@@ -480,12 +483,16 @@ factor_expr:
       { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
 unary_expr: 
-   UNARY_OP expr %prec UNARY 
+   PREFIX_UNARY_OP expr %prec UNARY 
       { $$ = std::make_unique<Unary>($1, std::move($2)); }
    | expr QUESTION %prec UNARY  {$$ = std::make_unique<Unary>($2, std::move($1));}
 
 and_expr:
    expr AND expr %prec AND
+      { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
+
+xor_expr:
+   expr XOR expr %prec XOR
       { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
 or_expr:
@@ -521,6 +528,11 @@ struct_initialization_list:
    | struct_initialization_list COMMA IDENTIFIER EQUAL expr 
       { $$ = std::move($1);
         $$.push_back(std::make_pair($3.lexeme, std::move($5))); }
+
+array_initialization: 
+   LBRACKET maybe_arg_list RBRACKET %prec ARRAY_INITIALIZATION {
+      $$ = std::make_unique<ArrayInit>($2);
+   }
 
 subscript_expr:
    expr LBRACKET expr RBRACKET %prec SUBSCRIPT
@@ -568,8 +580,14 @@ TERM_OP:
    PLUS
    | MINUS
 
-UNARY_OP: 
+PREFIX_UNARY_OP: 
    MINUS
+   | NOT
+
+type_identifier:
+   IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
+   | TYPE_LITERAL { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
 
 %%
 

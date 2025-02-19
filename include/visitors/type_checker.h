@@ -17,11 +17,7 @@
 #include "type.h"
 #include "visitor_adapter.h"
 #include "hoist_visitor.h"
-
-static bool is_bird_type(Token token)
-{
-    return token.lexeme == "int" || token.lexeme == "float" || token.lexeme == "bool" || token.lexeme == "str" || token.lexeme == "void";
-}
+#include "type_converter.h"
 
 /*
  * Visitor that checks types of the AST
@@ -39,8 +35,9 @@ public:
     Stack<std::shared_ptr<BirdType>> stack;
     std::optional<std::shared_ptr<BirdType>> return_type;
     UserErrorTracker *user_error_tracker;
+    TypeConverter type_converter;
 
-    TypeChecker(UserErrorTracker *user_error_tracker) : user_error_tracker(user_error_tracker)
+    TypeChecker(UserErrorTracker *user_error_tracker) : user_error_tracker(user_error_tracker), type_converter(this->type_table, this->struct_names)
     {
         this->env.push_env();
         this->call_table.push_env();
@@ -108,6 +105,9 @@ public:
         {Token::Type::OR, {
                               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
                           }},
+        {Token::Type::XOR, {
+                               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+                           }},
         {Token::Type::PERCENT, {
                                    {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
                                    {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::FLOAT},
@@ -240,13 +240,13 @@ public:
             return;
         }
 
-        if (decl_stmt->type_token.has_value())
+        if (decl_stmt->type.has_value())
         {
-            std::shared_ptr<BirdType> type = this->get_type_from_token(decl_stmt->type_token.value());
-
+            std::shared_ptr<BirdType> type = this->type_converter.convert(decl_stmt->type.value());
             if (*type != *result)
             {
-                this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type_token.value());
+                this->user_error_tracker->type_mismatch("in declaration", decl_stmt->type.value()->get_token());
+
                 this->env.declare(decl_stmt->identifier.lexeme, std::make_unique<ErrorType>());
                 return;
             }
@@ -347,13 +347,13 @@ public:
             return;
         }
 
-        if (const_stmt->type_token.has_value())
+        if (const_stmt->type.has_value())
         {
-            std::shared_ptr<BirdType> type = this->get_type_from_token(const_stmt->type_token.value());
+            std::shared_ptr<BirdType> type = this->type_converter.convert(const_stmt->type.value());
 
             if (*type != *result)
             {
-                this->user_error_tracker->type_mismatch("in declaration", const_stmt->type_token.value());
+                this->user_error_tracker->type_mismatch("in declaration", const_stmt->type.value()->get_token());
                 this->env.declare(const_stmt->identifier.lexeme, std::make_shared<ErrorType>());
                 return;
             }
@@ -441,6 +441,19 @@ public:
             else
             {
                 this->user_error_tracker->type_error("expected int or float in unary operation, found: " + bird_type_to_string(result), unary->op);
+                this->stack.push(std::make_shared<ErrorType>());
+            }
+            break;
+        }
+        case Token::Type::NOT:
+        {
+            if (result->type == BirdTypeType::BOOL)
+            {
+                this->stack.push(std::make_shared<BoolType>());
+            }
+            else
+            {
+                this->user_error_tracker->type_error("expected bool int unary operation, found: " + bird_type_to_string(result), unary->op);
                 this->stack.push(std::make_shared<ErrorType>());
             }
             break;
@@ -579,9 +592,9 @@ public:
         std::vector<std::shared_ptr<BirdType>> params;
 
         std::transform(func->param_list.begin(), func->param_list.end(), std::back_inserter(params), [&](auto param)
-                       { return this->get_type_from_token(param.second); });
+                       { return this->type_converter.convert(param.second); });
 
-        std::shared_ptr<BirdType> ret = func->return_type.has_value() ? this->get_type_from_token(func->return_type.value()) : std::shared_ptr<BirdType>(new VoidType());
+        std::shared_ptr<BirdType> ret = func->return_type.has_value() ? this->type_converter.convert(func->return_type.value()) : std::shared_ptr<BirdType>(new VoidType());
         auto previous_return_type = this->return_type;
         this->return_type = ret;
 
@@ -591,13 +604,7 @@ public:
 
         for (auto &param : func->param_list)
         {
-            if (!is_bird_type(param.second))
-            {
-                this->env.declare(param.first.lexeme, this->get_type_from_token(param.second));
-                continue;
-            }
-
-            this->env.declare(param.first.lexeme, this->get_type_from_token(param.second));
+            this->env.declare(param.first.lexeme, this->type_converter.convert(param.second));
         }
 
         for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts) // TODO: figure out how not to dynamic cast
@@ -704,9 +711,9 @@ public:
             return;
         }
 
-        auto type = this->get_type_from_token(type_stmt->type_token);
-
-        this->type_table.declare(type_stmt->identifier.lexeme, type);
+        this->type_table.declare(
+            type_stmt->identifier.lexeme,
+            this->type_converter.convert(type_stmt->type_token));
     }
 
     void visit_subscript(Subscript *subscript)
@@ -717,9 +724,9 @@ public:
         subscript->index->accept(this);
         auto index = this->stack.pop();
 
-        if (subscriptable->type != BirdTypeType::STRING)
+        if (subscriptable->type != BirdTypeType::STRING && subscriptable->type != BirdTypeType::ARRAY)
         {
-            this->user_error_tracker->type_error("expected string in subscriptable", subscript->subscript_token);
+            this->user_error_tracker->type_error("unexpected subscriptable type", subscript->subscript_token);
             this->stack.push(std::make_shared<ErrorType>());
             return;
         }
@@ -731,14 +738,23 @@ public:
             return;
         }
 
-        this->stack.push(std::make_shared<IntType>());
+        if (subscriptable->type == BirdTypeType::STRING)
+        {
+            this->stack.push(std::make_shared<StringType>());
+            return;
+        }
+
+        auto array_type = safe_dynamic_pointer_cast<ArrayType>(subscriptable);
+        this->stack.push(array_type->element_type);
     }
 
     void visit_struct_decl(StructDecl *struct_decl)
     {
         std::vector<std::pair<std::string, std::shared_ptr<BirdType>>> struct_fields;
-        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, Token> field)
-                       { return std::make_pair(field.first, this->get_type_from_token(field.second)); });
+        std::transform(struct_decl->fields.begin(), struct_decl->fields.end(), std::back_inserter(struct_fields), [&](std::pair<std::string, std::shared_ptr<ParseType::Type>> field)
+                       { return std::make_pair(field.first, this->type_converter.convert(field.second)); });
+
+        // TODO: check invalid field types
 
         auto struct_type = std::make_shared<StructType>(struct_decl->identifier.lexeme, struct_fields);
         this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
@@ -929,7 +945,7 @@ public:
             return;
         }
 
-        auto to_type = this->get_type_from_token(as_cast->type);
+        auto to_type = this->type_converter.convert(as_cast->type);
 
         if (*to_type == *expr)
         {
@@ -949,7 +965,81 @@ public:
             return;
         }
 
-        this->user_error_tracker->type_mismatch("in 'as' type cast", as_cast->type);
+        if (to_type->type == BirdTypeType::ARRAY && expr->type == BirdTypeType::ARRAY)
+        {
+            auto to_type_array = safe_dynamic_pointer_cast<ArrayType>(to_type);
+            auto expr_type_array = safe_dynamic_pointer_cast<ArrayType>(expr);
+
+            if (expr_type_array->element_type->type == BirdTypeType::VOID)
+            {
+                this->stack.push(to_type);
+            }
+            else if (*expr_type_array->element_type == *to_type_array->element_type)
+            {
+                this->stack.push(to_type);
+            }
+            else
+            {
+                this->user_error_tracker->type_mismatch("in 'as' type cast", as_cast->type->get_token());
+                this->stack.push(std::make_shared<ErrorType>());
+                return;
+            }
+        }
+
+        this->user_error_tracker->type_mismatch("in 'as' type cast", as_cast->type->get_token());
         this->stack.push(std::make_shared<ErrorType>());
+    }
+
+    void visit_array_init(ArrayInit *array_init)
+    {
+        auto elements = array_init->elements;
+        if (!elements.size())
+        {
+            this->stack.push(std::make_shared<ArrayType>(std::make_shared<VoidType>())); // resolved later?
+            return;
+        }
+
+        elements[0]->accept(this);
+        auto first_el_type = this->stack.pop();
+
+        for (int i = 1; i < elements.size(); i++)
+        {
+            elements[i]->accept(this);
+            auto type = this->stack.pop();
+
+            if (*first_el_type != *type)
+            {
+                Token error_token;
+                if (auto *primary_expr = dynamic_cast<Primary *>(elements[i].get()))
+                {
+                    error_token = primary_expr->value;
+                }
+
+                this->user_error_tracker->type_mismatch("in array initialization", error_token);
+
+                this->stack.push(std::make_shared<ErrorType>());
+                return;
+            }
+        }
+
+        this->stack.push(std::make_shared<ArrayType>(first_el_type));
+    }
+
+    void visit_index_assign(IndexAssign *index_assign)
+    {
+        index_assign->lhs->accept(this);
+        auto lhs_type = this->stack.pop();
+
+        index_assign->rhs->accept(this);
+        auto rhs_type = this->stack.pop();
+
+        if (lhs_type->type != rhs_type->type)
+        {
+            this->user_error_tracker->type_mismatch("in assignment", index_assign->lhs->subscript_token);
+            this->stack.push(std::make_shared<ErrorType>());
+            return;
+        }
+
+        this->stack.push(lhs_type);
     }
 };

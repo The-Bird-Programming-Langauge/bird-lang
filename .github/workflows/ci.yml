@@ -18,6 +18,7 @@ jobs:
       run: | 
         sudo apt-get update
         sudo apt-get clean 
+        sudo apt-get install -y ninja-build
         sudo apt-get install -y build-essential libzstd-dev libgtest-dev libgmock-dev
         sudo apt-get install binaryen
         sudo apt-get install nodejs -y
@@ -29,6 +30,6 @@ jobs:
 
     - name: Build and test
       run: |
-        cmake -Bbuild -DTESTS=ON -DRUN_WASM_FILE_LOCATION="/home/runner/work/bird-lang/bird-lang/tests/helpers/run_wasm.js"
-        make -C build
+        cmake -Bbuild -DTESTS=ON -GNinja -DRUN_WASM_FILE_LOCATION="/home/runner/work/bird-lang/bird-lang/tests/helpers/run_wasm.js"
+        ninja -C build
         ctest --test-dir build --verbose
