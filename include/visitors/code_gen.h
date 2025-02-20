@@ -219,16 +219,7 @@ public:
     void visit_if_stmt(IfStmt *if_stmt);
     void visit_call(Call *call);
     void visit_return_stmt(ReturnStmt *return_stmt);
-
-    void visit_break_stmt(BreakStmt *break_stmt)
-    {
-        this->stack.push(
-            BinaryenBreak(
-                this->mod,
-                "EXIT",
-                nullptr,
-                nullptr));
-    }
+    void visit_break_stmt(BreakStmt *break_stmt);
 
     void visit_continue_stmt(ContinueStmt *continue_stmt)
     {
