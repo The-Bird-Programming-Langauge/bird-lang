@@ -216,37 +216,7 @@ public:
     void visit_ternary(Ternary *ternary);
     void visit_const_stmt(ConstStmt *const_stmt);
     void visit_func(Func *func);
-
-    void visit_if_stmt(IfStmt *if_stmt)
-    {
-        if_stmt->condition->accept(this);
-        auto condition = this->stack.pop();
-
-        if_stmt->then_branch->accept(this);
-        auto then_branch = this->stack.pop();
-
-        if (if_stmt->else_branch.has_value())
-        {
-            if_stmt->else_branch.value()->accept(this);
-            auto else_branch = this->stack.pop();
-
-            this->stack.push(
-                BinaryenIf(
-                    this->mod,
-                    condition.value,
-                    then_branch.value,
-                    else_branch.value));
-        }
-        else
-        {
-            this->stack.push(
-                BinaryenIf(
-                    this->mod,
-                    condition.value,
-                    then_branch.value,
-                    nullptr));
-        }
-    }
+    void visit_if_stmt(IfStmt *if_stmt);
 
     void visit_call(Call *call)
     {
