@@ -221,13 +221,7 @@ public:
     void visit_return_stmt(ReturnStmt *return_stmt);
     void visit_break_stmt(BreakStmt *break_stmt);
     void visit_continue_stmt(ContinueStmt *continue_stmt);
-
-    void visit_type_stmt(TypeStmt *type_stmt)
-    {
-        this->type_table.declare(
-            type_stmt->identifier.lexeme,
-            this->type_converter.convert(type_stmt->type_token));
-    }
+    void visit_type_stmt(TypeStmt *type_stmt);
 
     void visit_subscript(Subscript *subscript)
     {
