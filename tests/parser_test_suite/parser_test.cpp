@@ -20,8 +20,10 @@ TEST(ParserTest, ParseBlockStmt)
         DeclStmt *first_decl_stmt = dynamic_cast<DeclStmt *>(block->stmts[0].get());
         ASSERT_NE(first_decl_stmt, nullptr);
         EXPECT_EQ(first_decl_stmt->identifier.lexeme, "x");
-        EXPECT_EQ(first_decl_stmt->type_token.has_value(), true);
-        EXPECT_EQ(first_decl_stmt->type_token.value().lexeme, "int");
+        ASSERT_TRUE(first_decl_stmt->type.has_value());
+        ParseType::Primitive *primitive_type = dynamic_cast<ParseType::Primitive *>(first_decl_stmt->type.value().get());
+        ASSERT_NE(primitive_type, nullptr);
+        EXPECT_EQ(primitive_type->type.lexeme, "int");
 
         Primary *first_decl_value = dynamic_cast<Primary *>(first_decl_stmt->value.get());
         ASSERT_NE(first_decl_value, nullptr);
@@ -30,8 +32,10 @@ TEST(ParserTest, ParseBlockStmt)
         DeclStmt *second_decl_stmt = dynamic_cast<DeclStmt *>(block->stmts[1].get());
         ASSERT_NE(second_decl_stmt, nullptr);
         EXPECT_EQ(second_decl_stmt->identifier.lexeme, "y");
-        EXPECT_EQ(second_decl_stmt->type_token.has_value(), true);
-        EXPECT_EQ(second_decl_stmt->type_token.value().lexeme, "int");
+        ASSERT_TRUE(second_decl_stmt->type.has_value());
+        ParseType::Primitive *second_primitive_type = dynamic_cast<ParseType::Primitive *>(second_decl_stmt->type.value().get());
+        ASSERT_NE(second_primitive_type, nullptr);
+        EXPECT_EQ(second_primitive_type->type.lexeme, "int");
 
         Primary *second_decl_value = dynamic_cast<Primary *>(second_decl_stmt->value.get());
         ASSERT_NE(second_decl_value, nullptr);
@@ -56,8 +60,8 @@ TEST(ParserTest, ParseConstStmt)
         ConstStmt *const_stmt = dynamic_cast<ConstStmt *>(ast[0].get());
         ASSERT_NE(const_stmt, nullptr);
         EXPECT_EQ(const_stmt->identifier.lexeme, "z");
-        EXPECT_EQ(const_stmt->type_token.has_value(), true);
-        EXPECT_EQ(const_stmt->type_token.value().lexeme, "str");
+        EXPECT_EQ(const_stmt->type.has_value(), true);
+        EXPECT_EQ(const_stmt->type.value()->get_token().lexeme, "str");
 
         Primary *primary_expr = dynamic_cast<Primary *>(const_stmt->value.get());
         ASSERT_NE(primary_expr, nullptr);
@@ -82,8 +86,11 @@ TEST(ParserTest, ParseDeclStmt)
         DeclStmt *decl_stmt = dynamic_cast<DeclStmt *>(ast[0].get());
         ASSERT_NE(decl_stmt, nullptr);
         EXPECT_EQ(decl_stmt->identifier.lexeme, "x");
-        EXPECT_EQ(decl_stmt->type_token.has_value(), true);
-        EXPECT_EQ(decl_stmt->type_token.value().lexeme, "int");
+
+        ASSERT_TRUE(decl_stmt->type.has_value());
+        ParseType::Primitive *primitive_type = dynamic_cast<ParseType::Primitive *>(decl_stmt->type.value().get());
+        ASSERT_NE(primitive_type, nullptr);
+        EXPECT_EQ(primitive_type->type.lexeme, "int");
 
         Primary *primary_expr = dynamic_cast<Primary *>(decl_stmt->value.get());
         ASSERT_NE(primary_expr, nullptr);
@@ -184,13 +191,13 @@ TEST(ParserTest, ParseFuncStmt)
 
         EXPECT_EQ(func_stmt->identifier.lexeme, "add");
         ASSERT_TRUE(func_stmt->return_type.has_value());
-        EXPECT_EQ(func_stmt->return_type->lexeme, "int");
+        EXPECT_EQ(func_stmt->return_type.value()->get_token().lexeme, "int");
 
         ASSERT_EQ(func_stmt->param_list.size(), 2);
         EXPECT_EQ(func_stmt->param_list[0].first.lexeme, "first");
-        EXPECT_EQ(func_stmt->param_list[0].second.lexeme, "int");
+        EXPECT_EQ(func_stmt->param_list[0].second->get_token().lexeme, "int");
         EXPECT_EQ(func_stmt->param_list[1].first.lexeme, "second");
-        EXPECT_EQ(func_stmt->param_list[1].second.lexeme, "int");
+        EXPECT_EQ(func_stmt->param_list[1].second->get_token().lexeme, "int");
 
         Block *block_stmt = dynamic_cast<Block *>(func_stmt->block.get());
         ASSERT_NE(block_stmt, nullptr);
@@ -264,7 +271,7 @@ TEST(ParserTest, ParseFunctionNoArgs)
 
         EXPECT_EQ(func_stmt->identifier.lexeme, "function");
         ASSERT_TRUE(func_stmt->return_type.has_value());
-        EXPECT_EQ(func_stmt->return_type->lexeme, "int");
+        EXPECT_EQ(func_stmt->return_type.value()->get_token().lexeme, "int");
 
         ASSERT_EQ(func_stmt->param_list.size(), 0);
 
@@ -297,9 +304,9 @@ TEST(ParserTest, ParseFunctionNoReturnType)
 
         ASSERT_EQ(func_stmt->param_list.size(), 2);
         EXPECT_EQ(func_stmt->param_list[0].first.lexeme, "i");
-        EXPECT_EQ(func_stmt->param_list[0].second.lexeme, "int");
+        EXPECT_EQ(func_stmt->param_list[0].second->get_token().lexeme, "int");
         EXPECT_EQ(func_stmt->param_list[1].first.lexeme, "j");
-        EXPECT_EQ(func_stmt->param_list[1].second.lexeme, "str");
+        EXPECT_EQ(func_stmt->param_list[1].second->get_token().lexeme, "str");
 
         Block *block_stmt = dynamic_cast<Block *>(func_stmt->block.get());
         ASSERT_NE(block_stmt, nullptr);
@@ -589,7 +596,11 @@ TEST(ParserTest, ParserForLoop)
         DeclStmt *initializer = dynamic_cast<DeclStmt *>(for_stmt->initializer.value().get());
         ASSERT_NE(initializer, nullptr);
         EXPECT_EQ(initializer->identifier.lexeme, "x");
-        EXPECT_EQ(initializer->type_token->lexeme, "int");
+        ASSERT_TRUE(initializer->type.has_value());
+
+        ParseType::Primitive *primitive_type = dynamic_cast<ParseType::Primitive *>(initializer->type.value().get());
+        ASSERT_NE(primitive_type, nullptr);
+        EXPECT_EQ(primitive_type->type.lexeme, "int");
 
         Binary *condition = dynamic_cast<Binary *>(for_stmt->condition.value().get());
         ASSERT_NE(condition, nullptr);
@@ -702,6 +713,153 @@ TEST(ParserTest, SingleLineComments)
     options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
     {
         ASSERT_FALSE(error_tracker.has_errors());
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
+
+TEST(ParserTest, ArrayWithoutInit)
+{
+    BirdTest::TestOptions options;
+    options.code = "var x: int[] = [];";
+
+    options.compile = false;
+    options.interpret = false;
+
+    options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
+    {
+        ASSERT_FALSE(error_tracker.has_errors());
+        ASSERT_EQ(ast.size(), 1);
+
+        DeclStmt *decl_stmt = dynamic_cast<DeclStmt *>(ast[0].get());
+        ASSERT_NE(decl_stmt, nullptr);
+        ASSERT_EQ(decl_stmt->identifier.lexeme, "x");
+        ASSERT_TRUE(decl_stmt->type.has_value());
+
+        ParseType::Array *array = dynamic_cast<ParseType::Array *>(decl_stmt->type.value().get());
+        ASSERT_NE(array, nullptr);
+        ASSERT_EQ(array->get_token().lexeme, "int");
+
+        ArrayInit *array_init = dynamic_cast<ArrayInit *>(decl_stmt->value.get());
+        ASSERT_NE(array_init, nullptr);
+        ASSERT_EQ(array_init->elements.size(), 0);
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
+
+TEST(ParserTest, IntArrayWithInit)
+{
+    BirdTest::TestOptions options;
+    options.code = "var x: int[] = [ 1, 2, 3 ];";
+
+    options.compile = false;
+    options.interpret = false;
+
+    options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
+    {
+        ASSERT_FALSE(error_tracker.has_errors());
+        ASSERT_EQ(ast.size(), 1);
+
+        DeclStmt *decl_stmt = dynamic_cast<DeclStmt *>(ast[0].get());
+        ASSERT_NE(decl_stmt, nullptr);
+        ASSERT_EQ(decl_stmt->identifier.lexeme, "x");
+        ASSERT_TRUE(decl_stmt->type.has_value());
+
+        ParseType::Array *array = dynamic_cast<ParseType::Array *>(decl_stmt->type.value().get());
+        ASSERT_NE(array, nullptr);
+        ASSERT_EQ(array->get_token().lexeme, "int");
+
+        ArrayInit *array_init = dynamic_cast<ArrayInit *>(decl_stmt->value.get());
+        ASSERT_NE(array_init, nullptr);
+        ASSERT_EQ(array_init->elements.size(), 3);
+
+        Primary *first = dynamic_cast<Primary *>(array_init->elements[0].get());
+        ASSERT_EQ(first->value.lexeme, "1");
+
+        Primary *second = dynamic_cast<Primary *>(array_init->elements[1].get());
+        ASSERT_EQ(second->value.lexeme, "2");
+
+        Primary *third = dynamic_cast<Primary *>(array_init->elements[2].get());
+        ASSERT_EQ(third->value.lexeme, "3");
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
+
+TEST(ParserTest, FloatArrayWithInit)
+{
+    BirdTest::TestOptions options;
+    options.code = "var x: float[] = [ 1.1, 2.2, 3.3 ];";
+
+    options.compile = false;
+    options.interpret = false;
+
+    options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
+    {
+        ASSERT_FALSE(error_tracker.has_errors());
+        ASSERT_EQ(ast.size(), 1);
+
+        DeclStmt *decl_stmt = dynamic_cast<DeclStmt *>(ast[0].get());
+        ASSERT_NE(decl_stmt, nullptr);
+        ASSERT_EQ(decl_stmt->identifier.lexeme, "x");
+        ASSERT_TRUE(decl_stmt->type.has_value());
+
+        ParseType::Array *array = dynamic_cast<ParseType::Array *>(decl_stmt->type.value().get());
+        ASSERT_NE(array, nullptr);
+        ASSERT_EQ(array->get_token().lexeme, "float");
+
+        ArrayInit *array_init = dynamic_cast<ArrayInit *>(decl_stmt->value.get());
+        ASSERT_NE(array_init, nullptr);
+        ASSERT_EQ(array_init->elements.size(), 3);
+
+        Primary *first = dynamic_cast<Primary *>(array_init->elements[0].get());
+        ASSERT_EQ(first->value.lexeme, "1.1");
+
+        Primary *second = dynamic_cast<Primary *>(array_init->elements[1].get());
+        ASSERT_EQ(second->value.lexeme, "2.2");
+
+        Primary *third = dynamic_cast<Primary *>(array_init->elements[2].get());
+        ASSERT_EQ(third->value.lexeme, "3.3");
+    };
+
+    ASSERT_TRUE(BirdTest::compile(options));
+}
+
+TEST(ParserTest, StrArrayWithInit)
+{
+    BirdTest::TestOptions options;
+    options.code = "var x: str[] = [ \"hello\", \", \", \"world!\" ];";
+
+    options.compile = false;
+    options.interpret = false;
+
+    options.after_parse = [](auto &error_tracker, auto &parser, auto &ast)
+    {
+        ASSERT_FALSE(error_tracker.has_errors());
+        ASSERT_EQ(ast.size(), 1);
+
+        DeclStmt *decl_stmt = dynamic_cast<DeclStmt *>(ast[0].get());
+        ASSERT_NE(decl_stmt, nullptr);
+        ASSERT_EQ(decl_stmt->identifier.lexeme, "x");
+        ASSERT_TRUE(decl_stmt->type.has_value());
+
+        ParseType::Array *array = dynamic_cast<ParseType::Array *>(decl_stmt->type.value().get());
+        ASSERT_NE(array, nullptr);
+        ASSERT_EQ(array->get_token().lexeme, "str");
+
+        ArrayInit *array_init = dynamic_cast<ArrayInit *>(decl_stmt->value.get());
+        ASSERT_NE(array_init, nullptr);
+        ASSERT_EQ(array_init->elements.size(), 3);
+
+        Primary *first = dynamic_cast<Primary *>(array_init->elements[0].get());
+        ASSERT_EQ(first->value.lexeme, "hello");
+
+        Primary *second = dynamic_cast<Primary *>(array_init->elements[1].get());
+        ASSERT_EQ(second->value.lexeme, ", ");
+
+        Primary *third = dynamic_cast<Primary *>(array_init->elements[2].get());
+        ASSERT_EQ(third->value.lexeme, "world!");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
