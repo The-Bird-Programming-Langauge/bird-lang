@@ -220,16 +220,7 @@ public:
     void visit_call(Call *call);
     void visit_return_stmt(ReturnStmt *return_stmt);
     void visit_break_stmt(BreakStmt *break_stmt);
-
-    void visit_continue_stmt(ContinueStmt *continue_stmt)
-    {
-        this->stack.push(
-            BinaryenBreak(
-                this->mod,
-                "BODY",
-                nullptr,
-                nullptr));
-    }
+    void visit_continue_stmt(ContinueStmt *continue_stmt);
 
     void visit_type_stmt(TypeStmt *type_stmt)
     {
