@@ -7,7 +7,7 @@ void CodeGen::visit_func(Func *func)
     if (func->return_type.has_value())
     {
         auto bird_return_type = this->type_converter.convert(func->return_type.value());
-        auto binaryen_return_type = this->bird_type_to_binaryen_type(bird_return_type);
+        auto binaryen_return_type = bird_type_to_binaryen_type(bird_return_type);
 
         this->function_return_types[func_name] = TaggedType(binaryen_return_type, bird_return_type);
     }
@@ -27,14 +27,14 @@ void CodeGen::visit_func(Func *func)
     for (auto &param : func->param_list)
     {
         auto param_type = this->type_converter.convert(param.second);
-        param_types.push_back(this->bird_type_to_binaryen_type(param_type));
-        this->function_locals[func_name].push_back(this->bird_type_to_binaryen_type(param_type));
+        param_types.push_back(bird_type_to_binaryen_type(param_type));
+        this->function_locals[func_name].push_back(bird_type_to_binaryen_type(param_type));
     }
 
     BinaryenType params = BinaryenTypeCreate(param_types.data(), param_types.size());
 
     BinaryenType result_type = func->return_type.has_value()
-                                   ? this->bird_type_to_binaryen_type(this->type_converter.convert(func->return_type.value()))
+                                   ? bird_type_to_binaryen_type(this->type_converter.convert(func->return_type.value()))
                                    : BinaryenTypeNone();
 
     this->environment.push_env();

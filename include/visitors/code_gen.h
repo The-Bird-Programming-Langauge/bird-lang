@@ -11,30 +11,8 @@
 #include "stack.h"
 #include "sym_table.h"
 
-static unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) // in i32s
-{
-    switch (type->type)
-    {
-    case BirdTypeType::INT:
-        return 5;
-    case BirdTypeType::FLOAT:
-        return 9;
-    case BirdTypeType::BOOL:
-        return 5;
-    case BirdTypeType::VOID:
-        return 0;
-    case BirdTypeType::STRING:
-        return 5;
-    case BirdTypeType::STRUCT:
-        return 5;
-    case BirdTypeType::ARRAY:
-        return 5;
-    case BirdTypeType::PLACEHOLDER:
-        return 5;
-    default:
-        return 0;
-    }
-}
+unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
+BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
 
 template <typename T>
 struct Tagged
@@ -157,47 +135,6 @@ public:
     void add_memory_segment(const std::string &str);
     void init_static_memory(std::vector<std::string> &strings);
     void generate(std::vector<std::unique_ptr<Stmt>> *stmts);
-
-    BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type)
-    {
-        if (bird_type->type == BirdTypeType::BOOL)
-            return BinaryenTypeInt32();
-        else if (bird_type->type == BirdTypeType::INT)
-            return BinaryenTypeInt32();
-        else if (bird_type->type == BirdTypeType::FLOAT)
-            return BinaryenTypeFloat64();
-        else if (bird_type->type == BirdTypeType::VOID)
-            return BinaryenTypeNone();
-        else if (bird_type->type == BirdTypeType::STRING)
-            return BinaryenTypeInt32();
-        else if (bird_type->type == BirdTypeType::STRUCT)
-            return BinaryenTypeInt32(); // ptr
-        else if (bird_type->type == BirdTypeType::PLACEHOLDER)
-            return BinaryenTypeInt32();
-        else if (bird_type->type == BirdTypeType::ARRAY)
-            return BinaryenTypeInt32();
-
-        throw BirdException("invalid type");
-    }
-
-    BinaryenType from_bird_type(std::shared_ptr<BirdType> token)
-    {
-        if (token->type == BirdTypeType::BOOL)
-            return BinaryenTypeInt32();
-        else if (token->type == BirdTypeType::INT)
-            return BinaryenTypeInt32();
-        else if (token->type == BirdTypeType::FLOAT)
-            return BinaryenTypeFloat64();
-        else if (token->type == BirdTypeType::VOID)
-            return BinaryenTypeNone();
-        else if (token->type == BirdTypeType::STRING || token->type == BirdTypeType::STRUCT || token->type == BirdTypeType::ARRAY)
-            return BinaryenTypeInt32();
-        else
-        {
-
-            throw BirdException("invalid type");
-        }
-    }
 
     // perform garbage collection on memory data by marking and sweeping dynamically allocated blocks
     void garbage_collect();

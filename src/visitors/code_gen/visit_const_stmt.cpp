@@ -26,7 +26,7 @@ void CodeGen::visit_const_stmt(ConstStmt *const_stmt)
     }
 
     BinaryenIndex index = this->function_locals[this->current_function_name].size();
-    this->function_locals[this->current_function_name].push_back(from_bird_type(type));
+    this->function_locals[this->current_function_name].push_back(bird_type_to_binaryen_type(type));
 
     environment.declare(const_stmt->identifier.lexeme, TaggedIndex(index, type));
 
