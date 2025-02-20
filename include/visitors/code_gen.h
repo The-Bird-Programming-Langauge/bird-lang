@@ -1,15 +1,12 @@
 #pragma once
 #include "binaryen-c.h"
 #include "bird_type.h"
-#include "hoist_visitor.h"
-#include "static_visitor.h"
-#include <fstream>
-#include <algorithm>
-#include <ios>
 #include <map>
+#include "visitor.h"
 #include "type_converter.h"
 #include "stack.h"
 #include "sym_table.h"
+#include "ast_node/index.h"
 
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);

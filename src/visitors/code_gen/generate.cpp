@@ -1,4 +1,7 @@
 #include "visitors/code_gen.h"
+#include <fstream>
+#include "visitors/static_visitor.h"
+#include "visitors/hoist_visitor.h"
 
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts)
 {
