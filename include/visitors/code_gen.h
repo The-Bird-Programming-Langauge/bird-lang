@@ -213,26 +213,7 @@ public:
     void visit_binary_normal(Binary *binary);
     void visit_unary(Unary *unary);
     void visit_primary(Primary *primary);
-
-    void visit_ternary(Ternary *ternary)
-    {
-        ternary->condition->accept(this);
-        auto condition = this->stack.pop();
-
-        ternary->true_expr->accept(this);
-        auto true_expr = this->stack.pop();
-
-        ternary->false_expr->accept(this);
-        auto false_expr = this->stack.pop();
-
-        // May need to make this a tagged expression
-        this->stack.push(
-            BinaryenIf(
-                this->mod,
-                condition.value,
-                true_expr.value,
-                false_expr.value));
-    }
+    void visit_ternary(Ternary *ternary);
 
     void visit_const_stmt(ConstStmt *const_stmt)
     {
