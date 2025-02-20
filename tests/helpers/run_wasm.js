@@ -134,12 +134,17 @@ function print_memory(memory) {
 const moduleOptions = {
     env: {
         print_i32: (value) => {
-            console.log(value);
-            fs.appendFileSync(outputPath, value.toString() + "\n");
+            process.stdout.write(value.toString());
+            fs.appendFileSync(outputPath, value.toString());
         },
         print_f64: (value) => {
-            console.log(value);
-            fs.appendFileSync(outputPath, value.toString() + "\n");
+            process.stdout.write(value.toString());
+            fs.appendFileSync(outputPath, value.toString());
+        },
+        print_bool: (value) => {
+            const bool_str = value === 1 ? "true" : "false";
+            process.stdout.write(bool_str);
+            fs.appendFileSync(outputPath, bool_str);
         },
         print_str: (ptr) => {
             const buffer = new Uint8Array(instance.exports.memory.buffer);
@@ -147,8 +152,13 @@ const moduleOptions = {
             for (let i = ptr; buffer[i] !== 0; i++) {
                 str += String.fromCharCode(buffer[i]);
             }
-            console.log(str);
-            fs.appendFileSync(outputPath, str + "\n");
+
+            process.stdout.write(str);
+            fs.appendFileSync(outputPath, str);
+        },
+        print_endline: () => {
+            console.log();
+            fs.appendFileSync(outputPath, "\n");
         },
         mem_get_32: (ptr, byte_offset) => {
             // console.log("mem get 32", ptr, byte_offset);

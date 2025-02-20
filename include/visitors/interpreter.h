@@ -139,7 +139,11 @@ public:
             arg->accept(this);
             auto result = std::move(this->stack.pop());
 
-            std::cout << result;
+            if (is_type<bool>(result)) {
+                std::cout << (as_type<bool>(result) ? "true" : "false");
+            } else {
+                std::cout << result;
+            }
         }
         std::cout << std::endl;
     }

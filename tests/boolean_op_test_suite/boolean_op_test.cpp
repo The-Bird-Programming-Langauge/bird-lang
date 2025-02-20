@@ -33,7 +33,7 @@ TEST(BooleanOpTest, AndTest)
 
     options.after_compile = [](auto &output, auto &codegen)
     {
-        ASSERT_EQ(output, "1\n0\n0\n0\n\n");
+        ASSERT_EQ(output, "true\nfalse\nfalse\nfalse\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -72,7 +72,7 @@ TEST(BooleanOpTest, OrTest)
 
     options.after_compile = [](auto &output, auto &codegen)
     {
-        ASSERT_EQ(output, "1\n1\n1\n0\n\n");
+        ASSERT_EQ(output, "true\ntrue\ntrue\nfalse\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -111,7 +111,7 @@ TEST(BooleanOpTest, XorTest)
 
     options.after_compile = [](auto &output, auto &codegen)
     {
-        ASSERT_EQ(output, "0\n1\n1\n0\n\n");
+        ASSERT_EQ(output, "false\ntrue\ntrue\nfalse\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -138,7 +138,7 @@ TEST(BooleanOpTest, NotTest)
 
     options.after_compile = [](auto &output, auto &codegen)
     {
-        ASSERT_EQ(output, "0\n1\n\n");
+        ASSERT_EQ(output, "false\ntrue\n\n");
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
