@@ -205,12 +205,7 @@ public:
     void visit_decl_stmt(DeclStmt *decl_stmt);
     void visit_assign_expr(AssignExpr *assign_expr);
     void visit_print_stmt(PrintStmt *print_stmt);
-
-    void visit_expr_stmt(ExprStmt *expr_stmt)
-    {
-        expr_stmt->expr->accept(this);
-        // pop and push it back to the stack
-    }
+    void visit_expr_stmt(ExprStmt *expr_stmt);
 
     void visit_while_stmt(WhileStmt *while_stmt)
     {
