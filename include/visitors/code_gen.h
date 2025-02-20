@@ -99,7 +99,6 @@ class CodeGen : public Visitor
                                }},
     };
 
-public:
     Environment<TaggedIndex> environment; // tracks the index of local variables
     Environment<std::shared_ptr<BirdType>> type_table;
     Stack<TaggedExpression> stack; // for returning values
@@ -120,21 +119,9 @@ public:
     uint32_t current_offset = 0;
     BinaryenModuleRef mod;
 
-    ~CodeGen()
-    {
-        BinaryenModuleDispose(this->mod);
-    }
-
-    CodeGen() : type_converter(this->type_table, this->struct_names), mod(BinaryenModuleCreate())
-    {
-        this->environment.push_env();
-        this->type_table.push_env();
-    }
-
     void init_std_lib();
     void add_memory_segment(const std::string &str);
     void init_static_memory(std::vector<std::string> &strings);
-    void generate(std::vector<std::unique_ptr<Stmt>> *stmts);
 
     // perform garbage collection on memory data by marking and sweeping dynamically allocated blocks
     void garbage_collect();
@@ -179,4 +166,13 @@ public:
 
     void visit_array_init(ArrayInit *array_init);
     void visit_index_assign(IndexAssign *index_assign);
+
+public:
+    ~CodeGen();
+    CodeGen();
+    void generate(std::vector<std::unique_ptr<Stmt>> *stmts);
+
+    // for testing
+    Environment<TaggedIndex> &get_environment();
+    Environment<std::shared_ptr<BirdType>> &get_type_table();
 };
