@@ -444,7 +444,7 @@ TEST(StructTest, StructRecursiveInitialization)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_EQ(output == "0\n\n", true);
+        ASSERT_EQ(output == "false\n\n", true);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
