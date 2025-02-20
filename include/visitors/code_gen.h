@@ -202,34 +202,7 @@ public:
     // perform garbage collection on memory data by marking and sweeping dynamically allocated blocks
     void garbage_collect();
 
-    void visit_block(Block *block)
-    {
-        std::vector<BinaryenExpressionRef> children;
-        this->environment.push_env();
-
-        for (auto &stmt : block->stmts)
-        {
-            stmt->accept(this);
-            auto result = this->stack.pop();
-
-            if (result.value)
-            {
-                children.push_back(result.value);
-            }
-        }
-
-        this->environment.pop_env();
-
-        BinaryenExpressionRef block_expr =
-            BinaryenBlock(
-                this->mod,
-                nullptr,
-                children.data(),
-                children.size(),
-                BinaryenTypeNone());
-
-        this->stack.push(block_expr);
-    }
+    void visit_block(Block *block);
 
     void visit_decl_stmt(DeclStmt *decl_stmt)
     {
