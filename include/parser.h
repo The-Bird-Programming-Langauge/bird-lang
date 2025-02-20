@@ -12,11 +12,11 @@ extern void yy_scan_string(const char *yy_str);
 
 class Parser
 {
-    std::string &code;
+    const std::string &code;
     UserErrorTracker *error_tracker;
 
 public:
-    Parser(std::string &input, UserErrorTracker *error_tracker)
+    Parser(const std::string &input, UserErrorTracker *error_tracker)
         : code(input), error_tracker(error_tracker) {}
 
     std::vector<std::unique_ptr<Stmt>> parse()

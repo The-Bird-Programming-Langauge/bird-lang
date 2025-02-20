@@ -23,7 +23,7 @@ bool BirdTest::compile(const TestOptions options)
 
     if (options.semantic_analyze)
     {
-        SemanticAnalyzer analyze_semantics(&error_tracker);
+        SemanticAnalyzer analyze_semantics(error_tracker);
         analyze_semantics.analyze_semantics(&ast);
 
         if (options.after_semantic_analyze.has_value())
@@ -40,7 +40,7 @@ bool BirdTest::compile(const TestOptions options)
 
     if (options.type_check)
     {
-        TypeChecker type_checker(&error_tracker);
+        TypeChecker type_checker(error_tracker);
         type_checker.check_types(&ast);
         if (options.after_type_check.has_value())
         {
