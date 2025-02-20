@@ -237,33 +237,8 @@ public:
     void visit_member_assign(MemberAssign *member_assign);
     void visit_as_cast(AsCast *as_cast);
 
-    BinaryenExpressionRef binaryen_set(std::string identifier, BinaryenExpressionRef value)
-    {
-        // std::cout << identifier << ": " << this->environment.get_depth(identifier) << std::endl;
-
-        TaggedIndex tagged_index = this->environment.get(identifier);
-        if (this->environment.get_depth(identifier) != 0 && this->current_function_name != "main")
-        {
-            return BinaryenLocalSet(this->mod, tagged_index.value, value);
-        }
-        else
-        {
-            return BinaryenGlobalSet(this->mod, std::to_string(tagged_index.value).c_str(), value);
-        }
-    }
-
-    BinaryenExpressionRef binaryen_get(std::string identifier)
-    {
-        TaggedIndex tagged_index = this->environment.get(identifier);
-        if (this->environment.get_depth(identifier) != 0 && this->current_function_name != "main")
-        {
-            return BinaryenLocalGet(this->mod, tagged_index.value, from_bird_type(tagged_index.type));
-        }
-        else
-        {
-            return BinaryenGlobalGet(this->mod, std::to_string(tagged_index.value).c_str(), from_bird_type(tagged_index.type));
-        }
-    }
+    BinaryenExpressionRef binaryen_set(std::string identifier, BinaryenExpressionRef value);
+    BinaryenExpressionRef binaryen_get(std::string identifier);
 
     void visit_array_init(ArrayInit *array_init)
     {
