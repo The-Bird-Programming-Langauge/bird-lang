@@ -2,6 +2,10 @@
 
 void CodeGen::init_static_memory(std::vector<std::string> &strings)
 {
+    for (auto &str : strings)
+    {
+        this->add_memory_segment(str);
+    }
 
     std::vector<const char *> segments;
     std::vector<BinaryenIndex> sizes;
