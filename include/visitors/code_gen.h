@@ -158,29 +158,6 @@ public:
     void init_static_memory(std::vector<std::string> &strings);
     void generate(std::vector<std::unique_ptr<Stmt>> *stmts);
 
-    BinaryenType token_to_binaryen_type(Token token)
-    {
-        if (token.lexeme == "bool")
-            return BinaryenTypeInt32();
-        else if (token.lexeme == "int")
-            return BinaryenTypeInt32();
-        else if (token.lexeme == "float")
-            return BinaryenTypeFloat64();
-        else if (token.lexeme == "void")
-            return BinaryenTypeNone();
-        else if (token.lexeme == "str")
-            return BinaryenTypeInt32();
-        else
-        {
-            if (this->type_table.contains(token.lexeme))
-            {
-                return bird_type_to_binaryen_type(this->type_table.get(token.lexeme));
-            }
-
-            throw BirdException("invalid type");
-        }
-    }
-
     BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type)
     {
         if (bird_type->type == BirdTypeType::BOOL)
@@ -223,51 +200,7 @@ public:
     }
 
     // perform garbage collection on memory data by marking and sweeping dynamically allocated blocks
-    void garbage_collect()
-    {
-        // list that stores all of the javascript calls to be pushed on the stack as 1 block
-        std::vector<BinaryenExpressionRef> calls;
-
-        // mark all dynamically allocated blocks by traversing the environment, locate all pointers pointing to dynamically allocated blocks, and pass the pointers to the mark function
-        std::set<std::string> marked;
-        for (const auto &scope : this->environment.envs)
-        {
-            for (const auto &[key, value] : scope)
-            {
-                if (value.type->type == BirdTypeType::STRUCT && marked.find(key) == marked.end())
-                {
-                    marked.insert(key);
-                    auto allocated_block_ptr = this->binaryen_get(key);
-                    calls.push_back(
-                        BinaryenCall(
-                            this->mod,
-                            "mark",
-                            &allocated_block_ptr,
-                            1,
-                            BinaryenTypeNone()));
-                }
-            }
-        }
-
-        // sweep all unmarked dynamically allocated blocks
-        calls.push_back(
-            BinaryenCall(
-                this->mod,
-                "sweep",
-                nullptr,
-                0,
-                BinaryenTypeNone()));
-
-        // push all of the calls to the stack as 1 block
-        this->stack.push(
-            TaggedExpression(
-                BinaryenBlock(
-                    this->mod,
-                    nullptr,
-                    calls.data(),
-                    calls.size(),
-                    BinaryenTypeNone())));
-    }
+    void garbage_collect();
 
     void visit_block(Block *block)
     {
