@@ -1,7 +1,8 @@
 #pragma once
 
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "stmt.h"
-#include "visitors/visitor.h"
 
 /*
  * Continue statement class AST node that
@@ -11,16 +12,11 @@
  *     continue;
  * }
  */
-class ContinueStmt : public Stmt
-{
+class ContinueStmt : public Stmt {
 public:
-    Token continue_token;
+  Token continue_token;
 
-    ContinueStmt(Token continue_token)
-        : continue_token(continue_token) {}
+  ContinueStmt(Token continue_token) : continue_token(continue_token) {}
 
-    void accept(Visitor *visitor)
-    {
-        visitor->visit_continue_stmt(this);
-    }
+  void accept(Visitor *visitor) { visitor->visit_continue_stmt(this); }
 };

@@ -1,7 +1,7 @@
 #include "../include/token.h"
 
-#include <map>
 #include <iostream>
+#include <map>
 static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::AS, "AS"},
     {Token::Type::ARROW, "ARROW"},
@@ -61,11 +61,8 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::NOT, "NOT"},
 };
 
-void Token::print_token()
-{
-    std::cout << "{ "
-              << "token_type: " << token_strings.at(this->token_type)
-              << ",  lexeme: " << this->lexeme
-              << " }"
-              << std::endl;
+void Token::print_token() {
+  std::cout << "{ "
+            << "token_type: " << token_strings.at(this->token_type)
+            << ",  lexeme: " << this->lexeme << " }" << std::endl;
 }

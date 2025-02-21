@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ast_node/node.h"
+#include "../node.h"
 
 // forward declaration
 class Visitor;
@@ -9,9 +9,8 @@ class Visitor;
  * Interface:
  * parent AST Node from which all statements are derived
  */
-class Stmt : public Node
-{
+class Stmt : public Node {
 public:
-    virtual ~Stmt() = default;
-    virtual void accept(Visitor *visitor) = 0;
+  virtual ~Stmt() = default;
+  virtual void accept(Visitor *visitor) = 0;
 };

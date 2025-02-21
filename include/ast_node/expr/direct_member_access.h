@@ -1,12 +1,11 @@
 #pragma once
 
+#include "../../token.h"
+#include "../../visitors/visitor.h"
+#include "expr.h"
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include "ast_node/node.h"
-#include "ast_node/expr/expr.h"
-#include "token.h"
-#include "visitors/visitor.h"
 
 // forward declaration
 class Visitor;
@@ -21,17 +20,13 @@ class Expr;
  *
  */
 
-class DirectMemberAccess : public Expr
-{
+class DirectMemberAccess : public Expr {
 public:
-    std::unique_ptr<Expr> accessable;
-    Token identifier;
+  std::unique_ptr<Expr> accessable;
+  Token identifier;
 
-    DirectMemberAccess(std::unique_ptr<Expr> accessable, Token identifier)
-        : accessable(std::move(accessable)), identifier(identifier) {};
+  DirectMemberAccess(std::unique_ptr<Expr> accessable, Token identifier)
+      : accessable(std::move(accessable)), identifier(identifier) {};
 
-    void accept(Visitor *visitor)
-    {
-        visitor->visit_direct_member_access(this);
-    }
+  void accept(Visitor *visitor) { visitor->visit_direct_member_access(this); }
 };

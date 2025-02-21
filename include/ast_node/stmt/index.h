@@ -12,6 +12,6 @@
 #include "print_stmt.h"
 #include "return_stmt.h"
 #include "stmt.h"
+#include "struct_decl.h"
 #include "type_stmt.h"
 #include "while_stmt.h"
-#include "struct_decl.h"

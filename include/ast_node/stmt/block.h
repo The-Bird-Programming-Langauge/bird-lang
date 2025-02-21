@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
 
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "stmt.h"
-#include "token.h"
-#include "visitors/visitor.h"
 
 /*
  * Block statement AST Node that represents blocks and new scopes
@@ -17,16 +17,11 @@
  * }
  *
  */
-class Block : public Stmt
-{
+class Block : public Stmt {
 public:
-    std::vector<std::unique_ptr<Stmt>> stmts;
+  std::vector<std::unique_ptr<Stmt>> stmts;
 
-    Block(std::vector<std::unique_ptr<Stmt>> stmts)
-        : stmts(std::move(stmts)) {}
+  Block(std::vector<std::unique_ptr<Stmt>> stmts) : stmts(std::move(stmts)) {}
 
-    void accept(Visitor *visitor)
-    {
-        visitor->visit_block(this);
-    }
+  void accept(Visitor *visitor) { visitor->visit_block(this); }
 };
