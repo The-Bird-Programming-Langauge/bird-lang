@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include <set>
 #include <vector>
 #include <memory>
@@ -156,5 +157,10 @@ public:
     {
         index_assign->lhs->subscriptable->accept(this);
         index_assign->rhs->accept(this);
+    }
+
+    void visit_match_expr(MatchExpr *) 
+    {
+        throw BirdException("Match expr not implementedA");
     }
 };

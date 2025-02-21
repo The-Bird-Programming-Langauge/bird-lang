@@ -955,4 +955,9 @@ public:
 
         this->stack.push(lhs_type);
     }
+
+    void visit_match_expr(MatchExpr *match_expr)
+    {
+        throw BirdException("MatchExpr not implemented");
+    }
 };

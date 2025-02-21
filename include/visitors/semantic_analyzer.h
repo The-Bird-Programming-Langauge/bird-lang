@@ -346,4 +346,9 @@ public:
         index_assign->lhs->accept(this);
         index_assign->rhs->accept(this);
     }
+
+    void visit_match_expr(MatchExpr*) 
+    {
+        throw BirdException("Match expr not implemented");
+    }
 };

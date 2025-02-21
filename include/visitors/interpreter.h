@@ -695,4 +695,8 @@ public:
             throw BirdException("expected array");
         }
     }
+
+    void visit_match_expr(MatchExpr* ) {
+        throw BirdException("Match expr not implemented");
+    }
 };

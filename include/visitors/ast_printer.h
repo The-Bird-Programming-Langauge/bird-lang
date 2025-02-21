@@ -316,4 +316,8 @@ public:
         std::cout << " " << index_assign->op.lexeme << " ";
         index_assign->rhs->accept(this);
     }
+
+    void visit_match_expr(MatchExpr*) {
+        throw BirdException("Match expr not implemented");
+    }
 };

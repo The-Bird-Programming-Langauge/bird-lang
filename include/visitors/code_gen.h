@@ -1,6 +1,8 @@
 #pragma once
+#include "ast_node/expr/match_expr.h"
 #include "binaryen-c.h"
 #include "bird_type.h"
+#include "exceptions/bird_exception.h"
 #include "hoist_visitor.h"
 #include "static_visitor.h"
 #include <fstream>
@@ -1938,5 +1940,9 @@ public:
                 args,
                 3,
                 BinaryenTypeNone()));
+    }
+
+    void visit_match_expr(MatchExpr*) {
+        throw BirdException("Match expressions are not supported in the current version of Bird");
     }
 };

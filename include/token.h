@@ -28,6 +28,7 @@ public:
         XOR,
         OR,
         NOT,
+        MATCH,
 
         // types
         TYPE_LITERAL,
@@ -58,6 +59,7 @@ public:
         ARROW,
         BANG_EQUAL,
         EQUAL_EQUAL,
+        FAT_ARROW,
         GREATER_EQUAL,
         LESS_EQUAL,
         MINUS_EQUAL,
