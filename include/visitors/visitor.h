@@ -1,6 +1,4 @@
 #pragma once
-#include <string>
-#include <memory>
 
 // forward declarations
 class Binary;
@@ -30,6 +28,7 @@ class MemberAssign;
 class AsCast;
 class ArrayInit;
 class IndexAssign;
+class MatchExpr;
 
 /*
  * the interface for all visitors,
@@ -66,4 +65,5 @@ public:
     virtual void visit_as_cast(AsCast *) = 0;
     virtual void visit_array_init(ArrayInit *) = 0;
     virtual void visit_index_assign(IndexAssign *) = 0;
+    virtual void visit_match_expr(MatchExpr *) = 0;
 };

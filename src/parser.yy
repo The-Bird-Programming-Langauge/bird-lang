@@ -68,6 +68,7 @@ AND "and"
 XOR "xor"
 OR "or"
 NOT "not"
+MATCH "match"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -101,6 +102,7 @@ RBRACKET "]"
 COLON ":"
 BANG "!"
 ARROW "->"
+FAT_ARROW "=>"
 DOT "."
 
 %type <std::unique_ptr<Stmt>> 
@@ -134,12 +136,14 @@ unary_expr
 call_expr
 struct_initialization
 array_initialization
+match
 direct_member_access
 index_assign
 grouping
 and_expr
 xor_expr
 or_expr
+match_else_arm
 
 %type <std::unique_ptr<Subscript>>
 subscript_expr
@@ -152,6 +156,12 @@ TERM_OP
 FACTOR_OP
 PREFIX_UNARY_OP
 EQUALITY_OP
+
+
+%type <std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>>
+maybe_match_arms
+match_arms
+
 
 %type <std::pair<std::string, std::shared_ptr<ParseType::Type>>>
 field_member
@@ -234,6 +244,8 @@ type_identifier
    IDENTIFIER 
 %left ARRAY_INITIALIZATION
    RBRACKET 
+%left MATCH_EXPR
+   MATCH
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -442,6 +454,7 @@ expr:
    | direct_member_access { $$ = std::move($1); }
    | struct_initialization { $$ = std::move($1); }
    | array_initialization { $$ = std::move($1); }
+   | match { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
 
@@ -544,6 +557,30 @@ subscript_expr:
 direct_member_access:
    expr DOT IDENTIFIER %prec SUBSCRIPT
       { $$ = std::make_unique<DirectMemberAccess>(std::move($1), $3); }
+
+match:
+   MATCH expr LBRACE maybe_match_arms match_else_arm RBRACE %prec MATCH_EXPR
+   { $$ = std::make_unique<MatchExpr>($1, std::move($2), std::move($4), std::move($5)); }
+
+maybe_match_arms:
+   %empty { $$ = std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>(); }
+   | match_arms { $$ = std::move($1); }
+   | match_arms COMMA { $$ = std::move($1); }
+
+match_arms:
+   expr FAT_ARROW expr 
+      {  $$ = std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>(); 
+         $$.push_back(std::make_pair(std::move($1), std::move($3)));
+      }
+   | match_arms COMMA expr FAT_ARROW expr 
+      {
+         $$ = std::move($1);
+         $$.push_back(std::make_pair(std::move($3), std::move($5)));
+      }
+
+match_else_arm:
+   ELSE FAT_ARROW expr
+   { $$ = std::move($3); }
 
 primary: 
    IDENTIFIER 

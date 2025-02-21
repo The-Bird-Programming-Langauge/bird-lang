@@ -1,4 +1,5 @@
 #pragma once
+
 #include "ast_node/index.h"
 #include "binaryen-c.h"
 #include "bird_type.h"
@@ -229,6 +230,10 @@ class CodeGen : public Visitor {
 
   void visit_array_init(ArrayInit *array_init);
   void visit_index_assign(IndexAssign *index_assign);
+
+  void visit_match_expr(MatchExpr *match_expr);
+  TaggedExpression match_helper(TaggedExpression expr, MatchExpr *match_expr,
+                                int index);
 
 public:
   ~CodeGen();

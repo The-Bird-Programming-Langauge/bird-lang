@@ -14,3 +14,4 @@
 #include "as_cast.h"
 #include "array_init.h"
 #include "index_assign.h"
+#include "match_expr.h"
