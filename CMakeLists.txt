@@ -53,6 +53,10 @@ if (TESTS)
   add_library(compiler_lib STATIC ${SOURCES} ${FLEX_Lexer_OUTPUTS})
   add_library(test_helper_lib STATIC ${PROJECT_SOURCE_DIR}/tests/helpers/compiler_helper.cpp ${SOURCES} ${FLEX_Lexer_OUTPUTS} ${BISON_Parser_OUTPUTS})
   target_compile_definitions(test_helper_lib PRIVATE RUN_WASM_FILE_LOCATION="${RUN_WASM_FILE_LOCATION}")
+  if (DEBUG) 
+    target_compile_definitions(compiler_lib PRIVATE DEBUG)
+    target_compile_definitions(test_helper_lib PRIVATE DEBUG)
+  endif()
 
   # For each test file, create a separate test executable
   foreach(test_source ${TEST_SOURCES})

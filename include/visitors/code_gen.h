@@ -169,14 +169,13 @@ public:
             BinaryenTypeFloat64(),
             BinaryenTypeNone());
 
-        
-            BinaryenAddFunctionImport(
-                this->mod,
-                "print_bool",
-                "env",
-                "print_bool",
-                BinaryenTypeInt32(),
-                BinaryenTypeNone());
+        BinaryenAddFunctionImport(
+            this->mod,
+            "print_bool",
+            "env",
+            "print_bool",
+            BinaryenTypeInt32(),
+            BinaryenTypeNone());
 
         BinaryenAddFunctionImport(
             this->mod,
@@ -446,7 +445,9 @@ public:
             "main",
             "main");
 
+#ifdef DEBUG
         BinaryenModulePrint(this->mod);
+#endif
 
         BinaryenModuleAllocateAndWriteResult result =
             BinaryenModuleAllocateAndWrite(this->mod, nullptr);

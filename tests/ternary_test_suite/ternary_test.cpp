@@ -48,7 +48,7 @@ TEST(TernaryTest, TernaryFalse)
     ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(BooleanOpTest, ShortCircuitTest)
+TEST(TernaryTest, ShortCircuitTest)
 {
     BirdTest::TestOptions options;
     options.code = "var x = true ? 1 : 1/0;"
