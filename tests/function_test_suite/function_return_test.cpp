@@ -102,3 +102,15 @@ TEST(FunctionTest, ExplicitReturnTypeNoReturn)
 
     ASSERT_FALSE(BirdTest::compile(options));
 }
+
+TEST(FunctionTest, FunctionWithJustReturn)
+{
+    // BirdTest::TestOptions options;
+
+    // options.code = "fn function()"
+    //                "{"
+    //                "return;"
+    //                "}";
+
+    // ASSERT_TRUE(BirdTest::compile(options));
+}

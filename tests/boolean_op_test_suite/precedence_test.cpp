@@ -1,6 +1,6 @@
 #include "helpers/compile_helper.hpp"
 
-TEST(BooleanOpTest, AndOrPrecedenceTest)
+TEST(PrecedenceTest, AndOrPrecedenceTest)
 {
     BirdTest::TestOptions options;
     options.code = "var x = false or true and false;"

@@ -1,6 +1,6 @@
 #include "helpers/compile_helper.hpp"
 
-TEST(BooleanOpTest, ShortCircuitTest)
+TEST(ShortCircuitTest, ShortCircuitTest)
 {
     BirdTest::TestOptions options;
     options.code = "var x = false and (1/0 == 1);"

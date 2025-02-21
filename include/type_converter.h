@@ -12,7 +12,6 @@
 
 class TypeConverter
 {
-
     Environment<std::shared_ptr<BirdType>> &type_table;
     std::set<std::string> &struct_names;
 
