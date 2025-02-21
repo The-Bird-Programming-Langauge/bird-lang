@@ -8,7 +8,8 @@
 
 #include "../build/parser.tab.hh"
 
-extern void yy_scan_string(const char *yy_str);
+struct yy_buffer_state;
+extern yy_buffer_state *yy_scan_string(const char *yy_str);
 
 class Parser
 {
