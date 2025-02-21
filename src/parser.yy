@@ -157,10 +157,9 @@ FACTOR_OP
 PREFIX_UNARY_OP
 EQUALITY_OP
 
-%type <std::optional<std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>>>
-maybe_match_arms
 
 %type <std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>>
+maybe_match_arms
 match_arms
 
 
@@ -561,7 +560,7 @@ direct_member_access:
 
 match:
    MATCH expr LBRACE maybe_match_arms match_else_arm RBRACE %prec MATCH_EXPR
-   { $$ = std::make_unique<MatchExpr>(std::move($2), std::move($4), std::move($5)); }
+   { $$ = std::make_unique<MatchExpr>($1, std::move($2), std::move($4), std::move($5)); }
 
 maybe_match_arms:
    %empty { std::cout << "maybe match arms" << std::endl; $$ = std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>(); }

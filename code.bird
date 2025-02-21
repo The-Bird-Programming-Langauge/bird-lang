@@ -1,5 +1,5 @@
 
-var n = 3;
+var n = 2;
 
 print(match (n) {
     1 => "one",
