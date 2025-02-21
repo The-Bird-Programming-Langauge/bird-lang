@@ -208,10 +208,14 @@ public:
                                                assign_expr->assign_operator);
         this->env.set(assign_expr->identifier.lexeme,
                       std::make_shared<ErrorType>());
+
+        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
 
       this->env.set(assign_expr->identifier.lexeme, result);
+
+      this->stack.push(result);
       return;
     }
 
@@ -224,12 +228,17 @@ public:
                                              assign_expr->assign_operator);
       this->env.set(assign_expr->identifier.lexeme,
                     std::make_shared<ErrorType>());
+
+      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     auto new_type = type_map.at({previous->type, result->type});
-    this->env.set(assign_expr->identifier.lexeme,
-                  bird_type_type_to_bird_type(new_type));
+
+    auto new_type_bird_type = bird_type_type_to_bird_type(new_type);
+    this->env.set(assign_expr->identifier.lexeme, new_type_bird_type);
+
+    this->stack.push(new_type_bird_type);
   }
 
   void visit_expr_stmt(ExprStmt *expr_stmt) { expr_stmt->expr->accept(this); }
@@ -934,7 +943,7 @@ public:
       arm.first->accept(this);
       auto arm_type = this->stack.pop();
 
-      if (arm_type->type != expr_type->type) {
+      if (*arm_type != *expr_type) {
         this->user_error_tracker.type_mismatch("in match expression",
                                                match_expr->match_token);
         this->stack.push(std::make_shared<ErrorType>());

@@ -21,7 +21,7 @@ public:
   Token match_token;
   std::unique_ptr<Expr> expr;
   std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>> arms;
-  std::unique_ptr<Expr> else_arm;
+  std::unique_ptr<Expr> else_arm; // should else be optional?
 
   MatchExpr(
       Token token, std::unique_ptr<Expr> expr,

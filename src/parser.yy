@@ -563,18 +563,17 @@ match:
    { $$ = std::make_unique<MatchExpr>($1, std::move($2), std::move($4), std::move($5)); }
 
 maybe_match_arms:
-   %empty { std::cout << "maybe match arms" << std::endl; $$ = std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>(); }
-   | match_arms { std::cout << "match arms no comma" << std::endl; $$ = std::move($1); }
-   | match_arms COMMA { std::cout << "match arms comma" << std::endl; $$ = std::move($1); }
+   %empty { $$ = std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>(); }
+   | match_arms { $$ = std::move($1); }
+   | match_arms COMMA { $$ = std::move($1); }
 
 match_arms:
    expr FAT_ARROW expr 
-      { std::cout << "match arm one" << std::endl; $$ = std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>(); 
+      {  $$ = std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>(); 
          $$.push_back(std::make_pair(std::move($1), std::move($3)));
       }
    | match_arms COMMA expr FAT_ARROW expr 
       {
-         std::cout << "match arm comma" << std::endl;
          $$ = std::move($1);
          $$.push_back(std::make_pair(std::move($3), std::move($5)));
       }

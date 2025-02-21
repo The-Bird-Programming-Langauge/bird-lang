@@ -20,8 +20,11 @@ TaggedExpression CodeGen::match_helper(TaggedExpression expr,
   match_expr->arms[index].second->accept(this);
   const auto matched = this->stack.pop();
 
+  auto equal_comparison = this->binary_operations.at(Token::Type::EQUAL_EQUAL);
+  auto comparison_fn = equal_comparison.at({expr.type->type, rhs.type->type});
+
   const auto &condition =
-      BinaryenBinary(this->mod, BinaryenEqInt32(), expr.value, rhs.value);
+      BinaryenBinary(this->mod, comparison_fn.value(), expr.value, rhs.value);
 
   const auto if_false = match_helper(expr, match_expr, index + 1);
   return TaggedExpression(
