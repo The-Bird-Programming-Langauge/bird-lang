@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 #include <memory>
-#include "visitors/interpreter.h"
 #include "exceptions/bird_exception.h"
 
 /*

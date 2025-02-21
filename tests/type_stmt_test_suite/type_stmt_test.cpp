@@ -31,8 +31,8 @@ TEST(TypeStmtTest, TypeStmtWithTypeLiteral)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(codegen.type_table.contains("x"));
-        ASSERT_EQ(codegen.type_table.get("x")->type, BirdTypeType::INT);
+        ASSERT_TRUE(codegen.get_type_table().contains("x"));
+        ASSERT_EQ(codegen.get_type_table().get("x")->type, BirdTypeType::INT);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -52,8 +52,8 @@ TEST(TypeStmtTest, TypeStmtWithTypeIdentifier)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(codegen.type_table.contains("x"));
-        ASSERT_EQ(codegen.type_table.get("y")->type, BirdTypeType::INT);
+        ASSERT_TRUE(codegen.get_type_table().contains("x"));
+        ASSERT_EQ(codegen.get_type_table().get("y")->type, BirdTypeType::INT);
     };
 
     ASSERT_TRUE(BirdTest::compile(options));
@@ -75,9 +75,9 @@ TEST(TypeStmtTest, DeclStmtWithTypeIdentifer)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(codegen.environment.contains("y"));
-        ASSERT_EQ(codegen.environment.get("y").type->type, BirdTypeType::INT);
-        ASSERT_EQ(codegen.environment.get("y").value, 0);
+        ASSERT_TRUE(codegen.get_environment().contains("y"));
+        ASSERT_EQ(codegen.get_environment().get("y").type->type, BirdTypeType::INT);
+        ASSERT_EQ(codegen.get_environment().get("y").value, 0);
         ASSERT_EQ(output, "2\n\n");
     };
 
@@ -100,9 +100,9 @@ TEST(TypeStmtTest, ConstStmtWithTypeIdentifer)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(codegen.environment.contains("y"));
-        ASSERT_EQ(codegen.environment.get("y").type->type, BirdTypeType::INT);
-        ASSERT_EQ(codegen.environment.get("y").value, 0);
+        ASSERT_TRUE(codegen.get_environment().contains("y"));
+        ASSERT_EQ(codegen.get_environment().get("y").type->type, BirdTypeType::INT);
+        ASSERT_EQ(codegen.get_environment().get("y").value, 0);
         ASSERT_EQ(output, "2\n\n");
     };
 
@@ -129,8 +129,8 @@ TEST(TypeStmtTest, FuncWithTypeIdentifier)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(codegen.environment.contains("z"));
-        ASSERT_EQ(codegen.environment.get("z").type->type, BirdTypeType::INT);
+        ASSERT_TRUE(codegen.get_environment().contains("z"));
+        ASSERT_EQ(codegen.get_environment().get("z").type->type, BirdTypeType::INT);
         ASSERT_EQ(output, "2\n\n");
     };
 

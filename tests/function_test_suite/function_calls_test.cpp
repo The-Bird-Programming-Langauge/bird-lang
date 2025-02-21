@@ -135,8 +135,8 @@ TEST(FunctionTest, FunctionIdentityCall)
 
     options.after_compile = [&](std::string &output, CodeGen &codegen)
     {
-        ASSERT_TRUE(codegen.environment.contains("x"));
-        ASSERT_EQ(codegen.environment.get("x").type->type, BirdTypeType::INT);
+        ASSERT_TRUE(codegen.get_environment().contains("x"));
+        ASSERT_EQ(codegen.get_environment().get("x").type->type, BirdTypeType::INT);
         ASSERT_EQ(output, "2\n\n");
     };
 }
