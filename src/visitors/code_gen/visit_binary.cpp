@@ -1,4 +1,4 @@
-#include "visitors/code_gen.h"
+#include "../../../include/visitors/code_gen.h"
 
 void CodeGen::visit_binary(Binary *binary) {
   switch (binary->op.token_type) {

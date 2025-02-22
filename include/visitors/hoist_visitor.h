@@ -1,6 +1,6 @@
 #pragma once
-#include "ast_node/index.h"
-#include "exceptions/bird_exception.h"
+#include "../ast_node/index.h"
+#include "../exceptions/bird_exception.h"
 #include "visitor_adapter.h"
 #include <memory>
 #include <set>

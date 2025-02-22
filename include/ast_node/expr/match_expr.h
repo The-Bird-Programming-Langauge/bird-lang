@@ -1,8 +1,8 @@
 
 #pragma once
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "expr.h"
-#include "token.h"
-#include "visitors/visitor.h"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -12,9 +12,13 @@ class Visitor;
 
 /*
  * Interface:
- * AST node representing a function call:
+ * AST node representing a match expression:
  *
- * double(3);
+ * match foo {
+ *   1 => "one",
+ *   2 => "two",
+ *   else => "other"
+ * }
  */
 class MatchExpr : public Expr {
 public:

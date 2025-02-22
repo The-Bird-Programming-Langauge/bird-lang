@@ -1,125 +1,100 @@
 #pragma once
 
-#include <map>
-#include <string>
-#include <memory>
 #include "exceptions/bird_exception.h"
+#include <map>
+#include <memory>
+#include <string>
 
 /*
  * A table with key value pairs of identifiers and their respective values
  */
-template <typename T>
-class Environment
-{
+template <typename T> class Environment {
 
 public:
-    std::vector<std::map<std::string, T>> envs;
+  std::vector<std::map<std::string, T>> envs;
 
-    void push_env()
-    {
-        envs.push_back(std::map<std::string, T>());
+  void push_env() { envs.push_back(std::map<std::string, T>()); }
+
+  void pop_env() { envs.pop_back(); }
+
+  bool current_contains(std::string identifier) {
+    if (envs.empty()) {
+      return false;
     }
 
-    void pop_env()
-    {
-        envs.pop_back();
+    return envs.back().find(identifier) != envs.back().end();
+  }
+
+  int get_depth(std::string identifier) {
+    if (envs.empty()) {
+      return 0;
     }
 
-    bool current_contains(std::string identifier)
-    {
-        if (envs.empty())
-        {
-            return false;
-        }
-
-        return envs.back().find(identifier) != envs.back().end();
+    for (int i = envs.size() - 1; i >= 0; i--) {
+      if (envs[i].find(identifier) != envs[i].end()) {
+        return i;
+      }
     }
 
-    int get_depth(std::string identifier)
-    {
-        if (envs.empty())
-        {
-            return 0;
-        }
+    return 0;
+  }
 
-        for (int i = envs.size() - 1; i >= 0; i--)
-        {
-            if (envs[i].find(identifier) != envs[i].end())
-            {
-                return i;
-            }
-        }
-
-        return 0;
+  bool contains(std::string identifier) {
+    if (envs.empty()) {
+      return false;
     }
 
-    bool contains(std::string identifier)
-    {
-        if (envs.empty())
-        {
-            return false;
-        }
-
-        for (auto it = envs.rbegin(); it != envs.rend(); it++)
-        {
-            if ((*it).find(identifier) != (*it).end())
-            {
-                return true;
-            }
-        }
-
-        return false;
+    for (auto it = envs.rbegin(); it != envs.rend(); it++) {
+      if ((*it).find(identifier) != (*it).end()) {
+        return true;
+      }
     }
 
-    void declare(std::string identifier, T value)
-    {
-        if (envs.empty())
-        {
-            throw BirdException("no environment to declare variable " + identifier + " into");
-        }
+    return false;
+  }
 
-        if (current_contains(identifier))
-        {
-            throw BirdException("variable " + identifier + " already declared in current environment");
-        }
-
-        envs.back().insert({identifier, value});
+  void declare(std::string identifier, T value) {
+    if (envs.empty()) {
+      throw BirdException("no environment to declare variable " + identifier +
+                          " into");
     }
 
-    void set(std::string identifier, T value)
-    {
-        if (envs.empty())
-        {
-            throw BirdException("no environment to set variable in");
-        }
-
-        for (auto it = envs.rbegin(); it != envs.rend(); it++)
-        {
-            if ((*it).find(identifier) != (*it).end())
-            {
-                (*it)[identifier] = value;
-                return;
-            }
-        }
-
-        throw BirdException("cannot set undefined identifier in environment: " + identifier);
+    if (current_contains(identifier)) {
+      throw BirdException("variable " + identifier +
+                          " already declared in current environment");
     }
 
-    T get(std::string identifier)
-    {
-        if (envs.empty())
-        {
-            throw BirdException("no environment to get variable from");
-        }
+    envs.back().insert({identifier, value});
+  }
 
-        for (auto it = envs.rbegin(); it != envs.rend(); it++)
-        {
-            if ((*it).find(identifier) != (*it).end())
-            {
-                return (*it)[identifier];
-            }
-        }
-
-        throw BirdException("cannot get undefined identifier in environment: " + identifier);
+  void set(std::string identifier, T value) {
+    if (envs.empty()) {
+      throw BirdException("no environment to set variable in");
     }
+
+    for (auto it = envs.rbegin(); it != envs.rend(); it++) {
+      if ((*it).find(identifier) != (*it).end()) {
+        (*it)[identifier] = value;
+        return;
+      }
+    }
+
+    throw BirdException("cannot set undefined identifier in environment: " +
+                        identifier);
+  }
+
+  T get(std::string identifier) {
+    if (envs.empty()) {
+      throw BirdException("no environment to get variable from");
+    }
+
+    for (auto it = envs.rbegin(); it != envs.rend(); it++) {
+      if ((*it).find(identifier) != (*it).end()) {
+        return (*it)[identifier];
+      }
+    }
+
+    throw BirdException("cannot get undefined identifier in environment: " +
+                        identifier);
+  }
 };

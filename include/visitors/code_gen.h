@@ -1,11 +1,11 @@
 #pragma once
 
-#include "ast_node/index.h"
+#include "../ast_node/index.h"
+#include "../bird_type.h"
+#include "../stack.h"
+#include "../sym_table.h"
+#include "../type_converter.h"
 #include "binaryen-c.h"
-#include "bird_type.h"
-#include "stack.h"
-#include "sym_table.h"
-#include "type_converter.h"
 #include "visitor.h"
 #include <map>
 

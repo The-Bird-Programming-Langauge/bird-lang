@@ -1,8 +1,10 @@
 #pragma once
 
-#include <memory>
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "stmt.h"
-#include "visitors/visitor.h"
+#include <memory>
+#include <optional>
 
 // forward declaration
 class Expr;
@@ -15,18 +17,13 @@ class Expr;
  *  return x * 2;
  * }
  */
-class ReturnStmt : public Stmt
-{
+class ReturnStmt : public Stmt {
 public:
-    Token return_token; // for error handling
-    std::optional<std::unique_ptr<Expr>> expr;
+  Token return_token; // for error handling
+  std::optional<std::unique_ptr<Expr>> expr;
 
-    ReturnStmt(Token return_token, std::optional<std::unique_ptr<Expr>> expr)
-        : return_token(return_token),
-          expr(std::move(expr)) {}
+  ReturnStmt(Token return_token, std::optional<std::unique_ptr<Expr>> expr)
+      : return_token(return_token), expr(std::move(expr)) {}
 
-    void accept(Visitor *visitor)
-    {
-        visitor->visit_return_stmt(this);
-    }
+  void accept(Visitor *visitor) { visitor->visit_return_stmt(this); }
 };

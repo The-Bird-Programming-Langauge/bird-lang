@@ -1,7 +1,7 @@
 #pragma once
 
-#include "token.h"
-#include "visitors/visitor.h"
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "expr.h"
 
 /*
@@ -10,16 +10,11 @@
  * - numbers: 1, 23
  * - identifiers: foo
  */
-class Primary : public Expr
-{
+class Primary : public Expr {
 public:
-    Token value;
+  Token value;
 
-    Primary(Token value)
-        : value(value) {}
+  Primary(Token value) : value(value) {}
 
-    void accept(Visitor *visitor)
-    {
-        return visitor->visit_primary(this);
-    }
+  void accept(Visitor *visitor) { return visitor->visit_primary(this); }
 };

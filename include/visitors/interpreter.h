@@ -7,20 +7,20 @@
 #include <variant>
 #include <vector>
 
-#include "ast_node/index.h"
+#include "../ast_node/index.h"
 #include "hoist_visitor.h"
 
-#include "bird_type.h"
-#include "callable.h"
-#include "exceptions/bird_exception.h"
-#include "exceptions/break_exception.h"
-#include "exceptions/continue_exception.h"
-#include "exceptions/return_exception.h"
-#include "stack.h"
-#include "sym_table.h"
-#include "type.h"
-#include "type_converter.h"
-#include "value.h"
+#include "../bird_type.h"
+#include "../callable.h"
+#include "../exceptions/bird_exception.h"
+#include "../exceptions/break_exception.h"
+#include "../exceptions/continue_exception.h"
+#include "../exceptions/return_exception.h"
+#include "../stack.h"
+#include "../sym_table.h"
+#include "../type.h"
+#include "../type_converter.h"
+#include "../value.h"
 
 /*
  * Visitor that interprets and evaluates the AST

@@ -5,16 +5,17 @@
 #include <variant>
 #include <vector>
 
-#include "ast_node/index.h"
+#include "../ast_node/index.h"
 
-#include "callable.h"
-#include "exceptions/bird_exception.h"
-#include "exceptions/break_exception.h"
-#include "exceptions/continue_exception.h"
-#include "exceptions/return_exception.h"
-#include "exceptions/user_error_tracker.h"
-#include "sym_table.h"
-#include "value.h"
+#include "../callable.h"
+#include "../exceptions/bird_exception.h"
+#include "../exceptions/break_exception.h"
+#include "../exceptions/continue_exception.h"
+#include "../exceptions/return_exception.h"
+#include "../exceptions/user_error_tracker.h"
+#include "../sym_table.h"
+#include "../type.h"
+#include "../value.h"
 
 /*
  * Visitor that analyzes semantics of the AST
