@@ -1,5 +1,5 @@
-#include "bird_type.h"
-#include "token.h"
+#include "../include/bird_type.h"
+#include "../include/token.h"
 
 std::shared_ptr<BirdType> bird_type_type_to_bird_type(BirdTypeType type) {
   switch (type) {

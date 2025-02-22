@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 /*
  * A table with key value pairs of identifiers and their respective values

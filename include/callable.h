@@ -1,7 +1,7 @@
 #pragma once
 
-#include "./token.h"
 #include "parse_type.h"
+#include "token.h"
 #include <memory>
 #include <optional>
 #include <vector>
