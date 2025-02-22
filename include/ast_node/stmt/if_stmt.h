@@ -1,9 +1,10 @@
 #pragma once
 
+#include "../../token.h"
+#include "../../visitors/visitor.h"
+#include "stmt.h"
 #include <memory>
 #include <optional>
-#include "stmt.h"
-#include "visitors/visitor.h"
 
 // forward declaration
 class Expr;
@@ -23,25 +24,19 @@ class Expr;
  * else
  *       statment
  */
-class IfStmt : public Stmt
-{
+class IfStmt : public Stmt {
 public:
-    Token if_token;
-    std::unique_ptr<Expr> condition;
-    std::unique_ptr<Stmt> then_branch;
-    std::optional<std::unique_ptr<Stmt>> else_branch;
+  Token if_token;
+  std::unique_ptr<Expr> condition;
+  std::unique_ptr<Stmt> then_branch;
+  std::optional<std::unique_ptr<Stmt>> else_branch;
 
-    IfStmt(Token if_token,
-           std::unique_ptr<Expr> condition,
-           std::unique_ptr<Stmt> then_branch,
-           std::optional<std::unique_ptr<Stmt>> else_branch)
-        : if_token(if_token),
-          condition(std::move(condition)),
-          then_branch(std::move(then_branch)),
-          else_branch(std::move(else_branch)) {}
+  IfStmt(Token if_token, std::unique_ptr<Expr> condition,
+         std::unique_ptr<Stmt> then_branch,
+         std::optional<std::unique_ptr<Stmt>> else_branch)
+      : if_token(if_token), condition(std::move(condition)),
+        then_branch(std::move(then_branch)),
+        else_branch(std::move(else_branch)) {}
 
-    void accept(Visitor *visitor)
-    {
-        visitor->visit_if_stmt(this);
-    }
+  void accept(Visitor *visitor) { visitor->visit_if_stmt(this); }
 };

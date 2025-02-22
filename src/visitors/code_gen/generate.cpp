@@ -1,6 +1,6 @@
-#include "visitors/code_gen.h"
-#include "visitors/hoist_visitor.h"
-#include "visitors/static_visitor.h"
+#include "../../../include/visitors/code_gen.h"
+#include "../../../include/visitors/hoist_visitor.h"
+#include "../../../include/visitors/static_visitor.h"
 #include <fstream>
 
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {

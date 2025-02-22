@@ -11,14 +11,14 @@
 #include "../ast_node/index.h"
 
 #include "../bird_type.h"
+#include "../exceptions/bird_exception.h"
+#include "../exceptions/return_exception.h"
+#include "../exceptions/user_error_tracker.h"
 #include "../stack.h"
+#include "../sym_table.h"
+#include "../type.h"
 #include "../type_converter.h"
-#include "exceptions/bird_exception.h"
-#include "exceptions/return_exception.h"
-#include "exceptions/user_error_tracker.h"
 #include "hoist_visitor.h"
-#include "sym_table.h"
-#include "type.h"
 #include "visitor_adapter.h"
 
 /*

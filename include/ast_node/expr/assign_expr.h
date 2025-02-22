@@ -1,10 +1,9 @@
 #pragma once
 
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "expr.h"
-#include "token.h"
-#include "visitors/visitor.h"
 #include <memory>
-#include <string>
 
 /*
  * Assignment statement AST Node that represents variable assignments

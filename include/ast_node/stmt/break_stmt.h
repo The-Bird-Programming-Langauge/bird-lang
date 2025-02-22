@@ -1,7 +1,8 @@
 #pragma once
 
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "stmt.h"
-#include "visitors/visitor.h"
 
 /*
  * Break statement class AST node that
@@ -11,16 +12,11 @@
  *     break;
  * }
  */
-class BreakStmt : public Stmt
-{
+class BreakStmt : public Stmt {
 public:
-    Token break_token;
+  Token break_token;
 
-    BreakStmt(Token break_token)
-        : break_token(break_token) {}
+  BreakStmt(Token break_token) : break_token(break_token) {}
 
-    void accept(Visitor *visitor)
-    {
-        visitor->visit_break_stmt(this);
-    }
+  void accept(Visitor *visitor) { visitor->visit_break_stmt(this); }
 };

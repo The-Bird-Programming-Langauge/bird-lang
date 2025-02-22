@@ -1,18 +1,14 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <memory>
 
-#include "parser.h"
-#include "visitors/ast_printer.h"
-#include "visitors/interpreter.h"
-#include "visitors/semantic_analyzer.h"
-#include "visitors/type_checker.h"
-
-#include "ast_node/expr/expr.h"
-#include "exceptions/user_error_tracker.h"
-
-#include "visitors/code_gen.h"
+#include "include/exceptions/user_error_tracker.h"
+#include "include/parser.h"
+#include "include/visitors/ast_printer.h"
+#include "include/visitors/code_gen.h"
+#include "include/visitors/interpreter.h"
+#include "include/visitors/semantic_analyzer.h"
+#include "include/visitors/type_checker.h"
 
 extern int bird_parse(const char *input);
 

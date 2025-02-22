@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ast_node/index.h"
-#include "bird_type.h"
+#include "../ast_node/index.h"
+#include "../bird_type.h"
 #include <iostream>
 #include <map>
 #include <memory>

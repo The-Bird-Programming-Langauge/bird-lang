@@ -2,92 +2,93 @@
 
 #include <string>
 
-class Token
-{
+class Token {
 public:
-    enum Type
-    {
-        // keywords
-        BREAK,
-        CONST,
-        CONTINUE,
-        DO,
-        ELSE,
-        FN,
-        FOR,
-        IF,
-        PRINT,
-        RETURN,
-        SELF,
-        STRUCT,
-        TYPE,
-        VAR,
-        WHILE,
-        AS,
-        AND,
-        XOR,
-        OR,
-        NOT,
-        MATCH,
+  enum Type {
+    // keywords
+    BREAK,
+    CONST,
+    CONTINUE,
+    DO,
+    ELSE,
+    FN,
+    FOR,
+    IF,
+    PRINT,
+    RETURN,
+    SELF,
+    STRUCT,
+    TYPE,
+    VAR,
+    WHILE,
+    AS,
+    AND,
+    XOR,
+    OR,
+    NOT,
+    MATCH,
 
-        // types
-        TYPE_LITERAL,
+    // types
+    TYPE_LITERAL,
 
-        // single character
-        BANG,
-        COLON,
-        COMMA,
-        DOT,
-        EQUAL,
-        GREATER,
-        LBRACE,
-        LBRACKET,
-        LESS,
-        LPAREN,
-        MINUS,
-        PERCENT,
-        PLUS,
-        QUESTION, // adding ternary tokens to lexer
-        RBRACE,
-        RBRACKET,
-        RPAREN,
-        SEMICOLON,
-        SLASH,
-        STAR,
+    // single character
+    BANG,
+    COLON,
+    COMMA,
+    DOT,
+    EQUAL,
+    GREATER,
+    LBRACE,
+    LBRACKET,
+    LESS,
+    LPAREN,
+    MINUS,
+    PERCENT,
+    PLUS,
+    QUESTION, // adding ternary tokens to lexer
+    RBRACE,
+    RBRACKET,
+    RPAREN,
+    SEMICOLON,
+    SLASH,
+    STAR,
 
-        // two character
-        ARROW,
-        BANG_EQUAL,
-        EQUAL_EQUAL,
-        FAT_ARROW,
-        GREATER_EQUAL,
-        LESS_EQUAL,
-        MINUS_EQUAL,
-        PERCENT_EQUAL,
-        PLUS_EQUAL,
-        SLASH_EQUAL,
-        STAR_EQUAL,
+    // two character
+    ARROW,
+    BANG_EQUAL,
+    EQUAL_EQUAL,
+    FAT_ARROW,
+    GREATER_EQUAL,
+    LESS_EQUAL,
+    MINUS_EQUAL,
+    PERCENT_EQUAL,
+    PLUS_EQUAL,
+    SLASH_EQUAL,
+    STAR_EQUAL,
 
-        // values
-        BOOL_LITERAL,
-        FLOAT_LITERAL,
-        IDENTIFIER,
-        INT_LITERAL,
-        NUMBER,
-        STR_LITERAL,
+    // values
+    BOOL_LITERAL,
+    FLOAT_LITERAL,
+    IDENTIFIER,
+    INT_LITERAL,
+    NUMBER,
+    STR_LITERAL,
 
-        // end
-        END
-    };
+    // end
+    END
+  };
 
-    Type token_type;
-    std::string lexeme;
-    unsigned int line_num;
-    unsigned int char_num;
+  Type token_type;
+  std::string lexeme;
+  unsigned int line_num;
+  unsigned int char_num;
 
-    void print_token();
+  void print_token();
 
-    Token() = default;
+  Token() = default;
 
-    Token(Type token_type, std::string lexeme, unsigned int line_num, unsigned int char_num) : token_type(token_type), lexeme(lexeme), line_num(line_num), char_num(char_num) {}
+  Token(Type token_type, std::string lexeme, unsigned int line_num,
+        unsigned int char_num)
+      : token_type(token_type), lexeme(lexeme), line_num(line_num),
+        char_num(char_num) {}
 };

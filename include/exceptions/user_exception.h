@@ -6,9 +6,7 @@
 /*
  * Exceptions that should be thrown because a user made a mistake in BIRD code
  */
-class UserException : public std::exception
-{
-private:
+class UserException : public std::exception {
 public:
-    UserException() {}
+  UserException() {}
 };
