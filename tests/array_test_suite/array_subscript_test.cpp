@@ -2,14 +2,16 @@
 #define STRUCT_TYPE std::shared_ptr<std::unordered_map<std::string, Value>>
 #define ARRAY_TYPE std::shared_ptr<std::vector<Value>>
 
-TEST(ArrayTestSuite, IntArraySubscript) {
+TEST(ArrayTestSuite, IntArraySubscript)
+{
   BirdTest::TestOptions options;
   options.code = "var x: int[] = [ 1, 2, 3 ];"
                  "print x[0];"
                  "print x[1];"
                  "print x[2];";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
     ASSERT_TRUE(interpreter.env.contains("x"));
     ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
 
@@ -22,21 +24,24 @@ TEST(ArrayTestSuite, IntArraySubscript) {
         as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(2)), 3);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
-    ASSERT_EQ(output == "1\n2\n3\n\n", true);
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
+    ASSERT_EQ(output, "1\n2\n3\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ArrayTestSuite, FloatArraySubscript) {
+TEST(ArrayTestSuite, FloatArraySubscript)
+{
   BirdTest::TestOptions options;
   options.code = "var x: float[] = [ 1.1, 2.2, 3.3 ];"
                  "print x[0];"
                  "print x[1];"
                  "print x[2];";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
     ASSERT_TRUE(interpreter.env.contains("x"));
     ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
 
@@ -52,21 +57,24 @@ TEST(ArrayTestSuite, FloatArraySubscript) {
         3.3);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
-    ASSERT_EQ(output == "1.1\n2.2\n3.3\n\n", true);
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
+    ASSERT_EQ(output, "1.1\n2.2\n3.3\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ArrayTestSuite, StrArraySubscript) {
+TEST(ArrayTestSuite, StrArraySubscript)
+{
   BirdTest::TestOptions options;
   options.code = "var x: str[] = [ \"hello\", \", \", \"world!\" ];"
                  "print x[0];"
                  "print x[1];"
                  "print x[2];";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
     ASSERT_TRUE(interpreter.env.contains("x"));
     ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
 
@@ -82,14 +90,16 @@ TEST(ArrayTestSuite, StrArraySubscript) {
               "world!");
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "hello\n, \nworld!\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ArrayTestSuite, StructArraySubscript) {
+TEST(ArrayTestSuite, StructArraySubscript)
+{
   BirdTest::TestOptions options;
   options.code = "struct Dog {"
                  "    name: str,"
@@ -112,7 +122,8 @@ TEST(ArrayTestSuite, StructArraySubscript) {
                  "print dogs[1].name;"
                  "print dogs[1].age;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
     ASSERT_TRUE(interpreter.type_table.contains("Dog"));
 
     ASSERT_TRUE(interpreter.env.contains("dogs"));
@@ -143,14 +154,16 @@ TEST(ArrayTestSuite, StructArraySubscript) {
               10);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "marci\n5\nklaus\n10\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ArrayTestSuite, HighDimensionalSubscript) {
+TEST(ArrayTestSuite, HighDimensionalSubscript)
+{
   BirdTest::TestOptions options;
   options.code = "var y: int[][][] = [ [ [ 1, 2 ], [ 3, 4 ] ], "
                  "                     [ [ 5, 6 ], [ 7, 8 ] ] ];"
@@ -165,7 +178,8 @@ TEST(ArrayTestSuite, HighDimensionalSubscript) {
 
   // options.after_interpret = [&](Interpreter &interpreter) {};
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "1\n2\n3\n4\n5\n6\n7\n8\n\n");
   };
 

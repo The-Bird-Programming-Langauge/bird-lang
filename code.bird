@@ -1,10 +1,13 @@
-
-var n = 4;
-
-print(match (n) {
-    1 => "one",
-    2 => "two",
-    3 => "three",
-    else => "unknown"
-});
-
+var x: int[] = [ 5, 3, 2, 6, 4, 1, 9, 7, 8 ];
+for var i: int = 0; i < 9 - 1; i += 1 {
+    for var j: int = 0; j < 9 - 1 - i; j += 1 {
+        if (x[j] > x[j + 1]) {
+            var temp: int = x[j];
+            x[j] = x[j + 1];
+            x[j + 1] = temp;
+        }
+    }
+}
+for var i: int = 0; i < 9; i += 1 {
+    print x[i];
+}

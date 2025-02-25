@@ -166,6 +166,7 @@ const moduleOptions = {
         },
 
         mem_get_64: (ptr, byte_offset) => {
+            // console.log("mem get 64", ptr, byte_offset);
             return memory.getFloat64(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
         },
         /**
@@ -245,7 +246,7 @@ const moduleOptions = {
                 set_block_next_ptr(curr_ptr, get_allocated_list_head_ptr()); // set the pointer of the current block
                 set_allocated_list_head_ptr(curr_ptr); // set the head of the allocated list
             }
-            
+
             return curr_ptr;
         },
 
@@ -319,7 +320,7 @@ const moduleOptions = {
                     // if the block is the head, set the allocated list head pointer to the next allocated block pointer
                     if (curr_ptr === get_allocated_list_head_ptr()) {
                         set_allocated_list_head_ptr(next_ptr);
-                    // otherwise, set the previous block's next pointer to the current block's next pointer
+                        // otherwise, set the previous block's next pointer to the current block's next pointer
                     } else {
                         set_block_next_ptr(prev_ptr, next_ptr);
                         update_prev_ptr = false; // do not update prev_ptr if the block gets popped from the middle of the list

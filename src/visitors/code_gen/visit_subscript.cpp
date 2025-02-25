@@ -4,24 +4,26 @@ void CodeGen::visit_subscript(Subscript *subscript) {
   subscript->subscriptable->accept(this);
   auto subscriptable = this->stack.pop();
 
+  if (subscriptable.type->type != BirdTypeType::ARRAY) {
+    throw BirdException("Tried to subscript into non-array type");
+  }
+
   subscript->index->accept(this);
   auto index = this->stack.pop();
 
-  std::shared_ptr<BirdType> type;
-  if (subscriptable.type->type == BirdTypeType::ARRAY) {
-    type =
-        safe_dynamic_pointer_cast<ArrayType>(subscriptable.type)->element_type;
-  }
+  std::shared_ptr<BirdType> type =
+      safe_dynamic_pointer_cast<ArrayType>(subscriptable.type)->element_type;
 
   // TODO: make this better
   BinaryenExpressionRef args[2] = {
       subscriptable.value,
-      subscriptable.type->type == BirdTypeType::ARRAY
-          ? BinaryenBinary(
-                this->mod, BinaryenMulInt32(), index.value,
-                BinaryenConst(this->mod,
-                              BinaryenLiteralInt32(bird_type_byte_size(type))))
-          : index.value};
+      BinaryenBinary(
+          this->mod, BinaryenAddInt32(),
+          BinaryenBinary(
+              this->mod, BinaryenMulInt32(), index.value,
+              BinaryenConst(this->mod,
+                            BinaryenLiteralInt32(bird_type_byte_size(type)))),
+          BinaryenConst(this->mod, BinaryenLiteralInt32(5)))};
 
   this->stack.push(TaggedExpression(
       BinaryenCall(this->mod,
