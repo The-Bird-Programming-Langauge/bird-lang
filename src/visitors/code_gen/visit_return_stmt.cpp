@@ -16,6 +16,6 @@ void CodeGen::visit_return_stmt(ReturnStmt *return_stmt) {
                                       func_return_type.type));
   } else {
     this->stack.push(TaggedExpression(BinaryenReturn(this->mod, nullptr),
-                                      std::shared_ptr<VoidType>()));
+                                      std::make_shared<VoidType>()));
   }
 }

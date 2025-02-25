@@ -103,12 +103,23 @@ TEST(FunctionTest, ExplicitReturnTypeNoReturn) {
 }
 
 TEST(FunctionTest, FunctionWithJustReturn) {
-  // BirdTest::TestOptions options;
+  BirdTest::TestOptions options;
 
-  // options.code = "fn function()"
-  //                "{"
-  //                "return;"
-  //                "}";
+  options.code = "fn function()"
+                 "{"
+                 "return;"
+                 "}";
 
-  // ASSERT_TRUE(BirdTest::compile(options));
+  ASSERT_TRUE(BirdTest::compile(options));
+}
+
+TEST(FunctionTest, FunctionWithJustReturnWithType) {
+  BirdTest::TestOptions options;
+
+  options.code = "fn function() -> void"
+                 "{"
+                 "return;"
+                 "}";
+
+  ASSERT_TRUE(BirdTest::compile(options));
 }
