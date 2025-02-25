@@ -1,10 +1,2 @@
 
-var n = 4;
-
-print(match (n) {
-    1 => "one",
-    2 => "two",
-    3 => "three",
-    else => "unknown"
-});
 

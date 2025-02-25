@@ -461,7 +461,7 @@ assign_expr:
    primary ASSIGN_OP expr %prec ASSIGN 
    { $$ = std::make_unique<AssignExpr>($1, $2, std::move($3)); }
    | direct_member_access ASSIGN_OP expr %prec ASSIGN { 
-      auto member_access = dynamic_cast<MemberAssign *>($1.get());
+      auto member_access = dynamic_cast<DirectMemberAccess *>($1.get());
       $$ = std::make_unique<MemberAssign>(std::move(member_access->accessable), member_access->identifier, $2, std::move($3));
    }
 

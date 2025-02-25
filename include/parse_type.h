@@ -20,7 +20,7 @@ struct Primitive : Type {
 
 struct UserDefined : Type {
   Token type;
-  UserDefined(Token type) : Type(Tag::USER_DEFINED), type(type) {}
+  UserDefined(Token type) : Type(Tag::USER_DEFINED), type(type) { }
   Token get_token() override { return type; }
 };
 

@@ -40,6 +40,10 @@ BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type) {
     return BinaryenTypeInt32();
   else if (bird_type->type == BirdTypeType::ARRAY)
     return BinaryenTypeInt32();
+  else if (bird_type->type == BirdTypeType::FUNCTION)
+    return BinaryenTypeInt32();
+  else if (bird_type->type == BirdTypeType::ERROR)
+    throw BirdException("found error type");
 
   throw BirdException("invalid type");
 }
