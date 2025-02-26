@@ -3,13 +3,11 @@
 #include "../../parse_type.h"
 #include "../../token.h"
 #include "../../visitors/visitor.h"
+#include "../expr/expr.h"
 #include "stmt.h"
 #include <memory>
 #include <optional>
 #include <string>
-
-// forward declaration
-class Expr;
 
 /*
  * Const Declaration statement AST Node that represents variable declarations

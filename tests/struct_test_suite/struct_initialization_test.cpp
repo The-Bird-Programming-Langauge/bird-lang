@@ -138,7 +138,7 @@ TEST(StructTest, HoistedStructInitialization) {
     ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
   };
 
-  ASSERT_FALSE(BirdTest::compile(options));
+  ASSERT_TRUE(BirdTest::compile(options));
 }
 
 TEST(StructTest, ParamsOutOfOrderStructInitialization) {
