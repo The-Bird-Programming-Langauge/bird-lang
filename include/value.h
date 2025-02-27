@@ -292,6 +292,15 @@ public:
         "The subscript operator could not be used to interpret these values.");
   }
 
+  Value length() {
+    if (is_type<std::shared_ptr<std::vector<Value>>>(*this)) {
+      auto arr = as_type<std::shared_ptr<std::vector<Value>>>(*this);
+      return Value((int)arr->size());
+    }
+
+    throw BirdException("No length function for this argument");
+  }
+
   friend std::ostream &operator<<(std::ostream &os, const Value &obj) {
     if (is_type<int>(obj))
       os << as_type<int>(obj);
