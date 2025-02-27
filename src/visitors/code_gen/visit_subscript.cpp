@@ -30,8 +30,11 @@ void CodeGen::visit_subscript(Subscript *subscript) {
       this->mod,
       BinaryenBinary(this->mod, BinaryenLtSInt32(), index.value, array_length),
       get_index_mem_binaryen(this->mod, subscriptable, index, type),
-      // BinaryenThrow(this->mod, "Error: index out of bounds", {}, 0));
-      BinaryenConst(this->mod, BinaryenLiteralInt32(0)));
+      // TODO: Get the commented-out line to work and replace the line below
+      // with it BinaryenThrow(this->mod, "Error: index out of bounds", {}, 0));
+      BinaryenConst(this->mod, type->type == BirdTypeType::FLOAT
+                                   ? BinaryenLiteralFloat64(0)
+                                   : BinaryenLiteralInt32(0)));
 
   this->stack.push(
       TaggedExpression(bounds_checked_access, std::shared_ptr<BirdType>(type)));
@@ -59,5 +62,5 @@ BinaryenExpressionRef get_index_mem_binaryen(
   BinaryenExpressionRef mem_get_args[2] = {subscriptable.value, mem_position};
   return BinaryenCall(
       mod, type->type == BirdTypeType::FLOAT ? "mem_get_64" : "mem_get_32",
-      mem_get_args, 2, BinaryenTypeInt32());
+      mem_get_args, 2, bird_type_to_binaryen_type(type));
 }
