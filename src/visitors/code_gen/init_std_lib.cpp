@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::init_std_lib() {
   BinaryenAddFunctionImport(this->mod, "print_i32", "env", "print_i32",
@@ -53,4 +54,10 @@ void CodeGen::init_std_lib() {
 
   BinaryenAddFunctionImport(this->mod, "sweep", "env", "sweep",
                             BinaryenTypeNone(), BinaryenTypeNone());
+
+  BinaryenAddFunctionImport(this->mod, "strcmp", "env", "strcmp", args_type,
+                            BinaryenTypeInt32());
+
+  BinaryenAddFunctionImport(this->mod, "strcat", "env", "strcat", args_type,
+                            BinaryenTypeInt32());
 }
