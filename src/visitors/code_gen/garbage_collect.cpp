@@ -11,7 +11,12 @@ void CodeGen::garbage_collect() {
   std::set<std::string> marked;
   for (const auto &scope : this->environment.envs) {
     for (const auto &[key, value] : scope) {
-      if (value.type->type == BirdTypeType::STRUCT &&
+      if (((value.type->type == BirdTypeType::STRUCT ||
+            value.type->type == BirdTypeType::ARRAY) ||
+           (value.type->type == BirdTypeType::STRING &&
+            safe_dynamic_pointer_cast<StringType>(value.type)
+                ->dynamic)) && // TODO: strings
+                               // must also be cleaned
           marked.find(key) == marked.end()) {
         marked.insert(key);
         auto allocated_block_ptr = this->binaryen_get(key);
