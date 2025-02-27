@@ -60,9 +60,7 @@ INSTANTIATE_TEST_SUITE_P(
     ReorderTests, ReorderAstTest,
     ::testing::Values(
         std::vector<Stmt *>({TEST_EXPR_STMT, TEST_TYPE_STMT, TEST_STRUCT_DECL}),
-        std::vector<Stmt *>({TEST_STRUCT_DECL, TEST_TYPE_STMT
-
-        }),
+        std::vector<Stmt *>({TEST_STRUCT_DECL, TEST_TYPE_STMT}),
         std::vector<Stmt *>(), std::vector<Stmt *>({TEST_EXPR_STMT}),
         std::vector<Stmt *>({TEST_TYPE_STMT, TEST_STRUCT_DECL, TEST_TYPE_STMT,
                              TEST_EXPR_STMT}),
