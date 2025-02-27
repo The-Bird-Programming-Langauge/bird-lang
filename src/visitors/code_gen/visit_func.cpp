@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <memory>
 
 void CodeGen::visit_func(Func *func) {
   auto func_name = func->identifier.lexeme;
