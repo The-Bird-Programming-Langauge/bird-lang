@@ -1,4 +1,6 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
+#include <memory>
 
 /*
  * Binaryen doesnt support integer negation for some reason,
@@ -35,16 +37,21 @@ void CodeGen::visit_unary(Unary *unary) {
     break;
   }
   case Token::Type::NOT: {
-    this->stack.push(TaggedExpression(
-        BinaryenSelect(
-            this->mod, BinaryenUnary(this->mod, BinaryenEqZInt32(), expr.value),
-            BinaryenConst(mod, BinaryenLiteralInt32(1)),
-            BinaryenConst(mod, BinaryenLiteralInt32(0)), BinaryenTypeInt32()),
-        std::shared_ptr<BirdType>(new BoolType)));
+    this->stack.push(this->create_unary_not(expr.value));
     break;
   }
   default: {
     throw BirdException("undefined unary operator for code gen");
   }
   }
+}
+
+TaggedExpression CodeGen::create_unary_not(BinaryenExpressionRef condition) {
+  return TaggedExpression(
+      BinaryenSelect(this->mod,
+                     BinaryenUnary(this->mod, BinaryenEqZInt32(), condition),
+                     BinaryenConst(this->mod, BinaryenLiteralInt32(1)),
+                     BinaryenConst(this->mod, BinaryenLiteralInt32(0)),
+                     BinaryenTypeInt32()),
+      std::make_shared<BoolType>());
 }

@@ -48,7 +48,10 @@ struct FloatType : BirdType {
 };
 
 struct StringType : BirdType {
+  // TODO: figure out a way to remove this
+  bool dynamic = false; // used in code gen
   StringType() : BirdType(BirdTypeType::STRING) {}
+  StringType(bool dynamic) : BirdType(BirdTypeType::STRING), dynamic(dynamic) {}
   ~StringType() {};
 };
 
@@ -65,14 +68,6 @@ struct VoidType : BirdType {
 struct ErrorType : BirdType {
   ErrorType() : BirdType(BirdTypeType::ERROR) {}
   ~ErrorType() {};
-};
-
-struct AliasType : BirdType {
-  std::string name;
-  std::shared_ptr<BirdType> alias;
-  AliasType(std::string name, std::shared_ptr<BirdType> type)
-      : BirdType(type->type), name(name), alias(std::move(type)) {}
-  ~AliasType() {};
 };
 
 struct StructType : BirdType {

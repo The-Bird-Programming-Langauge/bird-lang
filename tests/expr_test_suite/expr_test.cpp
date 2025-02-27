@@ -32,6 +32,10 @@ TEST(ExprTest, BinaryStringString) {
     ASSERT_EQ(as_type<std::string>(interpreter.env.get("x")), "hellothere");
   };
 
+  options.after_compile = [](std::string &output, CodeGen &code_gen) {
+    ASSERT_EQ(output, "hellothere\n\n");
+  };
+
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
