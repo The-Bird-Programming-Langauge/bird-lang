@@ -102,6 +102,16 @@ TEST(FunctionTest, ExplicitReturnTypeNoReturn) {
   ASSERT_FALSE(BirdTest::compile(options));
 }
 
+TEST(FunctionTest, FunctionWithReturnValueLeftOnStack) {
+  BirdTest::TestOptions options;
+  options.code = "fn function() -> int {"
+                 "return 34;"
+                 "}"
+                 "function();";
+
+  ASSERT_TRUE(BirdTest::compile(options));
+}
+
 TEST(FunctionTest, FunctionWithJustReturn) {
   // BirdTest::TestOptions options;
 
