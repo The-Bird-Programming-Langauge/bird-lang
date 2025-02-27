@@ -235,6 +235,8 @@ class CodeGen : public Visitor {
   TaggedExpression match_helper(TaggedExpression expr, MatchExpr *match_expr,
                                 int index);
 
+  void generate_array_length_fn();
+
 public:
   ~CodeGen();
   CodeGen();

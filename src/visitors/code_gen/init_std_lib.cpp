@@ -53,4 +53,6 @@ void CodeGen::init_std_lib() {
 
   BinaryenAddFunctionImport(this->mod, "sweep", "env", "sweep",
                             BinaryenTypeNone(), BinaryenTypeNone());
+
+  generate_array_length_fn();
 }

@@ -8,6 +8,7 @@
 #include "../ast_node/index.h"
 
 #include "../callable.h"
+#include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
 #include "../exceptions/break_exception.h"
 #include "../exceptions/continue_exception.h"
@@ -23,6 +24,8 @@
 class SemanticAnalyzer : public Visitor {
 
 public:
+  CoreCallTable core_call_table;
+
   Environment<SemanticValue> env;
   Environment<SemanticCallable> call_table;
   Environment<SemanticType> type_table;
@@ -218,7 +221,8 @@ public:
   }
 
   void visit_call(Call *call) {
-    if (!this->call_table.contains(call->identifier.lexeme)) {
+    if (!core_call_table.table.contains(call->identifier.lexeme) &&
+        !this->call_table.contains(call->identifier.lexeme)) {
       this->user_error_tracker.semantic_error("Function call identifier '" +
                                                   call->identifier.lexeme +
                                                   "' is not declared.",
@@ -226,7 +230,11 @@ public:
       return;
     }
 
-    auto function = this->call_table.get(call->identifier.lexeme);
+    auto function = core_call_table.table.contains(call->identifier.lexeme)
+                        ? SemanticCallable(core_call_table.table
+                                               .get(call->identifier.lexeme)
+                                               ->params.size())
+                        : this->call_table.get(call->identifier.lexeme);
 
     if (function.param_count != call->args.size()) {
       this->user_error_tracker.semantic_error(
