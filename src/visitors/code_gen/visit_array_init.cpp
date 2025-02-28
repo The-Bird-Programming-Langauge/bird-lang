@@ -22,9 +22,17 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
   auto identifier = std::to_string(locals.size()) + "temp";
   this->environment.declare(identifier, TaggedIndex(locals.size(), type));
 
-  auto size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+  std::vector<BinaryenExpressionRef> args = {
+      BinaryenConst(this->mod, BinaryenLiteralInt32(size)),
+      type_is_on_heap(type->type)
+          ? BinaryenConst(this->mod,
+                          BinaryenLiteralInt32(array_init->elements.size()))
+          : BinaryenConst(this->mod, BinaryenLiteralInt32(0))
+
+  };
+
   BinaryenExpressionRef local_set = this->binaryen_set(
-      identifier, BinaryenCall(this->mod, "mem_alloc", &size_literal, 1,
+      identifier, BinaryenCall(this->mod, "mem_alloc", args.data(), args.size(),
                                BinaryenTypeInt32()));
 
   children.push_back(local_set);

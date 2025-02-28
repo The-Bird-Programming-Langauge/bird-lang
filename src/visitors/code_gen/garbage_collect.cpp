@@ -1,9 +1,9 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 static bool object_should_be_cleaned(const TaggedIndex value) {
   const auto type = value.type->type;
-  if (type == BirdTypeType::STRUCT || type == BirdTypeType::ARRAY ||
-      type == BirdTypeType::PLACEHOLDER)
+  if (type_is_on_heap(type))
     return true;
 
   if (type == BirdTypeType::STRING) {
@@ -21,15 +21,16 @@ void CodeGen::garbage_collect() {
   // mark all dynamically allocated blocks by traversing the environment, locate
   // all pointers pointing to dynamically allocated blocks, and pass the
   // pointers to the mark function
-  std::set<std::string> marked;
-  for (const auto &scope : this->environment.envs) {
+  for (int i = this->environment.envs.size() - 1; i >= 0; i--) {
+    const auto scope = this->environment.envs[i];
     for (const auto &[key, value] : scope) {
-      if (marked.find(key) != marked.end())
-        continue;
-
       if (object_should_be_cleaned(value)) {
-        marked.insert(key);
-        auto allocated_block_ptr = this->binaryen_get(key);
+        auto allocated_block_ptr =
+            i == 0 ? BinaryenGlobalGet(this->mod,
+                                       std::to_string(value.value).c_str(),
+                                       bird_type_to_binaryen_type(value.type))
+                   : BinaryenLocalGet(this->mod, value.value,
+                                      bird_type_to_binaryen_type(value.type));
         calls.push_back(BinaryenCall(this->mod, "mark", &allocated_block_ptr, 1,
                                      BinaryenTypeNone()));
       }

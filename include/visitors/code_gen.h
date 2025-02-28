@@ -12,6 +12,7 @@
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
 const char *get_mem_set_for_type(const BirdTypeType type);
+bool type_is_on_heap(const BirdTypeType type);
 
 template <typename T> struct Tagged {
   T value;
@@ -156,6 +157,7 @@ class CodeGen : public Visitor {
   Stack<TaggedExpression> stack; // for returning values
   std::map<std::string, std::string> std_lib;
   std::set<std::string> struct_names;
+  std::unordered_map<std::string, int> struct_name_to_num_pointers;
 
   std::unordered_map<std::string, uint32_t> str_offsets;
 

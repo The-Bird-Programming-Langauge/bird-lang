@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_struct_initialization(
     StructInitialization *struct_initialization) {
@@ -18,9 +19,16 @@ void CodeGen::visit_struct_initialization(
 
     std::vector<BinaryenExpressionRef> constructor_body;
 
-    auto size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
-    auto call = BinaryenCall(this->mod, "mem_alloc", &size_literal, 1,
-                             BinaryenTypeInt32());
+    const auto size_literal =
+        BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+    const auto num_ptrs = BinaryenConst(
+        this->mod,
+        BinaryenLiteralInt32(
+            this->struct_name_to_num_pointers[struct_initialization->identifier
+                                                  .lexeme]));
+    BinaryenExpressionRef args[2] = {size_literal, num_ptrs};
+    auto call =
+        BinaryenCall(this->mod, "mem_alloc", args, 2, BinaryenTypeInt32());
 
     std::vector<BinaryenType> param_types;
     for (auto &field : struct_type->fields) {
