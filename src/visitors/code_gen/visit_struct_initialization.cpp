@@ -47,14 +47,10 @@ void CodeGen::visit_struct_initialization(
           BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
           BinaryenLocalGet(this->mod, count++,
                            bird_type_to_binaryen_type(type))};
-      auto func_name = type->type == BirdTypeType::FLOAT ? "mem_set_64"
-                       : type->type == BirdTypeType::STRUCT ||
-                               type->type == BirdTypeType::PLACEHOLDER
-                           ? "mem_set_ptr"
-                           : "mem_set_32";
 
-      constructor_body.push_back(
-          BinaryenCall(this->mod, func_name, args, 3, BinaryenTypeNone()));
+      constructor_body.push_back(BinaryenCall(this->mod,
+                                              get_mem_set_for_type(type->type),
+                                              args, 3, BinaryenTypeNone()));
     }
 
     constructor_body.push_back(BinaryenReturn(

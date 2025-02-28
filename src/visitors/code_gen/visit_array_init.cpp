@@ -35,10 +35,8 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
         this->binaryen_get(identifier),
         BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), val};
 
-    children.push_back(BinaryenCall(
-        this->mod,
-        type->type == BirdTypeType::FLOAT ? "mem_set_64" : "mem_set_32", args,
-        3, BinaryenTypeNone()));
+    children.push_back(BinaryenCall(this->mod, get_mem_set_for_type(type->type),
+                                    args, 3, BinaryenTypeNone()));
 
     offset += bird_type_byte_size(type);
   }

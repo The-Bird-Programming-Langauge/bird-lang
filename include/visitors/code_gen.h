@@ -11,6 +11,7 @@
 
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
+const char *get_mem_set_for_type(const BirdTypeType type);
 
 template <typename T> struct Tagged {
   T value;

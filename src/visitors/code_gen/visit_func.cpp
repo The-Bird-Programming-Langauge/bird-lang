@@ -65,9 +65,9 @@ void CodeGen::visit_func(Func *func) {
 
   this->environment.pop_env();
 
-  this->garbage_collect();
-  auto calls_block = this->stack.pop();
-  current_function_body.push_back(calls_block.value);
+  // this->garbage_collect();
+  // auto calls_block = this->stack.pop();
+  // current_function_body.push_back(calls_block.value);
 
   BinaryenExpressionRef body =
       BinaryenBlock(this->mod, nullptr, current_function_body.data(),

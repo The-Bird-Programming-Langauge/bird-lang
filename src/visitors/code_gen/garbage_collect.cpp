@@ -1,5 +1,18 @@
 #include "../../../include/visitors/code_gen.h"
 
+static bool object_should_be_cleaned(const TaggedIndex value) {
+  const auto type = value.type->type;
+  if (type == BirdTypeType::STRUCT || type == BirdTypeType::ARRAY ||
+      type == BirdTypeType::PLACEHOLDER)
+    return true;
+
+  if (type == BirdTypeType::STRING) {
+    return safe_dynamic_pointer_cast<StringType>(value.type)->dynamic;
+  }
+
+  return false;
+}
+
 void CodeGen::garbage_collect() {
   // list that stores all of the javascript calls to be pushed on the stack as 1
   // block
@@ -11,13 +24,10 @@ void CodeGen::garbage_collect() {
   std::set<std::string> marked;
   for (const auto &scope : this->environment.envs) {
     for (const auto &[key, value] : scope) {
-      if (((value.type->type == BirdTypeType::STRUCT ||
-            value.type->type == BirdTypeType::ARRAY) ||
-           (value.type->type == BirdTypeType::STRING &&
-            safe_dynamic_pointer_cast<StringType>(value.type)
-                ->dynamic)) && // TODO: strings
-                               // must also be cleaned
-          marked.find(key) == marked.end()) {
+      if (marked.find(key) != marked.end())
+        continue;
+
+      if (object_should_be_cleaned(value)) {
         marked.insert(key);
         auto allocated_block_ptr = this->binaryen_get(key);
         calls.push_back(BinaryenCall(this->mod, "mark", &allocated_block_ptr, 1,

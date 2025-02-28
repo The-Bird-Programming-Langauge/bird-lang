@@ -308,7 +308,6 @@ const moduleOptions = {
                 // if the block is not marked, pop it from the allocated list and push it to the free list
                 if (!block_is_marked(curr_ptr)) {
 
-                    console.log("freeing ptr ", curr_ptr);
                     // pop the block from the allocated list:
                     // if the block is the head, set the allocated list head pointer to the next allocated block pointer
                     if (curr_ptr === get_allocated_list_head_ptr()) {
@@ -409,6 +408,5 @@ function mem_alloc(size) {
         set_allocated_list_head_ptr(curr_ptr); // set the head of the allocated list
     }
 
-    console.log("allocating ptr ", curr_ptr);
     return curr_ptr;
 }

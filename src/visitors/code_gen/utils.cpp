@@ -1,5 +1,19 @@
 #include "../../../include/visitors/code_gen.h"
 
+const char *get_mem_set_for_type(const BirdTypeType type) {
+  switch (type) {
+  case BirdTypeType::FLOAT:
+    return "mem_set_64";
+    break;
+  case BirdTypeType::STRUCT:
+  case BirdTypeType::ARRAY:
+  case BirdTypeType::PLACEHOLDER:
+    return "mem_set_ptr";
+  default:
+    return "mem_set_32";
+  }
+}
+
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) {
   switch (type->type) {
   case BirdTypeType::INT:
