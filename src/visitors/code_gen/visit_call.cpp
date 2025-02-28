@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_call(Call *call) {
   auto func_name = call->identifier.lexeme;
@@ -11,8 +12,17 @@ void CodeGen::visit_call(Call *call) {
   }
 
   auto return_type = this->function_return_types[func_name];
+
+  auto children = std::vector<BinaryenExpressionRef>();
+
+  children.push_back(BinaryenCall(this->mod, func_name.c_str(), args.data(),
+                                  args.size(), return_type.value));
+
+  this->garbage_collect();
+  children.push_back(this->stack.pop().value);
+
   this->stack.push(
-      TaggedExpression(BinaryenCall(this->mod, func_name.c_str(), args.data(),
-                                    args.size(), return_type.value),
+      TaggedExpression(BinaryenBlock(this->mod, nullptr, children.data(),
+                                     children.size(), return_type.value),
                        return_type.type));
 }

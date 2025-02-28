@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_struct_initialization(
     StructInitialization *struct_initialization) {
@@ -18,9 +19,16 @@ void CodeGen::visit_struct_initialization(
 
     std::vector<BinaryenExpressionRef> constructor_body;
 
-    auto size_literal = BinaryenConst(this->mod, BinaryenLiteralInt32(size));
-    auto call = BinaryenCall(this->mod, "mem_alloc", &size_literal, 1,
-                             BinaryenTypeInt32());
+    const auto size_literal =
+        BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+    const auto num_ptrs = BinaryenConst(
+        this->mod,
+        BinaryenLiteralInt32(
+            this->struct_name_to_num_pointers[struct_initialization->identifier
+                                                  .lexeme]));
+    BinaryenExpressionRef args[2] = {size_literal, num_ptrs};
+    auto call =
+        BinaryenCall(this->mod, "mem_alloc", args, 2, BinaryenTypeInt32());
 
     std::vector<BinaryenType> param_types;
     for (auto &field : struct_type->fields) {
@@ -47,14 +55,10 @@ void CodeGen::visit_struct_initialization(
           BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
           BinaryenLocalGet(this->mod, count++,
                            bird_type_to_binaryen_type(type))};
-      auto func_name = type->type == BirdTypeType::FLOAT ? "mem_set_64"
-                       : type->type == BirdTypeType::STRUCT ||
-                               type->type == BirdTypeType::PLACEHOLDER
-                           ? "mem_set_ptr"
-                           : "mem_set_32";
 
-      constructor_body.push_back(
-          BinaryenCall(this->mod, func_name, args, 3, BinaryenTypeNone()));
+      constructor_body.push_back(BinaryenCall(this->mod,
+                                              get_mem_set_for_type(type->type),
+                                              args, 3, BinaryenTypeNone()));
     }
 
     constructor_body.push_back(BinaryenReturn(

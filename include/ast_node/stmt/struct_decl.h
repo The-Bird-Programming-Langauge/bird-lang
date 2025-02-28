@@ -29,10 +29,7 @@ public:
       Token identifier,
       std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>
           fields)
-      : identifier(identifier), fields(fields) {
-    std::sort(this->fields.begin(), this->fields.end(),
-              [](const auto &a, const auto &b) { return a.first < b.first; });
-  }
+      : identifier(identifier), fields(fields) {}
 
   void accept(Visitor *visitor) { visitor->visit_struct_decl(this); }
 };
