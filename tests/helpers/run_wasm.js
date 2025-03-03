@@ -44,42 +44,35 @@ function get_null_ptr_address() {
 }
 
 function get_free_list_head_ptr() {
-    // console.log(`get_free_list_head_ptr : ${memory.getUint32(base_offset + FREE_HEAD_PTR)}`); // debug
     return memory.getUint32(base_offset + FREE_HEAD_PTR);
 }
 
 function get_allocated_list_head_ptr() {
-    //console.log(`get_allocated_list_head_ptr : ${memory.getUint32(ALLOCATED_HEAD_PTR)}`); // debug
     return memory.getUint32(base_offset + ALLOCATED_HEAD_PTR);
 }
 
 function get_block_size(ptr) {
-    //console.log(`get_block_size : ${ptr} : ${memory.getUint32(ptr + BLOCK_SIZE_OFFSET)}`); // debug
     return memory.getUint32(ptr + BLOCK_SIZE_OFFSET);
 }
 
 function get_block_next_ptr(ptr) {
-    //console.log(`get_block_next_ptr : ${ptr} : ${memory.getUint32(ptr + BLOCK_PTR_OFFSET)}`); // debug
     return memory.getUint32(ptr + BLOCK_PTR_OFFSET);
 }
 
 function block_is_marked(ptr) {
-    //console.log(`block_is_marked : ${ptr} : ${memory.getUint8(ptr + BLOCK_MARK_OFFSET) === 1}`); // debug
     return memory.getUint8(ptr + BLOCK_MARK_OFFSET) === 1;
 }
 
 function set_block_size(ptr, size) {
-    //console.log(`set_block_size : ${ptr} : ${size}`); // debug
     memory.setUint32(ptr + BLOCK_SIZE_OFFSET, size);
 }
 
 function set_block_next_ptr(ptr, next_ptr) {
-    //console.log(`set_block_next_ptr : ${ptr} : ${next_ptr}`); // debug
     memory.setUint32(ptr + BLOCK_PTR_OFFSET, next_ptr);
 }
 
 function get_block_num_ptrs(ptr) {
-    memory.getUint32(ptr + BLOCK_NUM_PTRS);
+    return memory.getUint32(ptr + BLOCK_NUM_PTRS);
 }
 
 function set_block_num_ptrs(ptr, num_ptrs) {
@@ -87,27 +80,22 @@ function set_block_num_ptrs(ptr, num_ptrs) {
 }
 
 function set_block_mark(ptr, mark) {
-    //console.log(`set_block_mark : ${ptr} : ${mark}`); // debug
     memory.setUint8(ptr + BLOCK_MARK_OFFSET, mark);
 }
 
 function set_free_list_head_ptr(ptr) {
-    //console.log(`set_free_list_head_ptr : ${FREE_HEAD_PTR} : ${ptr}`); // debug
     memory.setUint32(base_offset + FREE_HEAD_PTR, ptr);
 }
 
 function set_allocated_list_head_ptr(ptr) {
-    //console.log(`set_allocated_list_head_ptr : ${ALLOCATED_HEAD_PTR} : ${ptr}`); // debug
     memory.setUint32(base_offset + ALLOCATED_HEAD_PTR, ptr);
 }
 
 function value_is_pointer(ptr) {
-    //console.log(`value_is_pointer : ${ptr} : ${memory.getUint8(ptr) & 0b01}`); // debug
     return memory.getUint8(ptr) & 0b01;
 }
 
 function value_is_64_bit(ptr) {
-    //console.log(`value_is_64_bit : ${ptr} : ${memory.getUint8(ptr) & 0b10}`); // debug
     return memory.getUint8(ptr) & 0b10;
 }
 
@@ -214,7 +202,6 @@ const moduleOptions = {
             fs.appendFileSync(outputPath, "\n");
         },
         mem_get_32: (ptr, byte_offset) => {
-            // console.log("mem get 32", ptr, byte_offset);
             return memory.getUint32(ptr + BLOCK_HEADER_SIZE + byte_offset);
         },
 
@@ -254,7 +241,6 @@ const moduleOptions = {
 
         mark: (ptr) => // the root is any local or global variable that is dynamically allocated
         {
-            // console.log(`mark(${ptr})`); // debug
             const stack = [];
             stack.push(ptr);
 
@@ -271,13 +257,12 @@ const moduleOptions = {
 
                 const num_ptrs = get_block_num_ptrs(block_ptr);
                 for (let i = 0; i < num_ptrs; i++) {
-                    stack.push(block_ptr + BLOCK_HEADER_SIZE + (INT_SIZE * i));
+                    stack.push(memory.getUint32(block_ptr + BLOCK_HEADER_SIZE + (INT_SIZE * i)));
                 }
             }
         },
 
         sweep: () => {
-            //console.log("sweep"); // debug
             let curr_ptr = get_allocated_list_head_ptr();
 
             // no allocated block exists
@@ -289,7 +274,6 @@ const moduleOptions = {
             let next_block_is_not_null = true;
 
             while (curr_ptr < memory.byteLength && next_block_is_not_null) {
-                //console.log(`sweep : ${curr_ptr}`); // debug
                 let next_ptr = get_block_next_ptr(curr_ptr); // get the next allocated block to traverse to in the next iteration
                 let update_prev_ptr = true;
 
@@ -354,8 +338,6 @@ WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
 });
 
 function mem_alloc(size, num_pointers) {
-    console.log(size, num_pointers);
-    //console.log(`mem_alloc(${size})`); // debug
     let curr_ptr = get_free_list_head_ptr();
     let prev_ptr = curr_ptr;
 

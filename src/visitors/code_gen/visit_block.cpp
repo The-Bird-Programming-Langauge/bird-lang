@@ -11,6 +11,12 @@ void CodeGen::visit_block(Block *block) {
     if (result.value) {
       children.push_back(result.value);
     }
+
+    if (this->must_garbage_collect) {
+      this->garbage_collect();
+      children.push_back(this->stack.pop().value);
+      this->must_garbage_collect = false;
+    }
   }
 
   this->environment.pop_env();

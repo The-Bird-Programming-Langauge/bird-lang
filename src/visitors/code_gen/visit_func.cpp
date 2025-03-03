@@ -58,6 +58,12 @@ void CodeGen::visit_func(Func *func) {
     } else {
       current_function_body.push_back(result.value);
     }
+
+    if (this->must_garbage_collect) {
+      this->garbage_collect();
+      current_function_body.push_back(this->stack.pop().value);
+      this->must_garbage_collect = false;
+    }
   }
 
   // perform garbage collection at the end of a function by popping the

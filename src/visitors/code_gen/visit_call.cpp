@@ -15,14 +15,10 @@ void CodeGen::visit_call(Call *call) {
 
   auto children = std::vector<BinaryenExpressionRef>();
 
-  children.push_back(BinaryenCall(this->mod, func_name.c_str(), args.data(),
-                                  args.size(), return_type.value));
-
-  this->garbage_collect();
-  children.push_back(this->stack.pop().value);
-
   this->stack.push(
-      TaggedExpression(BinaryenBlock(this->mod, nullptr, children.data(),
-                                     children.size(), return_type.value),
+      TaggedExpression(BinaryenCall(this->mod, func_name.c_str(), args.data(),
+                                    args.size(), return_type.value),
                        return_type.type));
+
+  this->must_garbage_collect = true;
 }

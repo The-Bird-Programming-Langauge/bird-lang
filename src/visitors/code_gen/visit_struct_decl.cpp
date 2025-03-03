@@ -16,8 +16,11 @@ void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
   auto count = 0;
   std::sort(struct_fields.begin(), struct_fields.end(),
             [&](const bird_pair first, const bird_pair second) {
-              count += 1;
-              return type_is_on_heap(first.second->type);
+              if (type_is_on_heap(first.second->type)) {
+                count += 1;
+                return true;
+              }
+              return false;
             });
 
   this->struct_name_to_num_pointers[struct_decl->identifier.lexeme] = count;
