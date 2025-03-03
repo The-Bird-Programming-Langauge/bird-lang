@@ -284,7 +284,6 @@ const moduleOptions = {
 
                 // if the block is not marked, pop it from the allocated list and push it to the free list
                 if (!block_is_marked(curr_ptr)) {
-
                     // pop the block from the allocated list:
                     // if the block is the head, set the allocated list head pointer to the next allocated block pointer
                     if (curr_ptr === get_allocated_list_head_ptr()) {
@@ -378,12 +377,13 @@ function mem_alloc(size, num_pointers) {
         // the current block is now allocated
         set_block_size(curr_ptr, size + BLOCK_HEADER_SIZE); // set the size of the current block
         set_block_mark(curr_ptr, 0); // set the mark bit to zero
-        set_block_num_ptrs(curr_ptr, num_pointers);
 
         // move the current block to the head of the allocated list
         set_block_next_ptr(curr_ptr, get_allocated_list_head_ptr()); // set the pointer of the current block
         set_allocated_list_head_ptr(curr_ptr); // set the head of the allocated list
     }
 
+
+    set_block_num_ptrs(curr_ptr, num_pointers);
     return curr_ptr;
 }
