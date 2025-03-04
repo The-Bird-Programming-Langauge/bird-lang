@@ -227,6 +227,18 @@ public:
   }
 
   void visit_binary_short_circuit(Binary *binary) {
+    // std::cout << "starting visit binary short circuit" << std::endl;
+    // auto binary_left = std::move(binary->left);
+    // std::cout << "stored binary_left" << std::endl;
+    // auto binary_left_cast = dynamic_cast<Primary *>(binary_left.get());
+    // std::cout << "casted binary_left failed: " << (binary_left_cast ==
+    // nullptr)
+    //           << std::endl;
+    // std::cout << "interpreter pointer is null: " << (this == nullptr)
+    //           << std::endl;
+    // binary_left_cast->accept(this);
+    // std::cout << "visited binary_left" << std::endl;
+
     binary->left->accept(this);
     auto left = std::move(this->stack.pop());
 
@@ -347,6 +359,8 @@ public:
   }
 
   void visit_primary(Primary *primary) {
+    // std::cout << "starting visit primary" << std::endl;
+    // return;
     switch (primary->value.token_type) {
     case Token::Type::FLOAT_LITERAL:
       this->stack.push(Value(variant(std::stod(primary->value.lexeme))));

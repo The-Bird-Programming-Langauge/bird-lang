@@ -91,4 +91,7 @@ public:
         unsigned int char_num)
       : token_type(token_type), lexeme(lexeme), line_num(line_num),
         char_num(char_num) {}
+
+  Token(Type token_type, std::string lexeme)
+      : token_type(token_type), lexeme(lexeme), line_num(0), char_num(0) {}
 };
