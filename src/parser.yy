@@ -20,6 +20,7 @@
    #include <memory>
    #include <optional>
    #include <utility>
+   #include <variant>
 
    #include "../include/ast_node/index.h"
 
@@ -120,8 +121,6 @@ continue_stmt
 expr_stmt
 type_stmt
 struct_decl
-prop_decl
-member_decl
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -180,15 +179,21 @@ maybe_block_valid_stmts
 block_valid_stmts
 maybe_stmts
 stmts
-maybe_member_decls
-member_decls
 
 %type <std::vector<std::shared_ptr<Expr>>> 
 maybe_arg_list
 arg_list
 
+%type <std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>
+member_decl
+
+%type <std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>>
+maybe_member_decls
+member_decls
+
 %type <std::pair<Token, std::shared_ptr<ParseType::Type>>>
 param
+prop_decl
 
 %type <std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>> 
 maybe_param_list
@@ -288,11 +293,11 @@ struct_decl:
       { $$ = std::make_unique<StructDecl>($2, std::move($4)); }
 
 maybe_member_decls:
-   %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   %empty { $$ = std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>(); }
    | member_decls { $$ = std::move($1); }
 
 member_decls:
-   member_decl {$$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   member_decl {$$ = std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>(); $$.push_back(std::move($1)); }
    | member_decls member_decl { $$ = std::move($1); $$.push_back(std::move($2)); }
 
 member_decl:
@@ -300,7 +305,7 @@ member_decl:
    | prop_decl { $$ = std::move($1); }
 
 prop_decl: 
-   IDENTIFIER COLON type_identifier SEMICOLON { $$ = std::make_unique<PropDecl>($1, $3); }
+   IDENTIFIER COLON type_identifier SEMICOLON { $$ = std::pair<Token, std::shared_ptr<ParseType::Type>>({$1, $3}); }
 
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 

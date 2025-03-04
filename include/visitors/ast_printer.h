@@ -195,12 +195,12 @@ public:
     std::cout << "struct " << struct_decl->identifier.lexeme;
     std::cout << "{";
     for (auto &prop_decl : struct_decl->fields) {
-      std::cout << prop_decl->identifier.lexeme << ": "
-                << prop_decl->type->get_token().lexeme << ";";
+      std::cout << prop_decl.first.lexeme << ": "
+                << prop_decl.second->get_token().lexeme << ";";
     }
 
     for (auto &fn : struct_decl->fns) {
-      this->visit_func(fn.get());
+      this->visit_func(dynamic_cast<Func *>(fn.get()));
     }
 
     std::cout << "}";

@@ -31,5 +31,4 @@ public:
   void visit_array_init(ArrayInit *) override {}
   void visit_index_assign(IndexAssign *) override {}
   void visit_match_expr(MatchExpr *) override {}
-  void visit_prop_decl(PropDecl *) override {}
 };

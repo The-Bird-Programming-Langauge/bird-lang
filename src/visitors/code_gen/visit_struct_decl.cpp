@@ -7,9 +7,10 @@ void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
   std::vector<bird_pair> struct_fields;
   std::transform(
       struct_decl->fields.begin(), struct_decl->fields.end(),
-      std::back_inserter(struct_fields), [&](std::unique_ptr<PropDecl> &field) {
-        return std::make_pair(field->identifier.lexeme,
-                              this->type_converter.convert(field->type));
+      std::back_inserter(struct_fields),
+      [&](std::pair<Token, std::shared_ptr<ParseType::Type>> &field) {
+        return std::make_pair(field.first.lexeme,
+                              this->type_converter.convert(field.second));
       });
 
   auto count = 0;

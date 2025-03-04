@@ -24,5 +24,3 @@ TEST(MiscProgramsTestSuite, BinaryPreorder) {
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
-
-TEST(MiscProgramsTestSuite, BinaryTreePreorderSearch) {}

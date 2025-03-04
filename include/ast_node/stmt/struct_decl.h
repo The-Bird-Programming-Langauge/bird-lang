@@ -5,14 +5,13 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "../../exceptions/bird_exception.h"
 #include "../../parse_type.h"
 #include "../../token.h"
 #include "../../visitors/visitor.h"
-#include "func.h"
-#include "prop_decl.h"
 #include "stmt.h"
 
 // forward declaration
@@ -26,19 +25,24 @@ class Expr;
 class StructDecl : public Stmt {
 public:
   Token identifier;
-  std::vector<std::unique_ptr<PropDecl>> fields;
-  std::vector<std::shared_ptr<Func>> fns;
+  std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> fields;
+  std::vector<std::shared_ptr<Stmt>> fns;
 
-  StructDecl(Token identifier,
-             std::vector<std::unique_ptr<Stmt>> fields_and_fns)
+  StructDecl(
+      Token identifier,
+      std::vector<
+          std::variant<std::shared_ptr<Stmt>,
+                       std::pair<Token, std::shared_ptr<ParseType::Type>>>>
+          fields_and_fns)
       : identifier(identifier) {
     for (auto &stmt : fields_and_fns) {
-      if (auto fn = dynamic_cast<Func *>(stmt.get())) {
-        fns.push_back(std::make_shared<Func>(*fn));
-      } else if (auto field = dynamic_cast<PropDecl *>(stmt.get())) {
-        fields.push_back(std::make_unique<PropDecl>(*field));
-      } else {
-        throw new BirdException("invalid stmt passed to struct decl");
+      if (std::holds_alternative<std::shared_ptr<Stmt>>(stmt)) {
+        fns.push_back(std::get<std::shared_ptr<Stmt>>(stmt));
+      } else if (std::holds_alternative<
+                     std::pair<Token, std::shared_ptr<ParseType::Type>>>(
+                     stmt)) {
+        fields.push_back(
+            std::get<std::pair<Token, std::shared_ptr<ParseType::Type>>>(stmt));
       }
     }
   }

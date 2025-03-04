@@ -435,13 +435,13 @@ public:
   void visit_struct_decl(StructDecl *struct_decl) {
     std::vector<std::pair<std::string, std::shared_ptr<BirdType>>>
         struct_fields;
-    std::transform(struct_decl->fields.begin(), struct_decl->fields.end(),
-                   std::back_inserter(struct_fields),
-                   [&](std::unique_ptr<PropDecl> &field) {
-                     return std::make_pair(
-                         field->identifier.lexeme,
-                         this->type_converter.convert(field->type));
-                   });
+    std::transform(
+        struct_decl->fields.begin(), struct_decl->fields.end(),
+        std::back_inserter(struct_fields),
+        [&](std::pair<Token, std::shared_ptr<ParseType::Type>> &field) {
+          return std::make_pair(field.first.lexeme,
+                                this->type_converter.convert(field.second));
+        });
 
     this->type_table.declare(
         struct_decl->identifier.lexeme,
@@ -597,6 +597,4 @@ public:
 
     match_expr->else_arm->accept(this);
   }
-
-  void visit_prop_decl(PropDecl *prop_decl) {}
 };

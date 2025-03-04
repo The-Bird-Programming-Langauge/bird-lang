@@ -230,7 +230,6 @@ class CodeGen : public Visitor {
   void visit_match_expr(MatchExpr *match_expr);
   TaggedExpression match_helper(TaggedExpression expr, MatchExpr *match_expr,
                                 int index);
-  void visit_prop_decl(PropDecl *prop_decl);
 
 public:
   ~CodeGen();
