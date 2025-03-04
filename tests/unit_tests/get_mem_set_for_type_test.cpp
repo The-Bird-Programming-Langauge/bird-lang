@@ -1,6 +1,5 @@
 #include "../../include/bird_type.h"
 #include "../../include/visitors/code_gen.h"
-#include "gtest/gtest.h"
 #include <gtest/gtest.h>
 
 #define BIRD_TYPE_INT BirdType(BirdTypeType::INT)
