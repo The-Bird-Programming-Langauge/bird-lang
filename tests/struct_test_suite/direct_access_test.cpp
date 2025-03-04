@@ -2,7 +2,7 @@
 
 TEST(StructTest, DirectAccessTest) {
   BirdTest::TestOptions options;
-  options.code = "struct Test { a: int, b: float, c: str, d: bool }; "
+  options.code = "struct Test { a: int; b: float; c: str; d: bool; }; "
                  "var t = Test { a = 1, b = 2.0, c = \"hello\", d = true }; "
                  "var a = t.a; "
                  "var b = t.b; "
@@ -40,7 +40,7 @@ TEST(StructTest, DirectAccessTest) {
 
 TEST(StructTest, DirectAccessTestWithNonExistentField) {
   BirdTest::TestOptions options;
-  options.code = "struct Test { a: int, b: float, c: str, d: bool }; "
+  options.code = "struct Test { a: int; b: float; c: str; d: bool; }; "
                  "var t = Test { a = 1, b = 2.0, c = \"hello\", d = true }; "
                  "print t.e;";
 
@@ -51,7 +51,7 @@ TEST(StructTest, DirectAccessTestWithNonExistentField) {
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "e");
     ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: field does not exist on "
-                                "struct (line 1, character 116)");
+                                "struct (line 1, character 117)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

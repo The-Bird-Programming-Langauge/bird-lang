@@ -120,6 +120,8 @@ continue_stmt
 expr_stmt
 type_stmt
 struct_decl
+prop_decl
+member_decl
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -160,14 +162,6 @@ EQUALITY_OP
 maybe_match_arms
 match_arms
 
-
-%type <std::pair<std::string, std::shared_ptr<ParseType::Type>>>
-field_member
-
-%type <std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>>
-maybe_field_map
-field_map
-
 %type <std::vector<std::pair<std::string, std::unique_ptr<Expr>>>>
 maybe_struct_initialization_list
 struct_initialization_list
@@ -186,6 +180,8 @@ maybe_block_valid_stmts
 block_valid_stmts
 maybe_stmts
 stmts
+maybe_member_decls
+member_decls
 
 %type <std::vector<std::shared_ptr<Expr>>> 
 maybe_arg_list
@@ -288,23 +284,23 @@ block_valid_stmt:
    | type_stmt SEMICOLON { $$ = std::move($1); }
 
 struct_decl:
-   STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
-      { $$ = std::make_unique<StructDecl>($2, $4); }
+   STRUCT IDENTIFIER LBRACE maybe_member_decls RBRACE 
+      { $$ = std::make_unique<StructDecl>($2, std::move($4)); }
 
-maybe_field_map:
-   %empty { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); }
-   | field_map
-   | field_map COMMA
+maybe_member_decls:
+   %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   | member_decls { $$ = std::move($1); }
 
-field_map: 
-   field_member
-      { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); $$.push_back($1); }
-   | field_map COMMA field_member
-      { $$ = std::move($1); $$.push_back($3); }
+member_decls:
+   member_decl {$$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   | member_decls member_decl { $$ = std::move($1); $$.push_back(std::move($2)); }
 
-field_member:
-   IDENTIFIER COLON type_identifier
-      { $$ = std::make_pair($1.lexeme, $3); }
+member_decl:
+   func { $$ = std::move($1); }
+   | prop_decl { $$ = std::move($1); }
+
+prop_decl: 
+   IDENTIFIER COLON type_identifier SEMICOLON { $$ = std::make_unique<PropDecl>($1, $3); }
 
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 
@@ -582,6 +578,7 @@ match_else_arm:
 
 primary: 
    IDENTIFIER 
+   | SELF
    | INT_LITERAL 
    | FLOAT_LITERAL
    | BOOL_LITERAL

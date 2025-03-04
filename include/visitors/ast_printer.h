@@ -194,10 +194,15 @@ public:
   void visit_struct_decl(StructDecl *struct_decl) {
     std::cout << "struct " << struct_decl->identifier.lexeme;
     std::cout << "{";
-    for (auto it = struct_decl->fields.begin(); it != struct_decl->fields.end();
-         it++) {
-      std::cout << it->first << ": " << it->second->get_token().lexeme << ", ";
+    for (auto &prop_decl : struct_decl->fields) {
+      std::cout << prop_decl->identifier.lexeme << ": "
+                << prop_decl->type->get_token().lexeme << ";";
     }
+
+    for (auto &fn : struct_decl->fns) {
+      this->visit_func(fn.get());
+    }
+
     std::cout << "}";
   }
 

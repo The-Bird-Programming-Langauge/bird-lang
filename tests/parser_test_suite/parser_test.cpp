@@ -876,3 +876,23 @@ TEST(ParserTest, StrArrayWithInit) {
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(ParserTest, StructWithMemberFunction) {
+  BirdTest::TestOptions options;
+  options.compile = false;
+  options.interpret = false;
+  options.type_check = false;
+  options.semantic_analyze = false;
+  options.code = "struct Person {\
+                    name: str;\
+                    fn say_name() {\
+                      print self.name; \
+                    }\
+                  };";
+
+  options.after_parse = [&](auto &error_tracker, auto &parser, auto &stmts) {
+    ASSERT_FALSE(error_tracker.has_errors());
+  };
+
+  ASSERT_TRUE(BirdTest::compile(options));
+}

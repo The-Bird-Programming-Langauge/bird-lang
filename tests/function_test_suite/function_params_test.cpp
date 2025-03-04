@@ -35,7 +35,7 @@ TEST(FunctionParamsTest, ParamMutability) {
 
 TEST(FunctionParamsTest, StructReference) {
   BirdTest::TestOptions options;
-  options.code = "struct Person {name: str};"
+  options.code = "struct Person {name: str;};"
                  "fn function(p: Person) {"
                  "  p.name = \"different\";"
                  "}"

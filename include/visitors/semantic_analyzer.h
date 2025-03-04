@@ -334,4 +334,6 @@ public:
 
     match_expr->else_arm->accept(this);
   }
+
+  void visit_prop_decl(PropDecl *prop_decl) {}
 };

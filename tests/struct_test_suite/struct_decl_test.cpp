@@ -2,7 +2,7 @@
 
 TEST(StructTest, StructDeclTest) {
   BirdTest::TestOptions options;
-  options.code = "struct Test { a: int, b: float, c: str, d: bool };";
+  options.code = "struct Test { a: int; b: float; c: str; d: bool; };";
 
   options.after_interpret = [&](Interpreter &interpreter) {
     ASSERT_EQ(interpreter.type_table.contains("Test"), true);
@@ -35,8 +35,8 @@ TEST(StructTest, StructDeclTest) {
 
 TEST(StructTest, StructNestedTest) {
   BirdTest::TestOptions options;
-  options.code = " struct Third { a: int, b: float, c: str, d: bool }; struct "
-                 "Second { third: Third }; struct First { second: Second };";
+  options.code = " struct Third { a: int; b: float; c: str; d: bool; }; struct "
+                 "Second { third: Third; }; struct First { second: Second; };";
 
   options.after_interpret = [&](Interpreter &interpreter) {
     ASSERT_EQ(interpreter.type_table.contains("First"), true);
@@ -86,7 +86,7 @@ TEST(StructTest, StructNestedTest) {
 
 TEST(StructTest, StructRecursiveTest) {
   BirdTest::TestOptions options;
-  options.code = "struct Recursive { a: int, b: Recursive };";
+  options.code = "struct Recursive { a: int; b: Recursive; };";
 
   options.after_interpret = [&](Interpreter &interpreter) {
     ASSERT_EQ(interpreter.type_table.contains("Recursive"), true);

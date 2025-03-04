@@ -20,7 +20,7 @@ static void struct_init_helper(Interpreter &interpreter) {
 
 TEST(StructTest, VarStructInitializationTest) {
   BirdTest::TestOptions options;
-  options.code = "struct Point { x: int, y: int };"
+  options.code = "struct Point { x: int; y: int; };"
                  "var p = Point { x = 1, y = 2 };"
                  "print p.x;"
                  "print p.y;";
@@ -36,7 +36,7 @@ TEST(StructTest, VarStructInitializationTest) {
 
 TEST(StructTest, ConstStructInitializationTest) {
   BirdTest::TestOptions options;
-  options.code = "struct Point { x: int, y: int };"
+  options.code = "struct Point { x: int; y: int; };"
                  "const p = Point { x = 1, y = 2 };"
                  "print p.x;"
                  "print p.y;";
@@ -52,7 +52,7 @@ TEST(StructTest, ConstStructInitializationTest) {
 
 TEST(StructTest, FunctionStructInitializationTest) {
   BirdTest::TestOptions options;
-  options.code = "struct Point { x: int, y: int };"
+  options.code = "struct Point { x: int; y: int; };"
                  "fn get_point() -> Point { return Point { x = 1, y = 2 }; }"
                  "var p = get_point();"
                  "print get_point().x;"
@@ -69,7 +69,7 @@ TEST(StructTest, FunctionStructInitializationTest) {
 
 TEST(StructTest, AllPrimitiveTypesStructInitialization) {
   BirdTest::TestOptions options;
-  options.code = "struct Test { a: int, b: float, c: str, d: bool };"
+  options.code = "struct Test { a: int; b: float; c: str; d: bool; };"
                  "var t = Test { a = 1, b = 2.0, c = \"hello\", d = true };"
                  "print t.a;"
                  "print t.b;"
@@ -111,7 +111,7 @@ TEST(StructTest, HoistedStructInitialization) {
                  "print t.b;"
                  "print t.c;"
                  "print t.d;"
-                 "struct Test { a: int, b: float, c: str, d: bool };";
+                 "struct Test { a: int; b: float; c: str; d: bool; };";
 
   options.after_interpret = [&](Interpreter &interpreter) {
     ASSERT_TRUE(interpreter.env.contains("t"));
@@ -143,7 +143,7 @@ TEST(StructTest, HoistedStructInitialization) {
 
 TEST(StructTest, ParamsOutOfOrderStructInitialization) {
   BirdTest::TestOptions options;
-  options.code = "struct Test { a: int, b: float, c: str, d: bool };"
+  options.code = "struct Test { a: int; b: float; c: str; d: bool; };"
                  "var t = Test { b = 2.0, a = 1, d = true, c = \"hello\" };"
                  "print t.a;"
                  "print t.b;"
@@ -180,7 +180,7 @@ TEST(StructTest, ParamsOutOfOrderStructInitialization) {
 
 TEST(StructTest, NoParamsStructInitialization) {
   BirdTest::TestOptions options;
-  options.code = "struct Test { a: int, b: float, c: str, d: bool };"
+  options.code = "struct Test { a: int; b: float; c: str; d: bool; };"
                  "var t = Test {};"
                  "print t.a;"
                  "print t.b;"
@@ -218,7 +218,7 @@ TEST(StructTest, NoParamsStructInitialization) {
 TEST(StructTest, MultipleStructInitialization) {
   BirdTest::TestOptions options;
   options.code =
-      "struct Test { a: int, b: float, c: str, d: bool };"
+      "struct Test { a: int; b: float; c: str; d: bool; };"
       "var first = Test { a = 1, b = 2.0, c = \"hello\", d = true };"
       "var second = Test { a = 2, b = 3.0, c = \"world\", d = false };"
       "print first.a;"
@@ -278,7 +278,7 @@ TEST(StructTest, MultipleStructInitialization) {
 
 TEST(StructTest, SomeParamsStructInitialization) {
   BirdTest::TestOptions options;
-  options.code = "struct Test { a: int, b: float, c: str, d: bool };"
+  options.code = "struct Test { a: int; b: float; c: str; d: bool; };"
                  "var t = Test { a = 1, c = \"hello\" };"
                  "print t.a;"
                  "print t.b;"
@@ -315,8 +315,8 @@ TEST(StructTest, SomeParamsStructInitialization) {
 
 TEST(StructTest, NestedStructInitialization) {
   BirdTest::TestOptions options;
-  options.code = "struct Point { x: int, y: int };"
-                 "struct Line { start: Point, end: Point };"
+  options.code = "struct Point { x: int; y: int; };"
+                 "struct Line { start: Point; end: Point; };"
                  "var l = Line { start = Point { x = 1, y = 2 }, end = Point { "
                  "x = 3, y = 4 } };"
                  "print l.start.x;"
@@ -361,7 +361,7 @@ TEST(StructTest, NestedStructInitialization) {
 // TODO: fix segfault
 TEST(StructTest, AliasStructInitialization) {
   BirdTest::TestOptions options;
-  options.code = "struct Point { x: int, y: int };"
+  options.code = "struct Point { x: int; y: int; };"
                  "type P = Point;"
                  "var p = P { x = 1, y = 2 };"
                  "print p.x;"
@@ -391,8 +391,8 @@ TEST(StructTest, AliasStructInitialization) {
 
 TEST(StructTest, StructRecursiveInitialization) {
   BirdTest::TestOptions options;
-  options.code = "struct A { b: B };"
-                 "struct B { a: A };"
+  options.code = "struct A { b: B; };"
+                 "struct B { a: A; };"
                  "var a = A { b = B { a = A {} } };"
                  "print a.b.a.b?;";
 
@@ -421,7 +421,7 @@ TEST(StructTest, StructRecursiveInitialization) {
 
 TEST(StructTest, StructWithAdditionalField) {
   BirdTest::TestOptions options;
-  options.code = "struct Point { x: int, y: int };"
+  options.code = "struct Point { x: int; y: int; };"
                  "var p = Point { x = 1, y = 2, z = 3 };";
 
   options.after_type_check = [&](UserErrorTracker error_tracker,
@@ -431,7 +431,7 @@ TEST(StructTest, StructWithAdditionalField) {
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "Point");
     ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: field \"z\" does not "
-                                "exist in struct Point (line 1, character 41)");
+                                "exist in struct Point (line 1, character 42)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));
@@ -440,7 +440,7 @@ TEST(StructTest, StructWithAdditionalField) {
 TEST(StructTest, StructWithArrayField) {
   BirdTest::TestOptions options;
   options.code = "struct A {"
-                 "    a: int[]"
+                 "    a: int[];"
                  "};"
 
                  "var b: A = A {"

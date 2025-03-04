@@ -3,15 +3,14 @@
 
 void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
   using bird_pair = std::pair<std::string, std::shared_ptr<BirdType>>;
-  using parse_type_pair =
-      std::pair<std::string, std::shared_ptr<ParseType::Type>>;
 
   std::vector<bird_pair> struct_fields;
-  std::transform(struct_decl->fields.begin(), struct_decl->fields.end(),
-                 std::back_inserter(struct_fields), [&](parse_type_pair field) {
-                   return std::make_pair(
-                       field.first, this->type_converter.convert(field.second));
-                 });
+  std::transform(
+      struct_decl->fields.begin(), struct_decl->fields.end(),
+      std::back_inserter(struct_fields), [&](std::unique_ptr<PropDecl> &field) {
+        return std::make_pair(field->identifier.lexeme,
+                              this->type_converter.convert(field->type));
+      });
 
   auto count = 0;
   std::sort(struct_fields.begin(), struct_fields.end(),

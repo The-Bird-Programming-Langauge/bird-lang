@@ -92,8 +92,8 @@ TEST(ArrayTestSuite, StrArraySubscript) {
 TEST(ArrayTestSuite, StructArraySubscript) {
   BirdTest::TestOptions options;
   options.code = "struct Dog {"
-                 "    name: str,"
-                 "    age: int"
+                 "    name: str;"
+                 "    age: int;"
                  "};"
 
                  "var marci: Dog = Dog {"
