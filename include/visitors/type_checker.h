@@ -967,4 +967,6 @@ public:
 
     this->stack.push(else_arm_type);
   }
+
+  void visit_method(Method *method) {}
 };

@@ -294,4 +294,6 @@ public:
     match_expr->else_arm->accept(this);
     std::cout << "}";
   }
+
+  void visit_method(Method *method) {}
 };
