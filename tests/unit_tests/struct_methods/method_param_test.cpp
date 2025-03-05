@@ -1,13 +1,13 @@
 #include "../../helpers/compile_helper.hpp"
 
-struct MethodParamCountTestFixtureParams {
+struct MethodParamTestFixtureParams {
   std::string params;
   bool expected_result;
   std::string expected_error;
 };
 
-class MethodParamCountTestFixture
-    : public testing::TestWithParam<MethodParamCountTestFixtureParams> {
+class MethodParamTestFixture
+    : public testing::TestWithParam<MethodParamTestFixtureParams> {
 public:
   BirdTest::TestOptions options;
   void setUp() {
@@ -39,33 +39,33 @@ public:
   }
 };
 
-TEST_P(MethodParamCountTestFixture, StructMethodParamCount) {
+TEST_P(MethodParamTestFixture, StructMethodParam) {
   setUp();
   compile();
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    StructMethodParamCount, MethodParamCountTestFixture,
+    StructMethodParam, MethodParamTestFixture,
     ::testing::Values(
-        (MethodParamCountTestFixtureParams){"1", true},
-        (MethodParamCountTestFixtureParams){
+        (MethodParamTestFixtureParams){"1", true},
+        (MethodParamTestFixtureParams){
             "1, 2", false,
             ">>[ERROR] type error: Invalid number of arguments to "
             "print_val (line 1, character 205)"},
-        (MethodParamCountTestFixtureParams){
+        (MethodParamTestFixtureParams){
             "1, 2, 3", false,
             ">>[ERROR] type error: Invalid number of arguments to "
             "print_val (line 1, character 205)"},
-        (MethodParamCountTestFixtureParams){
+        (MethodParamTestFixtureParams){
             "1,2,3,3,4", false,
             ">>[ERROR] type error: Invalid number of arguments to "
             "print_val (line 1, character 205)"},
-        (MethodParamCountTestFixtureParams){
+        (MethodParamTestFixtureParams){
             "", false,
             ">>[ERROR] type error: Invalid number of arguments to "
             "print_val (line 1, character 205)"},
-        (MethodParamCountTestFixtureParams){"42", true, ""},
-        (MethodParamCountTestFixtureParams){
+        (MethodParamTestFixtureParams){"42", true, ""},
+        (MethodParamTestFixtureParams){
             "true", false,
             ">>[ERROR] type mismatch: in function call (line 1, "
             "character 205)"}));
