@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <set>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -34,6 +35,8 @@ public:
   Stack<Value> stack;
   std::set<std::string> struct_names;
   TypeConverter type_converter;
+  std::unordered_map<std::string, std::unordered_map<std::string, Callable>>
+      v_table;
 
   Interpreter() : type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
@@ -364,6 +367,9 @@ public:
     case Token::Type::IDENTIFIER:
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
+    case Token::Type::SELF:
+      this->stack.push(this->env.get("self"));
+      break;
     default:
       throw std::runtime_error("undefined primary value");
     }
@@ -381,10 +387,12 @@ public:
   }
 
   void visit_func(Func *func) {
-    Callable callable =
-        Callable(func->param_list, func->block, func->return_type);
+    this->call_table.declare(func->identifier.lexeme,
+                             this->create_callable(func));
+  }
 
-    this->call_table.declare(func->identifier.lexeme, callable);
+  Callable create_callable(Func *func) {
+    return Callable(func->param_list, func->block, func->return_type);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -447,19 +455,20 @@ public:
         struct_decl->identifier.lexeme,
         std::make_shared<StructType>(struct_decl->identifier.lexeme,
                                      std::move(struct_fields)));
+
+    for (auto &method : struct_decl->fns) {
+      method->accept(this);
+    }
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
     direct_member_access->accessable->accept(this);
     auto accessable = this->stack.pop();
 
-    if (is_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-            accessable)) {
-      auto struct_type =
-          as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-              accessable);
+    if (is_type<Struct>(accessable)) {
+      auto struct_type = as_type<Struct>(accessable);
       this->stack.push(
-          (*struct_type.get())[direct_member_access->identifier.lexeme]);
+          (*struct_type.fields)[direct_member_access->identifier.lexeme]);
     } else {
       throw std::runtime_error("Cannot access member of non-struct type.");
     }
@@ -505,23 +514,21 @@ public:
       }
     }
 
-    this->stack.push(Value(struct_instance));
+    this->stack.push(Value(
+        Struct(struct_initialization->identifier.lexeme, struct_instance)));
   }
 
   void visit_member_assign(MemberAssign *member_assign) {
     member_assign->accessable->accept(this);
     auto accessable = this->stack.pop();
 
-    if (is_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-            accessable)) {
-      auto struct_type =
-          as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-              accessable);
+    if (is_type<Struct>(accessable)) {
+      auto struct_type = as_type<Struct>(accessable);
 
       member_assign->value->accept(this);
       auto value = this->stack.pop();
 
-      (*struct_type.get())[member_assign->identifier.lexeme] = value;
+      (*struct_type.fields)[member_assign->identifier.lexeme] = value;
     } else {
       throw std::runtime_error("Cannot assign member of non-struct type.");
     }
@@ -598,5 +605,21 @@ public:
     match_expr->else_arm->accept(this);
   }
 
-  void visit_method(Method *method) {}
+  void visit_method(Method *method) {
+    // register the function with the class
+    this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
+        create_callable(method);
+  }
+
+  void visit_method_call(MethodCall *method_call) {
+    method_call->instance->accept(this);
+    const auto value = stack.pop();
+    const auto struct_val = as_type<Struct>(value);
+
+    this->env.push_env();
+    this->env.declare("self", value);
+    this->v_table[struct_val.name][method_call->identifier.lexeme].call(
+        this, method_call->args);
+    this->env.pop_env();
+  }
 };

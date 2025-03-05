@@ -26,7 +26,7 @@ class StructDecl : public Stmt {
 public:
   Token identifier;
   std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> fields;
-  std::vector<std::shared_ptr<Stmt>> fns;
+  std::vector<std::shared_ptr<Method>> fns;
 
   StructDecl(
       Token identifier,
@@ -37,7 +37,9 @@ public:
       : identifier(identifier) {
     for (auto &stmt : fields_and_fns) {
       if (std::holds_alternative<std::shared_ptr<Stmt>>(stmt)) {
-        fns.push_back(std::get<std::shared_ptr<Stmt>>(stmt));
+        auto func = std::dynamic_pointer_cast<Func>(
+            std::get<std::shared_ptr<Stmt>>(stmt));
+        fns.push_back(std::make_shared<Method>(identifier, func.get()));
       } else if (std::holds_alternative<
                      std::pair<Token, std::shared_ptr<ParseType::Type>>>(
                      stmt)) {

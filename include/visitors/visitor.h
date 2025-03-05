@@ -30,6 +30,7 @@ class ArrayInit;
 class IndexAssign;
 class MatchExpr;
 class Method;
+class MethodCall;
 
 /*
  * the interface for all visitors,
@@ -67,4 +68,5 @@ public:
   virtual void visit_index_assign(IndexAssign *) = 0;
   virtual void visit_match_expr(MatchExpr *) = 0;
   virtual void visit_method(Method *) = 0;
+  virtual void visit_method_call(MethodCall *) = 0;
 };

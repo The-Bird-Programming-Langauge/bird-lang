@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <set>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -294,6 +295,10 @@ public:
 
   void visit_struct_decl(StructDecl *struct_decl) {
     this->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
+
+    for (auto method : struct_decl->fns) {
+      method->accept(this);
+    }
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
@@ -336,4 +341,6 @@ public:
   }
 
   void visit_method(Method *method) {}
+
+  void visit_method_call(MethodCall *method_call) {}
 };

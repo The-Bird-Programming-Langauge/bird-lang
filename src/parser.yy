@@ -137,6 +137,7 @@ struct_initialization
 array_initialization
 match
 direct_member_access
+method_call
 index_assign
 grouping
 and_expr
@@ -448,6 +449,7 @@ expr:
    | unary_expr { $$ = std::move($1); }
    | type_cast {$$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
+   | method_call {$$ = std::move($1); }
    | subscript_expr { $$ = std::move($1); }
    | index_assign { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
@@ -515,17 +517,8 @@ or_expr:
       { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
 call_expr: 
-   expr LPAREN maybe_arg_list RPAREN %prec CALL 
-      { 
-         if(auto *identifier = dynamic_cast<Primary *>($1.get()))
-         {
-            if (identifier->value.token_type != Token::Type::IDENTIFIER)
-            {
-               // TODO: throw an error here
-            }
-            $$ = std::make_unique<Call>(identifier->value, std::move($3));
-         }
-      }
+   IDENTIFIER LPAREN maybe_arg_list RPAREN %prec CALL 
+      { $$ = std::make_unique<Call>($1, std::move($3)); }
 
 struct_initialization:
    IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
@@ -556,6 +549,10 @@ subscript_expr:
 direct_member_access:
    expr DOT IDENTIFIER %prec SUBSCRIPT
       { $$ = std::make_unique<DirectMemberAccess>(std::move($1), $3); }
+
+method_call:
+   expr DOT call_expr %prec CALL
+      { $$ = std::make_unique<MethodCall>(std::move($1), dynamic_cast<Call *>($3.get())); }
 
 match:
    MATCH expr LBRACE maybe_match_arms match_else_arm RBRACE %prec MATCH_EXPR

@@ -296,4 +296,6 @@ public:
   }
 
   void visit_method(Method *method) {}
+
+  void visit_method_call(MethodCall *method_call) {}
 };

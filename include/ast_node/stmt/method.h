@@ -25,9 +25,8 @@ class Visitor;
  *}
  */
 class Method : public Func {
-  Token class_identifier;
-
 public:
+  Token class_identifier;
   Method(Token class_identifier, Func *func)
       : Func(func), class_identifier(class_identifier) {}
 

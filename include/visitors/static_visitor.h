@@ -7,6 +7,7 @@
 #include <set>
 #include <vector>
 
+// TOOD: check for strings in function call
 class StaticVisitor : public VisitorAdapter {
 public:
   std::vector<std::string> &static_strings;

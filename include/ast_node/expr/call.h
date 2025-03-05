@@ -24,5 +24,8 @@ public:
   Call(Token identifier, std::vector<std::shared_ptr<Expr>> args)
       : identifier(identifier), args(std::move(args)) {};
 
+  Call(const Call *call)
+      : identifier(call->identifier), args(std::move(call->args)) {}
+
   void accept(Visitor *visitor) { visitor->visit_call(this); }
 };

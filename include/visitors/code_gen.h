@@ -232,6 +232,7 @@ class CodeGen : public Visitor {
                                 int index);
 
   void visit_method(Method *method);
+  void visit_method_call(MethodCall *method_call);
 
 public:
   ~CodeGen();
