@@ -56,4 +56,7 @@ INSTANTIATE_TEST_SUITE_P(
             ">>[ERROR] type error: Missing return in a non-void function "
             "'foo.' (line 1, character 32)"},
         (MethodReturnTestFixtureParams){"fn foo() -> int {return 3;}", true,
-                                        ""}));
+                                        ""},
+        (MethodReturnTestFixtureParams){"fn foo() -> int {return true;}", false,
+                                        ">>[ERROR] type mismatch: in return "
+                                        "statement (line 1, character 46)"}));
