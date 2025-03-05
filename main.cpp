@@ -126,8 +126,8 @@ void interpret(std::string filename) {
   printer.print_ast(&ast);
 #endif
 
-  // SemanticAnalyzer semantic_analyzer(error_tracker);
-  // semantic_analyzer.analyze_semantics(&ast);
+  SemanticAnalyzer semantic_analyzer(error_tracker);
+  semantic_analyzer.analyze_semantics(&ast);
 
   // if (error_tracker.has_errors()) {
   //   error_tracker.print_errors_and_exit();

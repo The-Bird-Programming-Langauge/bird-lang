@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <unordered_map>
 #include <variant>
@@ -14,9 +15,11 @@
 #include "../exceptions/continue_exception.h"
 #include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
+#include "../semantic_value.h"
+#include "../stack.h"
 #include "../sym_table.h"
 #include "../type.h"
-#include "../value.h"
+#include <optional>
 
 /*
  * Visitor that analyzes semantics of the AST
@@ -31,6 +34,11 @@ public:
   int loop_depth;
   int function_depth;
   bool found_return;
+  bool in_method = false;
+  std::unordered_map<std::string,
+                     std::unordered_map<std::string, SemanticCallable>>
+      v_table;
+  std::optional<std::string> current_struct_name;
 
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
@@ -67,10 +75,7 @@ public:
     }
 
     decl_stmt->value->accept(this);
-
-    SemanticValue mutable_value;
-    mutable_value.is_mutable = true;
-    this->env.declare(decl_stmt->identifier.lexeme, mutable_value);
+    this->env.declare(decl_stmt->identifier.lexeme, SemanticValue(true));
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
@@ -340,7 +345,31 @@ public:
     match_expr->else_arm->accept(this);
   }
 
-  void visit_method(Method *method) {}
+  void visit_method(Method *method) {
+    this->in_method = true;
+    this->visit_func(method);
+    this->in_method = false;
+  }
 
-  void visit_method_call(MethodCall *method_call) {}
+  void visit_method_call(MethodCall *method_call) {
+    method_call->instance->accept(this);
+
+    // if (this->current_struct_name.has_value()) {
+    //   const auto function =
+    //   this->v_table.at(this->current_struct_name.value())
+    //                             .at(method_call->identifier.lexeme);
+
+    //   if (function.param_count != method_call->args.size()) {
+    //     this->user_error_tracker.semantic_error(
+    //         "Function call identifer '" + method_call->identifier.lexeme +
+    //             "' does not use the correct number of arguments." +
+    //             "expected " + std::to_string(function.param_count) +
+    //             ", found " + std::to_string(method_call->args.size()) + ".",
+    //         method_call->identifier);
+    //   }
+    // } else {
+    //   this->user_error_tracker.semantic_error("invalid method call",
+    //                                           method_call->identifier);
+    // }
+  }
 };

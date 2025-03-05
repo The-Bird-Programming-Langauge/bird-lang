@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -476,8 +477,9 @@ public:
 
   void
   visit_struct_initialization(StructInitialization *struct_initialization) {
-    std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance =
-        std::make_shared<std::unordered_map<std::string, Value>>();
+    Struct struct_instance =
+        Struct(struct_initialization->identifier.lexeme,
+               std::make_shared<std::unordered_map<std::string, Value>>());
     auto type = this->type_table.get(struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
@@ -490,32 +492,31 @@ public:
           field_assignment.second->accept(this);
           auto result = this->stack.pop();
 
-          (*struct_instance)[field_assignment.first] = result;
+          (*struct_instance.fields)[field_assignment.first] = result;
           break;
         }
       }
 
       if (!found) {
         if (field.second->type == BirdTypeType::BOOL) {
-          (*struct_instance)[field.first] = Value(false);
+          (*struct_instance.fields)[field.first] = Value(false);
         } else if (field.second->type == BirdTypeType::INT) {
-          (*struct_instance)[field.first] = Value(0);
+          (*struct_instance.fields)[field.first] = Value(0);
         } else if (field.second->type == BirdTypeType::FLOAT) {
-          (*struct_instance)[field.first] = Value(0.0);
+          (*struct_instance.fields)[field.first] = Value(0.0);
         } else if (field.second->type == BirdTypeType::STRING) {
-          (*struct_instance)[field.first] = Value("");
+          (*struct_instance.fields)[field.first] = Value("");
         } else if (field.second->type == BirdTypeType::STRUCT) {
-          (*struct_instance)[field.first] = Value(nullptr);
+          (*struct_instance.fields)[field.first] = Value(nullptr);
         } else if (field.second->type == BirdTypeType::PLACEHOLDER) {
-          (*struct_instance)[field.first] = Value(nullptr);
+          (*struct_instance.fields)[field.first] = Value(nullptr);
         } else {
           throw std::runtime_error("Cannot assign member of non-struct type.");
         }
       }
     }
 
-    this->stack.push(Value(
-        Struct(struct_initialization->identifier.lexeme, struct_instance)));
+    this->stack.push(Value(struct_instance));
   }
 
   void visit_member_assign(MemberAssign *member_assign) {
