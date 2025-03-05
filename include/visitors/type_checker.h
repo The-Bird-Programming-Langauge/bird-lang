@@ -6,6 +6,8 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "../ast_node/index.h"
@@ -32,11 +34,17 @@ public:
   Environment<std::shared_ptr<BirdType>> type_table;
 
   std::set<std::string> struct_names;
+  bool found_return = false;
 
   Stack<std::shared_ptr<BirdType>> stack;
   std::optional<std::shared_ptr<BirdType>> return_type;
   UserErrorTracker &user_error_tracker;
   TypeConverter type_converter;
+
+  std::unordered_map<
+      std::string,
+      std::unordered_map<std::string, std::shared_ptr<BirdFunction>>>
+      v_table;
 
   TypeChecker(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker),
@@ -487,7 +495,8 @@ public:
       return std::make_shared<ErrorType>();
     }
   }
-  void visit_func(Func *func) {
+
+  std::shared_ptr<BirdFunction> create_func(Func *func) {
     std::vector<std::shared_ptr<BirdType>> params;
 
     std::transform(func->param_list.begin(), func->param_list.end(),
@@ -499,11 +508,16 @@ public:
         func->return_type.has_value()
             ? this->type_converter.convert(func->return_type.value())
             : std::shared_ptr<BirdType>(new VoidType());
-    auto previous_return_type = this->return_type;
-    this->return_type = ret;
 
-    std::shared_ptr<BirdFunction> bird_function =
-        std::make_shared<BirdFunction>(params, ret);
+    return std::make_shared<BirdFunction>(params, ret);
+  }
+
+  void visit_func_helper(Func *func,
+                         const std::shared_ptr<BirdFunction> bird_function) {
+    this->found_return = false;
+    auto previous_return_type = this->return_type;
+    this->return_type = bird_function->ret;
+
     this->call_table.declare(func->identifier.lexeme, bird_function);
     this->env.push_env();
 
@@ -518,8 +532,21 @@ public:
       stmt->accept(this);
     }
 
+    if (!this->found_return && func->return_type.has_value() &&
+        func->return_type.value()->get_token().lexeme != "void") {
+      this->user_error_tracker.type_error(
+          "Missing return in a non-void function '" + func->identifier.lexeme +
+              ".'",
+          func->identifier);
+    }
+
     this->return_type = previous_return_type;
     this->env.pop_env();
+  }
+
+  void visit_func(Func *func) {
+    const auto bird_function = create_func(func);
+    this->visit_func_helper(func, bird_function);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -538,14 +565,25 @@ public:
     }
   }
 
-  void visit_call(Call *call) {
-    auto function = this->call_table.get(call->identifier.lexeme);
+  bool correct_arity(std::shared_ptr<BirdFunction> func, Call *call) {
+    return func->params.size() == call->args.size();
+  }
 
-    for (int i = 0; i < function->params.size(); i++) {
+  void visit_call_with_func(Call *call, std::shared_ptr<BirdFunction> func) {
+    if (!correct_arity(func, call)) {
+      this->user_error_tracker.type_error("Invalid number of arguments to " +
+                                              call->identifier.lexeme,
+                                          call->identifier);
+
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
+
+    for (int i = 0; i < func->params.size(); i++) {
       call->args[i]->accept(this);
       auto arg = this->stack.pop();
 
-      auto param = function->params[i];
+      auto param = func->params[i];
 
       if (arg->type == BirdTypeType::PLACEHOLDER &&
           param->type == BirdTypeType::STRUCT) {
@@ -563,10 +601,16 @@ public:
       }
     }
 
-    this->stack.push(function->ret);
+    this->stack.push(func->ret);
+  }
+
+  void visit_call(Call *call) {
+    auto function = this->call_table.get(call->identifier.lexeme);
+    visit_call_with_func(call, function);
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
+    this->found_return = true;
     if (return_stmt->expr.has_value()) {
       return_stmt->expr.value()->accept(this);
       auto result = this->stack.pop();
@@ -658,6 +702,10 @@ public:
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
     this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
+
+    for (auto &method : struct_decl->fns) {
+      method->accept(this);
+    }
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
@@ -968,7 +1016,21 @@ public:
     this->stack.push(else_arm_type);
   }
 
-  void visit_method(Method *method) {}
+  void visit_method(Method *method) {
+    const auto bird_function = create_func(method);
+    this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
+        bird_function;
+    this->visit_func_helper(method, bird_function);
+  }
 
-  void visit_method_call(MethodCall *method_call) {}
+  void visit_method_call(MethodCall *method_call) {
+    method_call->instance->accept(this);
+    const auto struct_name =
+        std::dynamic_pointer_cast<StructType>(this->stack.pop())->name;
+
+    const auto method =
+        this->v_table.at(struct_name).at(method_call->identifier.lexeme);
+
+    this->visit_call_with_func(method_call, method);
+  }
 };

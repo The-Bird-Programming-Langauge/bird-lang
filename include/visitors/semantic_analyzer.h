@@ -33,12 +33,7 @@ public:
   UserErrorTracker &user_error_tracker;
   int loop_depth;
   int function_depth;
-  bool found_return;
   bool in_method = false;
-  std::unordered_map<std::string,
-                     std::unordered_map<std::string, SemanticCallable>>
-      v_table;
-  std::optional<std::string> current_struct_name;
 
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
@@ -168,6 +163,12 @@ public:
           primary->value);
       return;
     }
+
+    if (primary->value.token_type == Token::Type::SELF && !this->in_method) {
+      this->user_error_tracker.semantic_error(
+          "Use of self outside of struct member function.", primary->value);
+      return;
+    }
   }
 
   void visit_ternary(Ternary *ternary) {
@@ -176,19 +177,8 @@ public:
     ternary->false_expr->accept(this);
   }
 
-  void visit_func(Func *func) {
+  void visit_func_helper(Func *func) {
     this->function_depth += 1;
-    this->found_return = false;
-
-    if (this->identifer_in_any_environment(func->identifier.lexeme)) {
-      this->user_error_tracker.semantic_error(
-          "Identifier '" + func->identifier.lexeme + "' is already declared.",
-          func->identifier);
-      return;
-    }
-
-    this->call_table.declare(func->identifier.lexeme,
-                             SemanticCallable(func->param_list.size()));
 
     this->env.push_env();
 
@@ -201,17 +191,21 @@ public:
       stmt->accept(this);
     }
 
-    if (!found_return && func->return_type.has_value() &&
-        func->return_type.value()->get_token().lexeme != "void") {
-      this->user_error_tracker.semantic_error(
-          "Function '" + func->identifier.lexeme +
-              "' does not have a return statement.",
-          func->identifier);
-    }
-
     this->env.pop_env();
 
     this->function_depth -= 1;
+  }
+
+  void visit_func(Func *func) {
+    if (this->identifer_in_any_environment(func->identifier.lexeme)) {
+      this->user_error_tracker.semantic_error(
+          "Identifier '" + func->identifier.lexeme + "' is already declared.",
+          func->identifier);
+      return;
+    }
+
+    this->call_table.declare(func->identifier.lexeme, SemanticCallable());
+    this->visit_func_helper(func);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -232,19 +226,12 @@ public:
       return;
     }
 
-    auto function = this->call_table.get(call->identifier.lexeme);
-
-    if (function.param_count != call->args.size()) {
-      this->user_error_tracker.semantic_error(
-          "Function call identifer '" + call->identifier.lexeme +
-              "' does not use the correct number of arguments.",
-          call->identifier);
-      return;
+    for (auto &arg : call->args) {
+      arg->accept(this);
     }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
-    this->found_return = true;
     if (this->function_depth == 0) {
       this->user_error_tracker.semantic_error(
           "Return statement is declared outside of a function.",
@@ -347,29 +334,14 @@ public:
 
   void visit_method(Method *method) {
     this->in_method = true;
-    this->visit_func(method);
+    this->visit_func_helper(method);
     this->in_method = false;
   }
 
   void visit_method_call(MethodCall *method_call) {
     method_call->instance->accept(this);
-
-    // if (this->current_struct_name.has_value()) {
-    //   const auto function =
-    //   this->v_table.at(this->current_struct_name.value())
-    //                             .at(method_call->identifier.lexeme);
-
-    //   if (function.param_count != method_call->args.size()) {
-    //     this->user_error_tracker.semantic_error(
-    //         "Function call identifer '" + method_call->identifier.lexeme +
-    //             "' does not use the correct number of arguments." +
-    //             "expected " + std::to_string(function.param_count) +
-    //             ", found " + std::to_string(method_call->args.size()) + ".",
-    //         method_call->identifier);
-    //   }
-    // } else {
-    //   this->user_error_tracker.semantic_error("invalid method call",
-    //                                           method_call->identifier);
-    // }
+    for (auto &arg : method_call->args) {
+      arg->accept(this);
+    }
   }
 };

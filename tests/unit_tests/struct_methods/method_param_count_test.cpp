@@ -3,7 +3,6 @@
 struct MethodParamCountTestFixtureParams {
   std::string params;
   bool expected_result;
-  std::string expected_error;
 };
 
 class MethodParamCountTestFixture
@@ -13,7 +12,6 @@ public:
   void setUp() {
     options.compile = false;
     options.interpret = false;
-    options.type_check = false;
 
     options.code = "\
                 struct Foo { \
@@ -25,11 +23,12 @@ public:
                 foo.print_val(" +
                    GetParam().params + ");";
 
-    options.after_semantic_analyze = [&](auto &error_tracker, auto &analyzer) {
+    options.after_type_check = [&](auto &error_tracker, auto &analyzer) {
       if (GetParam().expected_result == false) {
         ASSERT_TRUE(error_tracker.has_errors());
         ASSERT_EQ(std::get<0>(error_tracker.get_errors()[0]),
-                  GetParam().expected_error);
+                  ">>[ERROR] type error: Invalid number of arguments to "
+                  "print_val (line 1, character 205)");
       }
     };
   }
@@ -47,10 +46,9 @@ TEST_P(MethodParamCountTestFixture, StructMethodParamCount) {
 
 INSTANTIATE_TEST_SUITE_P(
     StructMethodParamCount, MethodParamCountTestFixture,
-    ::testing::Values((MethodParamCountTestFixtureParams){"1", true, ""},
-                      (MethodParamCountTestFixtureParams){"1, 2", false, ""},
-                      (MethodParamCountTestFixtureParams){"1, 2, 3", false, ""},
-                      (MethodParamCountTestFixtureParams){"1,2,3,3,4", false,
-                                                          ""},
-                      (MethodParamCountTestFixtureParams){"", false, ""},
-                      (MethodParamCountTestFixtureParams){"42", true, ""}));
+    ::testing::Values((MethodParamCountTestFixtureParams){"1", true},
+                      (MethodParamCountTestFixtureParams){"1, 2", false},
+                      (MethodParamCountTestFixtureParams){"1, 2, 3", false},
+                      (MethodParamCountTestFixtureParams){"1,2,3,3,4", false},
+                      (MethodParamCountTestFixtureParams){"", false},
+                      (MethodParamCountTestFixtureParams){"42", true}));

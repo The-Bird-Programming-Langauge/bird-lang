@@ -31,8 +31,5 @@ public:
 };
 
 struct SemanticCallable {
-  int param_count;
-
-  SemanticCallable(int param_count) : param_count(param_count) {}
   SemanticCallable() = default;
 };
