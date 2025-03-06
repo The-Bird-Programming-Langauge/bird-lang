@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <memory>
 
 void CodeGen::visit_index_assign(IndexAssign *index_assign) {
   index_assign->lhs->subscriptable->accept(this);
@@ -14,12 +15,9 @@ void CodeGen::visit_index_assign(IndexAssign *index_assign) {
   auto rhs_val = this->stack.pop();
 
   auto mem_offset_literal = BinaryenBinary(
-      this->mod, BinaryenAddInt32(),
-      BinaryenBinary(
-          this->mod, BinaryenMulInt32(), index.value,
-          BinaryenConst(this->mod, BinaryenLiteralInt32(
-                                       bird_type_byte_size(lhs_val.type)))),
-      BinaryenConst(this->mod, BinaryenLiteralInt32(5)));
+      this->mod, BinaryenMulInt32(), index.value,
+      BinaryenConst(this->mod,
+                    BinaryenLiteralInt32(bird_type_byte_size(lhs_val.type))));
 
   bool float_flag = (lhs_val.type->type == BirdTypeType::FLOAT &&
                      rhs_val.type->type == BirdTypeType::FLOAT);
@@ -77,7 +75,8 @@ void CodeGen::visit_index_assign(IndexAssign *index_assign) {
     break;
   }
 
-  BinaryenExpressionRef args[3] = {lhs.value, mem_offset_literal, result};
+  BinaryenExpressionRef args[3] = {this->get_array_data(lhs),
+                                   mem_offset_literal, result};
 
   this->stack.push(BinaryenCall(this->mod,
                                 get_mem_set_for_type(lhs_val.type->type), args,

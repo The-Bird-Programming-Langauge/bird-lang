@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <memory>
 
 void CodeGen::generate_array_length_fn() {
 
@@ -20,7 +21,8 @@ void CodeGen::generate_array_length_fn() {
   auto array = BinaryenLocalGet(this->mod, 0, BinaryenTypeInt32());
 
   BinaryenExpressionRef mem_get_args[2]{
-      array, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+      array, BinaryenConst(this->mod, BinaryenLiteralInt32(bird_type_byte_size(
+                                          std::make_shared<IntType>())))};
 
   function_body.push_back(BinaryenCall(this->mod, "mem_get_32", mem_get_args, 2,
                                        BinaryenTypeInt32()));

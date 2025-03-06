@@ -9,76 +9,10 @@ void CodeGen::visit_struct_initialization(
       safe_dynamic_pointer_cast<StructType>(type);
   if (struct_constructors.find(struct_initialization->identifier.lexeme) ==
       struct_constructors.end()) {
-    // declare a function based on the struct fields
-    // call the function with the struct fields OR with default values
-
-    unsigned int size = 0;
-    for (auto &field : struct_type->fields) {
-      size += bird_type_byte_size(field.second);
-    }
-
-    std::vector<BinaryenExpressionRef> constructor_body;
-
-    const auto size_literal =
-        BinaryenConst(this->mod, BinaryenLiteralInt32(size));
-    const auto num_ptrs = BinaryenConst(
-        this->mod,
-        BinaryenLiteralInt32(
-            this->struct_name_to_num_pointers[struct_initialization->identifier
-                                                  .lexeme]));
-    BinaryenExpressionRef args[2] = {size_literal, num_ptrs};
-    auto call =
-        BinaryenCall(this->mod, "mem_alloc", args, 2, BinaryenTypeInt32());
-
-    std::vector<BinaryenType> param_types;
-    for (auto &field : struct_type->fields) {
-      param_types.push_back(bird_type_to_binaryen_type(field.second));
-    }
-
-    constructor_body.push_back(
-        BinaryenLocalSet(this->mod, param_types.size(), call));
-
-    int count = 0;
-    for (auto &field : struct_type->fields) {
-      auto type = field.second;
-
-      auto offset = 0;
-      for (auto &struct_field : struct_type->fields) {
-        if (struct_field.first == field.first)
-          break;
-
-        offset += bird_type_byte_size(struct_field.second);
-      }
-
-      BinaryenExpressionRef args[3] = {
-          BinaryenLocalGet(this->mod, param_types.size(), BinaryenTypeInt32()),
-          BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
-          BinaryenLocalGet(this->mod, count++,
-                           bird_type_to_binaryen_type(type))};
-
-      constructor_body.push_back(BinaryenCall(this->mod,
-                                              get_mem_set_for_type(type->type),
-                                              args, 3, BinaryenTypeNone()));
-    }
-
-    constructor_body.push_back(BinaryenReturn(
-        this->mod,
-        BinaryenLocalGet(this->mod, param_types.size(), BinaryenTypeInt32())));
-
-    auto constructor_var_types = BinaryenTypeInt32();
-    BinaryenAddFunction(
-        this->mod, struct_initialization->identifier.lexeme.c_str(),
-        BinaryenTypeCreate(param_types.data(), param_types.size()),
-        BinaryenTypeInt32(), &constructor_var_types, 1,
-        BinaryenBlock(this->mod, nullptr, constructor_body.data(),
-                      constructor_body.size(), BinaryenTypeNone()));
-
-    struct_constructors[struct_initialization->identifier.lexeme] =
-        struct_initialization->identifier.lexeme;
+    this->create_struct_constructor(struct_type);
   }
 
   std::vector<BinaryenExpressionRef> args;
-
   for (auto &field : struct_type->fields) {
     auto found = false;
     for (auto &field_assignment : struct_initialization->field_assignments) {
@@ -101,9 +35,70 @@ void CodeGen::visit_struct_initialization(
   }
 
   this->stack.push(TaggedExpression(
-      BinaryenCall(
-          this->mod,
-          struct_constructors[struct_initialization->identifier.lexeme].c_str(),
-          args.data(), args.size(), BinaryenTypeInt32()),
+      BinaryenCall(this->mod, struct_constructors[struct_type->name].c_str(),
+                   args.data(), args.size(), BinaryenTypeInt32()),
       struct_type));
+}
+
+void CodeGen::create_struct_constructor(
+    std::shared_ptr<StructType> struct_type) {
+  unsigned int size = 0;
+  for (auto &field : struct_type->fields) {
+    size += bird_type_byte_size(field.second);
+  }
+
+  std::vector<BinaryenExpressionRef> constructor_body;
+
+  const auto size_literal =
+      BinaryenConst(this->mod, BinaryenLiteralInt32(size));
+  const auto num_ptrs = BinaryenConst(
+      this->mod, BinaryenLiteralInt32(
+                     this->struct_name_to_num_pointers[struct_type->name]));
+  BinaryenExpressionRef args[2] = {size_literal, num_ptrs};
+  auto call =
+      BinaryenCall(this->mod, "mem_alloc", args, 2, BinaryenTypeInt32());
+
+  std::vector<BinaryenType> param_types;
+  for (auto &field : struct_type->fields) {
+    param_types.push_back(bird_type_to_binaryen_type(field.second));
+  }
+
+  constructor_body.push_back(
+      BinaryenLocalSet(this->mod, param_types.size(), call));
+
+  int count = 0;
+  for (auto &field : struct_type->fields) {
+    auto type = field.second;
+
+    auto offset = 0;
+    for (auto &struct_field : struct_type->fields) {
+      if (struct_field.first == field.first)
+        break;
+
+      offset += bird_type_byte_size(struct_field.second);
+    }
+
+    BinaryenExpressionRef args[3] = {
+        BinaryenLocalGet(this->mod, param_types.size(), BinaryenTypeInt32()),
+        BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
+        BinaryenLocalGet(this->mod, count++, bird_type_to_binaryen_type(type))};
+
+    constructor_body.push_back(BinaryenCall(this->mod,
+                                            get_mem_set_for_type(type->type),
+                                            args, 3, BinaryenTypeNone()));
+  }
+
+  constructor_body.push_back(
+      BinaryenReturn(this->mod, BinaryenLocalGet(this->mod, param_types.size(),
+                                                 BinaryenTypeInt32())));
+
+  auto constructor_var_types = BinaryenTypeInt32();
+  BinaryenAddFunction(
+      this->mod, struct_type->name.c_str(),
+      BinaryenTypeCreate(param_types.data(), param_types.size()),
+      BinaryenTypeInt32(), &constructor_var_types, 1,
+      BinaryenBlock(this->mod, nullptr, constructor_body.data(),
+                    constructor_body.size(), BinaryenTypeNone()));
+
+  struct_constructors[struct_type->name] = struct_type->name;
 }

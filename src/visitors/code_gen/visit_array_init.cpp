@@ -1,9 +1,11 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
+#include <memory>
 
 void CodeGen::visit_array_init(ArrayInit *array_init) {
   std::vector<BinaryenExpressionRef> vals;
 
-  unsigned int mem_size = bird_type_byte_size(std::make_shared<IntType>());
+  unsigned int mem_size = 0;
   std::shared_ptr<BirdType> type;
   for (auto &element : array_init->elements) {
     element->accept(this);
@@ -25,9 +27,7 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
       type_is_on_heap(type->type)
           ? BinaryenConst(this->mod,
                           BinaryenLiteralInt32(array_init->elements.size()))
-          : BinaryenConst(this->mod, BinaryenLiteralInt32(0))
-
-  };
+          : BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
 
   BinaryenExpressionRef local_set = this->binaryen_set(
       identifier, BinaryenCall(this->mod, "mem_alloc", args.data(), args.size(),
@@ -36,31 +36,24 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
   std::vector<BinaryenExpressionRef> binaryen_calls = {local_set};
 
   unsigned int offset = 0;
-
-  BinaryenExpressionRef length_args[3] = {
-      this->binaryen_get(identifier),
-      BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
-      BinaryenConst(this->mod,
-                    BinaryenLiteralInt32(array_init->elements.size()))};
-
-  binaryen_calls.push_back(BinaryenCall(this->mod, "mem_set_32", length_args, 3,
-                                        BinaryenTypeNone()));
-
-  offset += 5;
-
   for (auto val : vals) {
     BinaryenExpressionRef args[3] = {
         this->binaryen_get(identifier),
         BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), val};
-
     binaryen_calls.push_back(BinaryenCall(this->mod,
                                           get_mem_set_for_type(type->type),
                                           args, 3, BinaryenTypeNone()));
-
     offset += bird_type_byte_size(type);
   }
 
-  binaryen_calls.push_back(this->binaryen_get(identifier));
+  std::vector<BinaryenExpressionRef> array_struct_args = {
+      this->binaryen_get(identifier),
+      BinaryenConst(this->mod,
+                    BinaryenLiteralInt32(array_init->elements.size()))};
+
+  binaryen_calls.push_back(BinaryenCall(
+      this->mod, struct_constructors["0array"].c_str(),
+      array_struct_args.data(), array_struct_args.size(), BinaryenTypeInt32()));
 
   auto block = BinaryenBlock(this->mod, nullptr, binaryen_calls.data(),
                              binaryen_calls.size(), BinaryenTypeInt32());
