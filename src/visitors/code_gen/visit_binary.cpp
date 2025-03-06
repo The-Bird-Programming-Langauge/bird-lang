@@ -1,4 +1,6 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
+#include <memory>
 
 void CodeGen::visit_binary(Binary *binary) {
   switch (binary->op.token_type) {
@@ -46,6 +48,13 @@ void CodeGen::visit_binary_normal(Binary *binary) {
 
   auto right = this->stack.pop();
   auto left = this->stack.pop();
+
+  if (right.type->type == BirdTypeType::STRING &&
+      left.type->type == BirdTypeType::STRING) {
+    this->handle_binary_string_operations(binary->op.token_type, right, left);
+    return;
+  }
+
   try {
     auto binary_op = this->binary_operations.at(binary->op.token_type);
     auto binary_op_fn = binary_op.at({left.type->type, right.type->type});
@@ -56,5 +65,32 @@ void CodeGen::visit_binary_normal(Binary *binary) {
                          binary_op_fn.type));
   } catch (std::out_of_range &e) {
     throw BirdException("unsupported binary operation: " + binary->op.lexeme);
+  }
+}
+
+void CodeGen::handle_binary_string_operations(Token::Type op,
+                                              TaggedExpression left,
+                                              TaggedExpression right) {
+  BinaryenExpressionRef operands[2] = {left.value, right.value};
+  switch (op) {
+  case Token::PLUS: {
+    this->stack.push(TaggedExpression(
+        BinaryenCall(this->mod, "strcat", operands, 2, BinaryenTypeInt32()),
+        std::make_shared<StringType>(true)));
+    break;
+  }
+  case Token::EQUAL_EQUAL: {
+    this->stack.push(TaggedExpression(
+        BinaryenCall(this->mod, "strcmp", operands, 2, BinaryenTypeInt32()),
+        std::make_shared<BoolType>()));
+    break;
+  }
+  case Token::BANG_EQUAL: {
+    this->stack.push(this->create_unary_not(
+        BinaryenCall(this->mod, "strcmp", operands, 2, BinaryenTypeInt32())));
+    break;
+  }
+  default:
+    throw BirdException("invalid binary string operation");
   }
 }

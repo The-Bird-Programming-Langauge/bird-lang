@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <memory>
 
 void CodeGen::visit_func(Func *func) {
   auto func_name = func->identifier.lexeme;
@@ -57,6 +58,12 @@ void CodeGen::visit_func(Func *func) {
     } else {
       current_function_body.push_back(result.value);
     }
+
+    if (this->must_garbage_collect) {
+      this->garbage_collect();
+      current_function_body.push_back(this->stack.pop().value);
+      this->must_garbage_collect = false;
+    }
   }
 
   // perform garbage collection at the end of a function by popping the
@@ -64,9 +71,9 @@ void CodeGen::visit_func(Func *func) {
 
   this->environment.pop_env();
 
-  this->garbage_collect();
-  auto calls_block = this->stack.pop();
-  current_function_body.push_back(calls_block.value);
+  // this->garbage_collect();
+  // auto calls_block = this->stack.pop();
+  // current_function_body.push_back(calls_block.value);
 
   BinaryenExpressionRef body =
       BinaryenBlock(this->mod, nullptr, current_function_body.data(),

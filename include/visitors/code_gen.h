@@ -11,6 +11,8 @@
 
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
+const char *get_mem_set_for_type(const BirdTypeType type);
+bool type_is_on_heap(const BirdTypeType type);
 
 template <typename T> struct Tagged {
   T value;
@@ -38,23 +40,17 @@ struct MemorySegment {
 };
 
 class CodeGen : public Visitor {
-  // and and or are short circuiting operators, so we need to handle them
+  // and, or, and string operations are handled separately
   // differently
   const std::map<Token::Type, std::map<std::pair<BirdTypeType, BirdTypeType>,
                                        TaggedBinaryOpFn>>
       binary_operations = {
           {Token::Type::PLUS,
-           {
-               {{BirdTypeType::INT, BirdTypeType::INT},
-                TaggedBinaryOpFn(BinaryenAddInt32,
-                                 std::make_shared<IntType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
-                TaggedBinaryOpFn(BinaryenAddFloat64,
-                                 std::make_shared<FloatType>())},
-               {{BirdTypeType::STRING, BirdTypeType::STRING},
-                TaggedBinaryOpFn(BinaryenAddInt32,
-                                 std::make_shared<StringType>())},
-           }},
+           {{{BirdTypeType::INT, BirdTypeType::INT},
+             TaggedBinaryOpFn(BinaryenAddInt32, std::make_shared<IntType>())},
+            {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+             TaggedBinaryOpFn(BinaryenAddFloat64,
+                              std::make_shared<FloatType>())}}},
           {Token::Type::MINUS,
            {
                {{BirdTypeType::INT, BirdTypeType::INT},
@@ -90,9 +86,6 @@ class CodeGen : public Visitor {
                {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
                 TaggedBinaryOpFn(BinaryenEqFloat64,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::STRING, BirdTypeType::STRING},
-                TaggedBinaryOpFn(BinaryenEqInt32,
-                                 std::make_shared<BoolType>())},
                {{BirdTypeType::BOOL, BirdTypeType::BOOL},
                 TaggedBinaryOpFn(BinaryenEqInt32,
                                  std::make_shared<BoolType>())},
@@ -104,9 +97,6 @@ class CodeGen : public Visitor {
                                  std::make_shared<BoolType>())},
                {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
                 TaggedBinaryOpFn(BinaryenNeFloat64,
-                                 std::make_shared<BoolType>())},
-               {{BirdTypeType::STRING, BirdTypeType::STRING},
-                TaggedBinaryOpFn(BinaryenNeInt32,
                                  std::make_shared<BoolType>())},
                {{BirdTypeType::BOOL, BirdTypeType::BOOL},
                 TaggedBinaryOpFn(BinaryenNeInt32,
@@ -167,6 +157,9 @@ class CodeGen : public Visitor {
   Stack<TaggedExpression> stack; // for returning values
   std::map<std::string, std::string> std_lib;
   std::set<std::string> struct_names;
+  std::unordered_map<std::string, int> struct_name_to_num_pointers;
+
+  bool must_garbage_collect = false;
 
   std::unordered_map<std::string, uint32_t> str_offsets;
 
@@ -198,8 +191,11 @@ class CodeGen : public Visitor {
   void visit_binary(Binary *binary);
   void visit_binary_short_circuit(Binary *binary);
   void visit_binary_normal(Binary *binary);
+  void handle_binary_string_operations(Token::Type op, TaggedExpression left,
+                                       TaggedExpression right);
   void visit_unary(Unary *unary);
   void visit_primary(Primary *primary);
+  TaggedExpression create_unary_not(BinaryenExpressionRef condition);
   void visit_ternary(Ternary *ternary);
   void visit_const_stmt(ConstStmt *const_stmt);
   void visit_func(Func *func);

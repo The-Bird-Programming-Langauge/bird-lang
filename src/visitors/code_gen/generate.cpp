@@ -58,7 +58,16 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
 
     stmt->accept(this);
     auto result = this->stack.pop();
+    if (result.type->type != BirdTypeType::VOID) {
+      result = TaggedExpression(BinaryenDrop(this->mod, result.value));
+    }
     main_function_body.push_back(result.value);
+
+    if (this->must_garbage_collect) {
+      this->garbage_collect();
+      main_function_body.push_back(stack.pop().value);
+      this->must_garbage_collect = false;
+    }
   }
 
   auto count = 0;

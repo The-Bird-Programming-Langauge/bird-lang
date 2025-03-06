@@ -190,7 +190,7 @@ public:
     this->env.push_env();
 
     for (auto &param : func->param_list) {
-      this->env.declare(param.first.lexeme, SemanticValue());
+      this->env.declare(param.first.lexeme, SemanticValue(true));
     }
 
     auto block = std::dynamic_pointer_cast<Block>(func->block);

@@ -79,8 +79,7 @@ void CodeGen::visit_index_assign(IndexAssign *index_assign) {
 
   BinaryenExpressionRef args[3] = {lhs.value, mem_offset_literal, result};
 
-  this->stack.push(BinaryenCall(
-      this->mod,
-      lhs_val.type->type == BirdTypeType::FLOAT ? "mem_set_64" : "mem_set_32",
-      args, 3, BinaryenTypeNone()));
+  this->stack.push(BinaryenCall(this->mod,
+                                get_mem_set_for_type(lhs_val.type->type), args,
+                                3, BinaryenTypeNone()));
 }

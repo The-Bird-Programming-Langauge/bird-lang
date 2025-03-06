@@ -14,6 +14,7 @@ fs.writeFileSync(outputPath, "");
  * 1. The first 32 bits are used to store the size of the block
  * 2. The next 32 bits are used to store the pointer to the next block
  * 3. The next byte is used to store the mark bit
+ * 3. The next 32 bits are used to store how many pointers are in the block 
  * 4. The rest of the block is used to store the actual data values
  * 
  * Data value layout:
@@ -30,73 +31,71 @@ const ALLOCATED_HEAD_PTR = 5;
 const BLOCK_SIZE_OFFSET = 0;
 const BLOCK_PTR_OFFSET = 4;
 const BLOCK_MARK_OFFSET = 8;
-const BLOCK_HEADER_SIZE = 9;
-const FREE_LIST_START = 9;
+const BLOCK_NUM_PTRS = 9;
+const BLOCK_HEADER_SIZE = 13;
+const FREE_LIST_START = 13;
 
-const FLOAT_SIZE = 9;
-const INT_SIZE = 5;
+const FLOAT_SIZE = 8;
+const INT_SIZE = 4;
+
 
 function get_null_ptr_address() {
     return base_offset + NULL_PTR;
 }
 
 function get_free_list_head_ptr() {
-    // console.log(`get_free_list_head_ptr : ${memory.getUint32(base_offset + FREE_HEAD_PTR)}`); // debug
     return memory.getUint32(base_offset + FREE_HEAD_PTR);
 }
 
 function get_allocated_list_head_ptr() {
-    //console.log(`get_allocated_list_head_ptr : ${memory.getUint32(ALLOCATED_HEAD_PTR)}`); // debug
     return memory.getUint32(base_offset + ALLOCATED_HEAD_PTR);
 }
 
 function get_block_size(ptr) {
-    //console.log(`get_block_size : ${ptr} : ${memory.getUint32(ptr + BLOCK_SIZE_OFFSET)}`); // debug
     return memory.getUint32(ptr + BLOCK_SIZE_OFFSET);
 }
 
 function get_block_next_ptr(ptr) {
-    //console.log(`get_block_next_ptr : ${ptr} : ${memory.getUint32(ptr + BLOCK_PTR_OFFSET)}`); // debug
     return memory.getUint32(ptr + BLOCK_PTR_OFFSET);
 }
 
 function block_is_marked(ptr) {
-    //console.log(`block_is_marked : ${ptr} : ${memory.getUint8(ptr + BLOCK_MARK_OFFSET) === 1}`); // debug
     return memory.getUint8(ptr + BLOCK_MARK_OFFSET) === 1;
 }
 
 function set_block_size(ptr, size) {
-    //console.log(`set_block_size : ${ptr} : ${size}`); // debug
     memory.setUint32(ptr + BLOCK_SIZE_OFFSET, size);
 }
 
 function set_block_next_ptr(ptr, next_ptr) {
-    //console.log(`set_block_next_ptr : ${ptr} : ${next_ptr}`); // debug
     memory.setUint32(ptr + BLOCK_PTR_OFFSET, next_ptr);
 }
 
+function get_block_num_ptrs(ptr) {
+    return memory.getUint32(ptr + BLOCK_NUM_PTRS);
+}
+
+function set_block_num_ptrs(ptr, num_ptrs) {
+    memory.setUint32(ptr + BLOCK_NUM_PTRS, num_ptrs);
+}
+
 function set_block_mark(ptr, mark) {
-    //console.log(`set_block_mark : ${ptr} : ${mark}`); // debug
     memory.setUint8(ptr + BLOCK_MARK_OFFSET, mark);
 }
 
 function set_free_list_head_ptr(ptr) {
-    //console.log(`set_free_list_head_ptr : ${FREE_HEAD_PTR} : ${ptr}`); // debug
     memory.setUint32(base_offset + FREE_HEAD_PTR, ptr);
 }
 
 function set_allocated_list_head_ptr(ptr) {
-    //console.log(`set_allocated_list_head_ptr : ${ALLOCATED_HEAD_PTR} : ${ptr}`); // debug
     memory.setUint32(base_offset + ALLOCATED_HEAD_PTR, ptr);
 }
 
 function value_is_pointer(ptr) {
-    //console.log(`value_is_pointer : ${ptr} : ${memory.getUint8(ptr) & 0b01}`); // debug
     return memory.getUint8(ptr) & 0b01;
 }
 
 function value_is_64_bit(ptr) {
-    //console.log(`value_is_64_bit : ${ptr} : ${memory.getUint8(ptr) & 0b10}`); // debug
     return memory.getUint8(ptr) & 0b10;
 }
 
@@ -129,10 +128,52 @@ function print_memory(memory) {
     }
 }
 
-
-
 const moduleOptions = {
     env: {
+        strcat: (left, right) => {
+            const buffer = new Uint8Array(instance.exports.memory.buffer);
+            let length = 0;
+            for (let i = left; buffer[i] != 0; i++) {
+                length += 1;
+            }
+
+            for (let i = right; buffer[i] != 0; i++) {
+                length += 1;
+            }
+
+            const ptr = mem_alloc(length + 1); // one extra for \0
+
+            let pos = ptr;
+            for (let i = right; buffer[i] != 0; i++) {
+                buffer[pos] = buffer[i];
+                pos += 1;
+            }
+
+            for (let i = left; buffer[i] != 0; i++) {
+                buffer[pos] = buffer[i];
+                pos += 1;
+            }
+
+            buffer[pos] = "\0";
+            return ptr;
+        },
+        strcmp: (left, right) => {
+            const buffer = new Uint8Array(instance.exports.memory.buffer);
+
+            let i = left;
+            let j = right;
+            while (buffer[i] != buffer[j]) {
+                if (buffer[i] != buffer[j]) {
+                    return false;
+                }
+
+                if (buffer[i] == "\0" || buffer[j] == "\0") {
+                    return buffer[i] == "\0" && buffer[i] == "\0";
+                }
+            }
+
+            return true;
+        },
         print_i32: (value) => {
             process.stdout.write(value.toString());
             fs.appendFileSync(outputPath, value.toString());
@@ -161,29 +202,27 @@ const moduleOptions = {
             fs.appendFileSync(outputPath, "\n");
         },
         mem_get_32: (ptr, byte_offset) => {
-            // console.log("mem get 32", ptr, byte_offset);
-            return memory.getUint32(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
+            return memory.getUint32(ptr + BLOCK_HEADER_SIZE + byte_offset);
         },
 
         mem_get_64: (ptr, byte_offset) => {
-            // console.log("mem get 64", ptr, byte_offset);
-            return memory.getFloat64(ptr + BLOCK_HEADER_SIZE + 1 + byte_offset);
+            return memory.getFloat64(ptr + BLOCK_HEADER_SIZE + byte_offset);
         },
         /**
          * The first byte of the pointer is used to store the pointer bit 
          * 
          */
         mem_set_32: (ptr, offset, value) => {
-            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0);
-            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
+            // memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0);
+            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset, value);
         },
         mem_set_64: (ptr, offset, value) => {
-            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b10);
-            memory.setFloat64(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
+            // memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b10);
+            memory.setFloat64(ptr + BLOCK_HEADER_SIZE + offset, value);
         },
         mem_set_ptr: (ptr, offset, value) => {
-            memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b01);
-            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset + 1, value);
+            // memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b01);
+            memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset, value);
         },
 
         /**
@@ -198,61 +237,10 @@ const moduleOptions = {
          * index 1 is reserved for the head of the free list
          * 
          */
-
-        mem_alloc: (size) => {
-            //console.log(`mem_alloc(${size})`); // debug
-            let curr_ptr = get_free_list_head_ptr();
-            let prev_ptr = curr_ptr;
-
-            // loop until curr_ptr stores a block pointer that is big enough
-            while (!(
-                get_block_size(curr_ptr) > size + 2 * BLOCK_HEADER_SIZE || // block that is bigger and can be split into 2 blocks, 1 allocated and 1 free, such that the free block has at least 1 byte of data space
-                get_block_size(curr_ptr) >= size + BLOCK_HEADER_SIZE // block that is exactly the right size
-            )) {
-                if (curr_ptr + 1 > memory.byteLength) { // we have reached the end of the memory
-                    throw new Error("Out of memory");
-                }
-                if (get_block_next_ptr(curr_ptr) === get_null_ptr_address()) { // we have reached the end of the list
-                    wasmMemory.grow(1);
-                    memory = new DataView(instance.exports.memory.buffer);
-                    set_block_size(curr_ptr, memory.byteLength - curr_ptr);
-                    break;
-                }
-
-                prev_ptr = curr_ptr;
-                curr_ptr = get_block_next_ptr(curr_ptr); // next block
-            }
-
-            // we have found a block that is big enough
-            if (get_block_size(curr_ptr) - size > BLOCK_HEADER_SIZE + FLOAT_SIZE * 2) { // we can split the block
-                const new_block_ptr = curr_ptr + size + BLOCK_HEADER_SIZE;
-
-                set_block_size(new_block_ptr, get_block_size(curr_ptr) - size - BLOCK_HEADER_SIZE); // set the size of the new block
-                set_block_next_ptr(new_block_ptr, get_block_next_ptr(curr_ptr)); // set the pointer of the new block
-
-                if (prev_ptr !== curr_ptr) {
-                    set_block_next_ptr(prev_ptr, new_block_ptr); // set the pointer of the new block to the current block
-                }
-
-                if (curr_ptr === get_free_list_head_ptr()) { // we are at the head of the list
-                    set_free_list_head_ptr(new_block_ptr);
-                }
-
-                // the current block is now allocated
-                set_block_size(curr_ptr, size + BLOCK_HEADER_SIZE); // set the size of the current block
-                set_block_mark(curr_ptr, 0); // set the mark bit to zero
-
-                // move the current block to the head of the allocated list
-                set_block_next_ptr(curr_ptr, get_allocated_list_head_ptr()); // set the pointer of the current block
-                set_allocated_list_head_ptr(curr_ptr); // set the head of the allocated list
-            }
-
-            return curr_ptr;
-        },
+        mem_alloc,
 
         mark: (ptr) => // the root is any local or global variable that is dynamically allocated
         {
-            //console.log(`mark(${ptr})`); // debug
             const stack = [];
             stack.push(ptr);
 
@@ -267,33 +255,14 @@ const moduleOptions = {
                     set_block_mark(block_ptr, 1);
                 }
 
-                let curr_value_is_64_bit;
-
-                for (let value_ptr = block_ptr + BLOCK_HEADER_SIZE; value_ptr < block_ptr + get_block_size(block_ptr); value_ptr += curr_value_is_64_bit ? FLOAT_SIZE : INT_SIZE) {
-                    curr_value_is_64_bit = value_is_64_bit(value_ptr);
-
-                    // check if the current value is a pointer
-                    if (value_is_pointer(value_ptr)) {
-                        let value_reference_ptr;
-
-                        // retrieve the value's reference pointer
-                        if (curr_value_is_64_bit) {
-                            value_reference_ptr = memory.getFloat64(value_ptr + 1);
-                        } else {
-                            value_reference_ptr = memory.getUint32(value_ptr + 1);
-                        }
-
-                        // if the value's reference pointer is not null, push it to the stack
-                        if (value_reference_ptr !== get_null_ptr_address()) {
-                            stack.push(value_reference_ptr);
-                        }
-                    }
+                const num_ptrs = get_block_num_ptrs(block_ptr);
+                for (let i = 0; i < num_ptrs; i++) {
+                    stack.push(memory.getUint32(block_ptr + BLOCK_HEADER_SIZE + (INT_SIZE * i)));
                 }
             }
         },
 
         sweep: () => {
-            //console.log("sweep"); // debug
             let curr_ptr = get_allocated_list_head_ptr();
 
             // no allocated block exists
@@ -305,7 +274,6 @@ const moduleOptions = {
             let next_block_is_not_null = true;
 
             while (curr_ptr < memory.byteLength && next_block_is_not_null) {
-                //console.log(`sweep : ${curr_ptr}`); // debug
                 let next_ptr = get_block_next_ptr(curr_ptr); // get the next allocated block to traverse to in the next iteration
                 let update_prev_ptr = true;
 
@@ -367,3 +335,55 @@ WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
     instance.exports.main();
     //print_memory(memory); // debug
 });
+
+function mem_alloc(size, num_pointers) {
+    let curr_ptr = get_free_list_head_ptr();
+    let prev_ptr = curr_ptr;
+
+    // loop until curr_ptr stores a block pointer that is big enough
+    while (!(
+        get_block_size(curr_ptr) > size + 2 * BLOCK_HEADER_SIZE || // block that is bigger and can be split into 2 blocks, 1 allocated and 1 free, such that the free block has at least 1 byte of data space
+        get_block_size(curr_ptr) >= size + BLOCK_HEADER_SIZE // block that is exactly the right size
+    )) {
+        if (curr_ptr + 1 > memory.byteLength) { // we have reached the end of the memory
+            throw new Error("Out of memory");
+        }
+        if (get_block_next_ptr(curr_ptr) === get_null_ptr_address()) { // we have reached the end of the list
+            wasmMemory.grow(1);
+            memory = new DataView(instance.exports.memory.buffer);
+            set_block_size(curr_ptr, memory.byteLength - curr_ptr);
+            break;
+        }
+
+        prev_ptr = curr_ptr;
+        curr_ptr = get_block_next_ptr(curr_ptr); // next block
+    }
+
+    // we have found a block that is big enough
+    if (get_block_size(curr_ptr) - size > BLOCK_HEADER_SIZE + FLOAT_SIZE * 2) { // we can split the block
+        const new_block_ptr = curr_ptr + size + BLOCK_HEADER_SIZE;
+
+        set_block_size(new_block_ptr, get_block_size(curr_ptr) - size - BLOCK_HEADER_SIZE); // set the size of the new block
+        set_block_next_ptr(new_block_ptr, get_block_next_ptr(curr_ptr)); // set the pointer of the new block
+
+        if (prev_ptr !== curr_ptr) {
+            set_block_next_ptr(prev_ptr, new_block_ptr); // set the pointer of the new block to the current block
+        }
+
+        if (curr_ptr === get_free_list_head_ptr()) { // we are at the head of the list
+            set_free_list_head_ptr(new_block_ptr);
+        }
+
+        // the current block is now allocated
+        set_block_size(curr_ptr, size + BLOCK_HEADER_SIZE); // set the size of the current block
+        set_block_mark(curr_ptr, 0); // set the mark bit to zero
+
+        // move the current block to the head of the allocated list
+        set_block_next_ptr(curr_ptr, get_allocated_list_head_ptr()); // set the pointer of the current block
+        set_allocated_list_head_ptr(curr_ptr); // set the head of the allocated list
+    }
+
+
+    set_block_num_ptrs(curr_ptr, num_pointers);
+    return curr_ptr;
+}
