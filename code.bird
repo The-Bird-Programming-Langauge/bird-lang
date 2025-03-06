@@ -2,8 +2,6 @@ namespace Math {
     var x: int = 0;
     const arr = [ 1, 2, 3 ];
 
-    print 1;
-    
     struct Person {
         name: str,
         age: int

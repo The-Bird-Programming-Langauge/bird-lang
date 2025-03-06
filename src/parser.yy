@@ -20,6 +20,7 @@
    #include <memory>
    #include <optional>
    #include <utility>
+   #include <map>
 
    #include "../include/ast_node/index.h"
 
@@ -122,6 +123,8 @@ expr_stmt
 type_stmt
 struct_decl
 namespace_stmt
+namespace_declaration_stmt
+
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -185,6 +188,8 @@ maybe_expr
 
 %type <std::vector<std::unique_ptr<Stmt>>>
 maybe_block_valid_stmts
+namespace_declaration_stmts
+maybe_namespace_stmts
 block_valid_stmts
 maybe_stmts
 stmts
@@ -202,6 +207,8 @@ param_list
 
 %type <std::shared_ptr<ParseType::Type>>
 type_identifier
+
+/* %type <std::map<std::Token, std::unique_ptr<Stmt>>> */
 
 %right ASSIGN
    EQUAL
@@ -289,6 +296,23 @@ block_valid_stmt:
    | continue_stmt SEMICOLON { $$ = std::move($1); }
    | expr_stmt SEMICOLON { $$ = std::move($1); }
    | type_stmt SEMICOLON { $$ = std::move($1); }
+
+maybe_namespace_stmts:
+   %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   | namespace_declaration_stmts { $$ = std::move($1); }
+
+namespace_declaration_stmts:
+   namespace_declaration_stmt 
+      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   | namespace_declaration_stmts namespace_declaration_stmt 
+      { $1.push_back(std::move($2)); $$ = std::move($1); }
+
+namespace_declaration_stmt:
+   namespace_stmt { $$ = std::move($1); }
+   | decl_stmt SEMICOLON { $$ = std::move($1); }
+   | const_stmt SEMICOLON { $$ = std::move($1); }
+   | struct_decl SEMICOLON { $$ = std::move($1); }
+   | func { $$ = std::move($1); }
 
 struct_decl:
    STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
@@ -408,7 +432,7 @@ type_stmt:
       { $$ = std::make_unique<TypeStmt>($2, $4); }
 
 namespace_stmt:
-   NAMESPACE IDENTIFIER LBRACE maybe_stmts RBRACE
+   NAMESPACE IDENTIFIER LBRACE maybe_namespace_stmts RBRACE
       { $$ = std::make_unique<NamespaceStmt>($2, std::move($4)); }
 
 maybe_arg_list: 
