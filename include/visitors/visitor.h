@@ -29,12 +29,14 @@ class AsCast;
 class ArrayInit;
 class IndexAssign;
 class MatchExpr;
+class NamespaceStmt;
 
 /*
  * the interface for all visitors,
  * used through the AST nodes' `accept` function
  */
-class Visitor {
+class Visitor
+{
 public:
   ~Visitor() = default;
   virtual void visit_binary(Binary *) = 0;
@@ -65,4 +67,5 @@ public:
   virtual void visit_array_init(ArrayInit *) = 0;
   virtual void visit_index_assign(IndexAssign *) = 0;
   virtual void visit_match_expr(MatchExpr *) = 0;
+  virtual void visit_namespace(NamespaceStmt *) = 0;
 };

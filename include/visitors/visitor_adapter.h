@@ -1,7 +1,8 @@
 #pragma once
 #include "visitor.h"
 
-class VisitorAdapter : public Visitor {
+class VisitorAdapter : public Visitor
+{
 public:
   void visit_binary(Binary *) override {}
   void visit_unary(Unary *) override {}
@@ -31,4 +32,5 @@ public:
   void visit_array_init(ArrayInit *) override {}
   void visit_index_assign(IndexAssign *) override {}
   void visit_match_expr(MatchExpr *) override {}
+  void visit_namespace(NamespaceStmt *) override {}
 };

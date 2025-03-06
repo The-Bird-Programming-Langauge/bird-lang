@@ -94,20 +94,23 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "as"                    { yylval->emplace<Token>() = make_token(T::AS);
                           return token::AS; } 
 
-"and"                  { yylval->emplace<Token>() = make_token(T::AND);
+"and"                   { yylval->emplace<Token>() = make_token(T::AND);
                           return token::AND; } 
 
-"or"                   { yylval->emplace<Token>() = make_token(T::OR);
+"or"                    { yylval->emplace<Token>() = make_token(T::OR);
                           return token::OR; }
 
-"xor"                  { yylval->emplace<Token>() = make_token(T::XOR); 
+"xor"                   { yylval->emplace<Token>() = make_token(T::XOR); 
                           return token::XOR; }
 
-"not"                  { yylval->emplace<Token>() = make_token(T::NOT);
+"not"                   { yylval->emplace<Token>() = make_token(T::NOT);
                           return token::NOT; }
 
-"match"                 {yylval->emplace<Token>() = make_token(T::MATCH);
+"match"                 { yylval->emplace<Token>() = make_token(T::MATCH);
                           return token::MATCH; }
+
+"namespace"             { yylval->emplace<Token>() = make_token(T::NAMESPACE);
+                          return token::NAMESPACE; }
 
 {TYPE_IDENT}            { yylval->emplace<Token>() = make_token(T::TYPE_LITERAL);
                           return token::TYPE_LITERAL;} 

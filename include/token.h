@@ -2,9 +2,11 @@
 
 #include <string>
 
-class Token {
+class Token
+{
 public:
-  enum Type {
+  enum Type
+  {
     // keywords
     BREAK,
     CONST,
@@ -27,6 +29,7 @@ public:
     OR,
     NOT,
     MATCH,
+    NAMESPACE,
 
     // types
     TYPE_LITERAL,

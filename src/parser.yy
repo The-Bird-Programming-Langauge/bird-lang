@@ -67,6 +67,7 @@ XOR "xor"
 OR "or"
 NOT "not"
 MATCH "match"
+NAMESPACE "namespace"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -120,6 +121,7 @@ continue_stmt
 expr_stmt
 type_stmt
 struct_decl
+namespace_stmt
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -271,6 +273,7 @@ stmt:
    func { $$ = std::move($1); }
    | struct_decl SEMICOLON {$$ = std::move($1); }
    | block_valid_stmt { $$ = std::move($1); }
+   | namespace_stmt { $$ = std::move($1); }
    | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
 
 block_valid_stmt:
@@ -403,6 +406,10 @@ expr_stmt:
 type_stmt: 
    TYPE IDENTIFIER EQUAL type_identifier 
       { $$ = std::make_unique<TypeStmt>($2, $4); }
+
+namespace_stmt:
+   NAMESPACE IDENTIFIER LBRACE maybe_stmts RBRACE
+      { $$ = std::make_unique<NamespaceStmt>($2, std::move($4)); }
 
 maybe_arg_list: 
    %empty { $$ = (std::vector<std::shared_ptr<Expr>>()); }

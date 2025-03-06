@@ -14,7 +14,9 @@ BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
 const char *get_mem_set_for_type(const BirdTypeType type);
 bool type_is_on_heap(const BirdTypeType type);
 
-template <typename T> struct Tagged {
+template <typename T>
+struct Tagged
+{
   T value;
   std::shared_ptr<BirdType> type = std::shared_ptr<BirdType>(new VoidType());
 
@@ -33,13 +35,15 @@ using TaggedBinaryOpFn = Tagged<std::function<BinaryenOp(void)>>;
  * which somehow retain the information but overwrite
  * the page bounds
  */
-struct MemorySegment {
+struct MemorySegment
+{
   const char *data;
   BinaryenIndex size;
   BinaryenExpressionRef offset;
 };
 
-class CodeGen : public Visitor {
+class CodeGen : public Visitor
+{
   // and, or, and string operations are handled separately
   // differently
   const std::map<Token::Type, std::map<std::pair<BirdTypeType, BirdTypeType>,
@@ -206,6 +210,7 @@ class CodeGen : public Visitor {
   void visit_continue_stmt(ContinueStmt *continue_stmt);
   void visit_type_stmt(TypeStmt *type_stmt);
   void visit_subscript(Subscript *subscript);
+  void visit_namespace(NamespaceStmt *_namespace);
 
   /*
   This function is called when a struct declaration is encountered.
