@@ -11,6 +11,7 @@
 #include "../ast_node/index.h"
 
 #include "../bird_type.h"
+#include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
 #include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
@@ -26,6 +27,8 @@
  */
 class TypeChecker : public Visitor {
 public:
+  CoreCallTable core_call_table;
+
   Environment<std::shared_ptr<BirdType>> env;
   Environment<std::shared_ptr<BirdFunction>> call_table;
 
@@ -539,7 +542,9 @@ public:
   }
 
   void visit_call(Call *call) {
-    auto function = this->call_table.get(call->identifier.lexeme);
+    auto function = core_call_table.table.contains(call->identifier.lexeme)
+                        ? core_call_table.table.get(call->identifier.lexeme)
+                        : this->call_table.get(call->identifier.lexeme);
 
     for (int i = 0; i < function->params.size(); i++) {
       call->args[i]->accept(this);
