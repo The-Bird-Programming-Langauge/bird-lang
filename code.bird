@@ -19,7 +19,6 @@ struct Tree {
     }
 };
 
-
 const tree: Tree = Tree {
     root = Node {
         val = 1,
@@ -31,6 +30,5 @@ const tree: Tree = Tree {
         }
     }
 };
-
 
 tree.preorder();

@@ -438,6 +438,10 @@ public:
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
     }
+    case Token::Type::SELF: {
+      this->stack.push(this->env.get("self"));
+      break;
+    }
     default: {
       throw BirdException("undefined primary value");
     }
@@ -705,6 +709,16 @@ public:
 
     for (auto &method : struct_decl->fns) {
       method->accept(this);
+    }
+
+    for (auto &method : struct_decl->fns) {
+      this->env.push_env();
+      this->env.declare("self", struct_type);
+      const auto &bird_function =
+          this->v_table.at(struct_decl->identifier.lexeme)
+              .at(method->identifier.lexeme);
+      this->visit_func_helper(method.get(), bird_function);
+      this->env.pop_env();
     }
   }
 
@@ -1017,10 +1031,8 @@ public:
   }
 
   void visit_method(Method *method) {
-    const auto bird_function = create_func(method);
     this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
-        bird_function;
-    this->visit_func_helper(method, bird_function);
+        create_func(method);
   }
 
   void visit_method_call(MethodCall *method_call) {

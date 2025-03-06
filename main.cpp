@@ -129,16 +129,16 @@ void interpret(std::string filename) {
   SemanticAnalyzer semantic_analyzer(error_tracker);
   semantic_analyzer.analyze_semantics(&ast);
 
-  // if (error_tracker.has_errors()) {
-  //   error_tracker.print_errors_and_exit();
-  // }
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
 
-  // TypeChecker type_checker(error_tracker);
-  // type_checker.check_types(&ast);
+  TypeChecker type_checker(error_tracker);
+  type_checker.check_types(&ast);
 
-  // if (error_tracker.has_errors()) {
-  //   error_tracker.print_errors_and_exit();
-  // }
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
 
   Interpreter interpreter;
 
