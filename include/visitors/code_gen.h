@@ -231,6 +231,16 @@ class CodeGen : public Visitor {
   TaggedExpression match_helper(TaggedExpression expr, MatchExpr *match_expr,
                                 int index);
 
+  void generate_array_length_fn();
+  void create_struct_constructor(std::shared_ptr<StructType> type);
+  void init_array_constructor();
+  BinaryenExpressionRef
+  get_array_data(Tagged<BinaryenExpressionRef> &subscriptable);
+  BinaryenExpressionRef
+  get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
+                       Tagged<BinaryenExpressionRef> &index,
+                       std::shared_ptr<BirdType> type);
+
 public:
   ~CodeGen();
   CodeGen();

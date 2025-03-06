@@ -16,6 +16,33 @@ TEST(MiscProgramsTestSuite, BubbleSort) {
                  "    print x[i];"
                  "}";
 
+  using ARRAY_TYPE = std::shared_ptr<std::vector<Value>>;
+
+  options.after_interpret = [&](auto interpreter) {
+    ASSERT_TRUE(interpreter.env.contains("x"));
+    ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
+
+    ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->size(), 9);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(0)), 1);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(1)), 2);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(2)), 3);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(3)), 4);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(4)), 5);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(5)), 6);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(6)), 7);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(7)), 8);
+    ASSERT_EQ(
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(8)), 9);
+  };
+
   options.after_compile = [&](std::string &output, CodeGen &codegen) {
     ASSERT_EQ(output, "1\n2\n3\n4\n5\n6\n7\n8\n9\n\n");
   };
