@@ -1,4 +1,23 @@
 #include "../../../include/visitors/code_gen.h"
+#include "exceptions/bird_exception.h"
+
+Token::Type assign_expr_binary_equivalent(Token::Type token_type) {
+  switch (token_type) {
+  case Token::PLUS_EQUAL:
+    return Token::PLUS;
+  case Token::MINUS_EQUAL:
+    return Token::MINUS;
+  case Token::STAR_EQUAL:
+    return Token::STAR;
+  case Token::SLASH_EQUAL:
+    return Token::SLASH;
+  case Token::PERCENT_EQUAL:
+    return Token::PERCENT;
+  default:
+    throw BirdException(
+        "Invalid assign expr found when converting to binary equivalent");
+  }
+}
 
 bool type_is_on_heap(const BirdTypeType type) {
   return type == BirdTypeType::STRUCT || type == BirdTypeType::ARRAY ||
@@ -16,6 +35,15 @@ const char *get_mem_set_for_type(const BirdTypeType type) {
     return "mem_set_ptr";
   default:
     return "mem_set_32";
+  }
+}
+
+const char *get_mem_get_for_type(const BirdTypeType type) {
+  switch (type) {
+  case BirdTypeType::FLOAT:
+    return "mem_get_64";
+  default:
+    return "mem_get_32";
   }
 }
 

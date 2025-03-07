@@ -10,8 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler",
             "args": [
-                "${workspaceFolder}/code.bird",
-                "-i"
+                "${workspaceFolder}/code.bird"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

@@ -8,10 +8,13 @@
 #include "binaryen-c.h"
 #include "visitor.h"
 #include <map>
+#include <memory>
 
+Token::Type assign_expr_binary_equivalent(Token::Type token_type);
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
 const char *get_mem_set_for_type(const BirdTypeType type);
+const char *get_mem_get_for_type(const BirdTypeType type);
 bool type_is_on_heap(const BirdTypeType type);
 
 template <typename T> struct Tagged {
@@ -189,8 +192,12 @@ class CodeGen : public Visitor {
   void visit_while_stmt(WhileStmt *while_stmt);
   void visit_for_stmt(ForStmt *for_stmt);
   void visit_binary(Binary *binary);
-  void visit_binary_short_circuit(Binary *binary);
-  void visit_binary_normal(Binary *binary);
+  void visit_binary_short_circuit(Token::Type op, std::unique_ptr<Expr> &left,
+                                  std::unique_ptr<Expr> &right);
+  void visit_binary_normal(Token::Type op, TaggedExpression left,
+                           TaggedExpression right);
+  void create_binary(Token::Type op, std::unique_ptr<Expr> &left,
+                     std::unique_ptr<Expr> &right);
   void handle_binary_string_operations(Token::Type op, TaggedExpression left,
                                        TaggedExpression right);
   void visit_unary(Unary *unary);
@@ -221,9 +228,9 @@ class CodeGen : public Visitor {
   void visit_member_assign(MemberAssign *member_assign);
   void visit_as_cast(AsCast *as_cast);
 
-  BinaryenExpressionRef binaryen_set(std::string identifier,
-                                     BinaryenExpressionRef value);
-  BinaryenExpressionRef binaryen_get(std::string identifier);
+  TaggedExpression binaryen_set(std::string identifier,
+                                BinaryenExpressionRef value);
+  TaggedExpression binaryen_get(std::string identifier);
 
   void visit_array_init(ArrayInit *array_init);
   void visit_index_assign(IndexAssign *index_assign);

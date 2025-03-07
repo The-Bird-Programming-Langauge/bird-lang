@@ -31,16 +31,16 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
 
   };
 
-  BinaryenExpressionRef local_set = this->binaryen_set(
+  TaggedExpression local_set = this->binaryen_set(
       identifier, BinaryenCall(this->mod, "mem_alloc", args.data(), args.size(),
                                BinaryenTypeInt32()));
 
-  children.push_back(local_set);
+  children.push_back(local_set.value);
 
   unsigned int offset = 0;
   for (auto val : vals) {
     BinaryenExpressionRef args[3] = {
-        this->binaryen_get(identifier),
+        this->binaryen_get(identifier).value,
         BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), val};
 
     children.push_back(BinaryenCall(this->mod, get_mem_set_for_type(type->type),
@@ -49,7 +49,7 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
     offset += bird_type_byte_size(type);
   }
 
-  children.push_back(this->binaryen_get(identifier));
+  children.push_back(this->binaryen_get(identifier).value);
 
   auto block = BinaryenBlock(this->mod, nullptr, children.data(),
                              children.size(), BinaryenTypeInt32());
