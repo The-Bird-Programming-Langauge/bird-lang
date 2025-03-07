@@ -32,6 +32,12 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
       // no stack push here, automatically added
       continue;
     }
+
+    if (auto method_stmt = dynamic_cast<Method *>(stmt.get())) {
+      method_stmt->accept(this);
+      continue;
+    }
+
     if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get())) {
       type_stmt->accept(this);
       // no stack push here, only type table

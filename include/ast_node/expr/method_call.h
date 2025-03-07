@@ -1,12 +1,9 @@
 #pragma once
 
-#include "../../token.h"
 #include "../../visitors/visitor.h"
 #include "call.h"
 #include "expr.h"
-#include <iostream>
 #include <memory>
-#include <vector>
 
 // forward declaration
 class Visitor;

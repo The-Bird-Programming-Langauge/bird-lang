@@ -3,7 +3,6 @@
 #include "../ast_node/index.h"
 #include "../bird_type.h"
 #include <iostream>
-#include <map>
 #include <memory>
 #include <vector>
 
@@ -295,7 +294,9 @@ public:
     std::cout << "}";
   }
 
-  void visit_method(Method *method) {}
+  void visit_method(Method *method) { this->visit_func(method); }
 
-  void visit_method_call(MethodCall *method_call) {}
+  void visit_method_call(MethodCall *method_call) {
+    this->visit_call(method_call);
+  }
 };

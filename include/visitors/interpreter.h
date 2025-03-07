@@ -1,15 +1,12 @@
 #pragma once
 
 #include <algorithm>
-#include <cstddef>
 #include <iostream>
 #include <memory>
 #include <set>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 
-#include "../ast_node/index.h"
 #include "hoist_visitor.h"
 
 #include "../bird_type.h"
@@ -20,7 +17,6 @@
 #include "../exceptions/return_exception.h"
 #include "../stack.h"
 #include "../sym_table.h"
-#include "../type.h"
 #include "../type_converter.h"
 #include "../value.h"
 
@@ -408,7 +404,14 @@ public:
 
   void visit_call(Call *call) {
     auto callable = this->call_table.get(call->identifier.lexeme);
-    callable.call(this, call->args);
+
+    std::vector<Value> args = {};
+    for (auto arg : call->args) {
+      arg->accept(this);
+      args.push_back(stack.pop());
+    }
+
+    callable.call(this, args);
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
@@ -617,10 +620,13 @@ public:
     const auto value = stack.pop();
     const auto struct_val = as_type<Struct>(value);
 
-    this->env.push_env();
-    this->env.declare("self", value);
-    this->v_table[struct_val.name][method_call->identifier.lexeme].call(
-        this, method_call->args);
-    this->env.pop_env();
+    std::vector<Value> args = {value};
+    for (auto arg : method_call->args) {
+      arg->accept(this);
+      args.push_back(stack.pop());
+    }
+
+    this->v_table[struct_val.name][method_call->identifier.lexeme].call(this,
+                                                                        args);
   }
 };

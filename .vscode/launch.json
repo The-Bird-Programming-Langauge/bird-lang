@@ -9,7 +9,10 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler",
-            "args": ["${workspaceFolder}/code.bird"],
+            "args": [
+                "${workspaceFolder}/code.bird",
+                "-i"
+            ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
@@ -28,6 +31,5 @@
                 }
             ]
         }
-
     ]
 }

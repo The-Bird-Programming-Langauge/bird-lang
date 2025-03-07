@@ -11,14 +11,19 @@ void CodeGen::visit_call(Call *call) {
     args.push_back(this->stack.pop().value);
   }
 
+  this->stack.push(this->create_call_with(func_name, args));
+}
+
+TaggedExpression
+CodeGen::create_call_with(std::string func_name,
+                          std::vector<BinaryenExpressionRef> args) {
   auto return_type = this->function_return_types[func_name];
 
   auto children = std::vector<BinaryenExpressionRef>();
 
-  this->stack.push(
-      TaggedExpression(BinaryenCall(this->mod, func_name.c_str(), args.data(),
-                                    args.size(), return_type.value),
-                       return_type.type));
-
   this->must_garbage_collect = true;
+  return TaggedExpression(BinaryenCall(this->mod, func_name.c_str(),
+                                       args.data(), args.size(),
+                                       return_type.value),
+                          return_type.type);
 }

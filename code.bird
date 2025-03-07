@@ -1,3 +1,4 @@
+
 struct Node {
     val: int;
     left: Node;
@@ -9,7 +10,7 @@ struct Tree {
     fn preorder() {
         self.preorder_helper(self.root);
     }
-
+    
     fn preorder_helper(tree: Node) {
         if (tree?) {
             print tree.val;
@@ -30,5 +31,6 @@ const tree: Tree = Tree {
         }
     }
 };
+
 
 tree.preorder();

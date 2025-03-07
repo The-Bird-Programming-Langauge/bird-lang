@@ -1,5 +1,7 @@
 #include "../../../include/visitors/code_gen.h"
+#include "bird_type.h"
 #include <algorithm>
+#include <binaryen-c.h>
 
 void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
   using bird_pair = std::pair<std::string, std::shared_ptr<BirdType>>;
@@ -13,18 +15,22 @@ void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
                               this->type_converter.convert(field.second));
       });
 
-  auto count = 0;
+  auto count =
+      std::count_if(struct_fields.begin(), struct_fields.end(),
+                    [&](auto el) { return type_is_on_heap(el.second->type); });
+
   std::sort(struct_fields.begin(), struct_fields.end(),
             [&](const bird_pair first, const bird_pair second) {
-              if (type_is_on_heap(first.second->type)) {
-                count += 1;
-                return true;
-              }
-              return false;
+              return type_is_on_heap(first.second->type) >
+                     type_is_on_heap(second.second->type);
             });
 
   this->struct_name_to_num_pointers[struct_decl->identifier.lexeme] = count;
   type_table.declare(struct_decl->identifier.lexeme,
                      std::make_shared<StructType>(
                          struct_decl->identifier.lexeme, struct_fields));
+
+  for (auto &method : struct_decl->fns) {
+    method->accept(this);
+  }
 }

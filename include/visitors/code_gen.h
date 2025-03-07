@@ -233,6 +233,8 @@ class CodeGen : public Visitor {
 
   void visit_method(Method *method);
   void visit_method_call(MethodCall *method_call);
+  TaggedExpression create_call_with(std::string function_name,
+                                    std::vector<BinaryenExpressionRef> args);
 
 public:
   ~CodeGen();

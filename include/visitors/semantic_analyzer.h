@@ -2,21 +2,13 @@
 
 #include <memory>
 #include <optional>
-#include <set>
-#include <unordered_map>
-#include <variant>
 #include <vector>
 
 #include "../ast_node/index.h"
 
 #include "../callable.h"
-#include "../exceptions/bird_exception.h"
-#include "../exceptions/break_exception.h"
-#include "../exceptions/continue_exception.h"
-#include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
 #include "../semantic_value.h"
-#include "../stack.h"
 #include "../sym_table.h"
 #include "../type.h"
 #include <optional>

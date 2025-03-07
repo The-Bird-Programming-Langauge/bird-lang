@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -10,18 +9,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../ast_node/index.h"
-
 #include "../bird_type.h"
 #include "../exceptions/bird_exception.h"
-#include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
 #include "../stack.h"
 #include "../sym_table.h"
-#include "../type.h"
 #include "../type_converter.h"
+#include "ast_node/expr/method_call.h"
 #include "hoist_visitor.h"
-#include "visitor_adapter.h"
 
 /*
  * Visitor that checks types of the AST
@@ -569,25 +564,27 @@ public:
     }
   }
 
-  bool correct_arity(std::shared_ptr<BirdFunction> func, Call *call) {
-    return func->params.size() == call->args.size();
+  bool correct_arity(std::vector<std::shared_ptr<BirdType>> params,
+                     std::vector<std::shared_ptr<Expr>> args) {
+    return params.size() == args.size();
   }
 
-  void visit_call_with_func(Call *call, std::shared_ptr<BirdFunction> func) {
-    if (!correct_arity(func, call)) {
+  void compare_args_and_params(Token call_identifier,
+                               std::vector<std::shared_ptr<Expr>> args,
+                               std::vector<std::shared_ptr<BirdType>> params) {
+    if (!correct_arity(params, args)) {
       this->user_error_tracker.type_error("Invalid number of arguments to " +
-                                              call->identifier.lexeme,
-                                          call->identifier);
+                                              call_identifier.lexeme,
+                                          call_identifier);
 
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    for (int i = 0; i < func->params.size(); i++) {
-      call->args[i]->accept(this);
+    for (int i = 0; i < params.size(); i++) {
+      args[i]->accept(this);
       auto arg = this->stack.pop();
-
-      auto param = func->params[i];
+      auto param = params[i];
 
       if (arg->type == BirdTypeType::PLACEHOLDER &&
           param->type == BirdTypeType::STRUCT) {
@@ -601,16 +598,15 @@ public:
 
       if (*arg != *param) {
         this->user_error_tracker.type_mismatch("in function call",
-                                               call->identifier);
+                                               call_identifier);
       }
     }
-
-    this->stack.push(func->ret);
   }
 
   void visit_call(Call *call) {
     auto function = this->call_table.get(call->identifier.lexeme);
-    visit_call_with_func(call, function);
+    compare_args_and_params(call->identifier, call->args, function->params);
+    this->stack.push(function->ret);
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
@@ -712,13 +708,10 @@ public:
     }
 
     for (auto &method : struct_decl->fns) {
-      this->env.push_env();
-      this->env.declare("self", struct_type);
       const auto &bird_function =
           this->v_table.at(struct_decl->identifier.lexeme)
               .at(method->identifier.lexeme);
       this->visit_func_helper(method.get(), bird_function);
-      this->env.pop_env();
     }
   }
 
@@ -1037,12 +1030,26 @@ public:
 
   void visit_method_call(MethodCall *method_call) {
     method_call->instance->accept(this);
-    const auto struct_name =
-        std::dynamic_pointer_cast<StructType>(this->stack.pop())->name;
+    const auto struct_temp = this->stack.pop();
+    if (struct_temp->type != BirdTypeType::STRUCT) {
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
+
+    const auto struct_type = std::dynamic_pointer_cast<StructType>(struct_temp);
 
     const auto method =
-        this->v_table.at(struct_name).at(method_call->identifier.lexeme);
+        this->v_table.at(struct_type->name).at(method_call->identifier.lexeme);
 
-    this->visit_call_with_func(method_call, method);
+    std::vector<std::shared_ptr<BirdType>> new_params;
+
+    for (int i = 1; i < method->params.size(); i += 1) {
+      new_params.push_back(method->params[i]);
+    }
+
+    this->compare_args_and_params(method_call->identifier, method_call->args,
+                                  new_params);
+
+    this->stack.push(method->ret);
   }
 };

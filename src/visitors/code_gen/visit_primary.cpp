@@ -52,6 +52,14 @@ void CodeGen::visit_primary(Primary *primary) {
     break;
   }
 
+  case Token::Type::SELF: {
+    TaggedIndex tagged_index = this->environment.get("self");
+    BinaryenExpressionRef local_get = this->binaryen_get("self");
+
+    this->stack.push(TaggedExpression(local_get, tagged_index.type));
+    break;
+  }
+
   default:
     throw BirdException("undefined primary value: " + primary->value.lexeme);
   }
