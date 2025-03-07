@@ -199,6 +199,7 @@ class CodeGen : public Visitor {
   void visit_ternary(Ternary *ternary);
   void visit_const_stmt(ConstStmt *const_stmt);
   void visit_func(Func *func);
+  void add_func_with_name(Func *func, std::string func_name);
   void visit_if_stmt(IfStmt *if_stmt);
   void visit_call(Call *call);
   void visit_return_stmt(ReturnStmt *return_stmt);

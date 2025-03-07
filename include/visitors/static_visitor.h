@@ -1,11 +1,9 @@
 #pragma once
 #include "../ast_node/index.h"
-#include "../exceptions/bird_exception.h"
 #include "visitor_adapter.h"
 #include "visitors/visitor.h"
 #include <cmath>
 #include <memory>
-#include <set>
 #include <vector>
 
 // TOOD: check for strings in function call
