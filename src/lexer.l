@@ -186,6 +186,9 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "%="                    { yylval->emplace<Token>() = make_token(T::PERCENT_EQUAL);
                           return token::PERCENT_EQUAL; } 
 
+"::"                    { yylval->emplace<Token>() = make_token(T::SCOPE);
+                          return token::SCOPE; }
+
 
 ":"                     { return token::COLON; } 
 ","                     { return token::COMMA; } 

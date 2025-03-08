@@ -88,6 +88,7 @@ PLUS "+"
 SLASH "/"
 STAR "*"
 QUESTION "?"
+SCOPE "::"
 
 %token 
 SEMICOLON ";"
@@ -147,6 +148,7 @@ and_expr
 xor_expr
 or_expr
 match_else_arm
+scope_resolution
 
 %type <std::unique_ptr<Subscript>>
 subscript_expr
@@ -253,6 +255,8 @@ type_identifier
    RBRACKET 
 %left MATCH_EXPR
    MATCH
+%left SCOPE_RESOLUTION_EXPR
+   SCOPE
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -313,6 +317,12 @@ namespace_declaration_stmt:
    | const_stmt SEMICOLON { $$ = std::move($1); }
    | struct_decl SEMICOLON { $$ = std::move($1); }
    | func { $$ = std::move($1); }
+
+scope_resolution:
+    IDENTIFIER SCOPE IDENTIFIER %prec SCOPE_RESOLUTION_EXPR
+    { $$ = std::make_unique<ScopeResolutionExpr>($1, std::make_unique<Primary>($3)); }
+  | IDENTIFIER SCOPE scope_resolution
+    { $$ = std::make_unique<ScopeResolutionExpr>($1, std::move($3)); }
 
 struct_decl:
    STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
@@ -486,6 +496,7 @@ expr:
    | match { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
+   | scope_resolution { $$ = std::move($1); }
 
 
 assign_expr:

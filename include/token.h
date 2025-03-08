@@ -68,6 +68,7 @@ public:
     PLUS_EQUAL,
     SLASH_EQUAL,
     STAR_EQUAL,
+    SCOPE,
 
     // values
     BOOL_LITERAL,
