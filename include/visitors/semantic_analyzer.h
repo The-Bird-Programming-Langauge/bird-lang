@@ -424,7 +424,7 @@ public:
       this->current_namespace = this->current_namespace->parent;
     }
 
-    if (!this->current_namespace || this->current_namespace->nested_namespaces.find(name) == this->current_namespace->nested_namespaces.end())
+    if (!this->current_namespace)
     {
       user_error_tracker.semantic_error("namespace '" + name + "' not found.", scope_resolution->_namespace);
       this->current_namespace = previous_namespace;
