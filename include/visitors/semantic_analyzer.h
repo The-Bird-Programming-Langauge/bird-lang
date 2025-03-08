@@ -24,20 +24,21 @@ class SemanticAnalyzer : public Visitor
 {
 
 public:
-  Environment<SemanticValue> env;
-  Environment<SemanticCallable> call_table;
-  Environment<SemanticType> type_table;
+  std::shared_ptr<Namespace<SemanticValue, SemanticCallable, SemanticType>> global_namespace;
+  std::shared_ptr<Namespace<SemanticValue, SemanticCallable, SemanticType>> current_namespace;
+
   UserErrorTracker &user_error_tracker;
   int loop_depth;
   int function_depth;
   bool found_return;
 
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
-      : user_error_tracker(user_error_tracker)
+      : global_namespace(std::make_shared<Namespace<SemanticValue,
+                                                    SemanticCallable,
+                                                    SemanticType>>(nullptr)),
+        current_namespace(global_namespace),
+        user_error_tracker(user_error_tracker)
   {
-    this->env.push_env();
-    this->call_table.push_env();
-    this->type_table.push_env();
     this->loop_depth = 0;
     this->function_depth = 0;
   }
@@ -52,14 +53,14 @@ public:
 
   void visit_block(Block *block)
   {
-    this->env.push_env();
+    this->current_namespace->environment.push_env();
 
     for (auto &stmt : block->stmts)
     {
       stmt->accept(this);
     }
 
-    this->env.pop_env();
+    this->current_namespace->environment.pop_env();
   }
 
   void visit_decl_stmt(DeclStmt *decl_stmt)
@@ -77,13 +78,13 @@ public:
 
     SemanticValue mutable_value;
     mutable_value.is_mutable = true;
-    this->env.declare(decl_stmt->identifier.lexeme, mutable_value);
+    this->current_namespace->environment.declare(decl_stmt->identifier.lexeme, mutable_value);
   }
 
   void visit_assign_expr(AssignExpr *assign_expr)
   {
-    if (!this->env.contains(assign_expr->identifier.lexeme) &&
-        !this->call_table.contains(assign_expr->identifier.lexeme))
+    if (!this->current_namespace->environment.contains(assign_expr->identifier.lexeme) &&
+        !this->current_namespace->call_table.contains(assign_expr->identifier.lexeme))
     {
       this->user_error_tracker.semantic_error(
           "Variable '" + assign_expr->identifier.lexeme + "' does not exist.",
@@ -91,7 +92,7 @@ public:
       return;
     }
 
-    auto previous_value = this->env.get(assign_expr->identifier.lexeme);
+    auto previous_value = this->current_namespace->environment.get(assign_expr->identifier.lexeme);
 
     if (!previous_value.is_mutable)
     {
@@ -127,7 +128,7 @@ public:
 
     const_stmt->value->accept(this);
 
-    this->env.declare(const_stmt->identifier.lexeme, SemanticValue());
+    this->current_namespace->environment.declare(const_stmt->identifier.lexeme, SemanticValue());
   }
 
   void visit_while_stmt(WhileStmt *while_stmt)
@@ -143,7 +144,7 @@ public:
   void visit_for_stmt(ForStmt *for_stmt)
   {
     this->loop_depth += 1;
-    this->env.push_env();
+    this->current_namespace->environment.push_env();
 
     if (for_stmt->initializer.has_value())
     {
@@ -162,7 +163,7 @@ public:
       for_stmt->increment.value()->accept(this);
     }
 
-    this->env.pop_env();
+    this->current_namespace->environment.pop_env();
 
     this->loop_depth -= 1;
   }
@@ -178,7 +179,7 @@ public:
   void visit_primary(Primary *primary)
   {
     if (primary->value.token_type == Token::Type::IDENTIFIER &&
-        !this->env.contains(primary->value.lexeme))
+        !this->current_namespace->environment.contains(primary->value.lexeme))
     {
       this->user_error_tracker.semantic_error(
           "Variable '" + primary->value.lexeme + "' does not exist.",
@@ -207,14 +208,14 @@ public:
       return;
     }
 
-    this->call_table.declare(func->identifier.lexeme,
-                             SemanticCallable(func->param_list.size()));
+    this->current_namespace->call_table.declare(func->identifier.lexeme,
+                                                SemanticCallable(func->param_list.size()));
 
-    this->env.push_env();
+    this->current_namespace->environment.push_env();
 
     for (auto &param : func->param_list)
     {
-      this->env.declare(param.first.lexeme, SemanticValue(true));
+      this->current_namespace->environment.declare(param.first.lexeme, SemanticValue(true));
     }
 
     auto block = std::dynamic_pointer_cast<Block>(func->block);
@@ -232,7 +233,7 @@ public:
           func->identifier);
     }
 
-    this->env.pop_env();
+    this->current_namespace->environment.pop_env();
 
     this->function_depth -= 1;
   }
@@ -250,7 +251,7 @@ public:
 
   void visit_call(Call *call)
   {
-    if (!this->call_table.contains(call->identifier.lexeme))
+    if (!this->current_namespace->call_table.contains(call->identifier.lexeme))
     {
       this->user_error_tracker.semantic_error("Function call identifier '" +
                                                   call->identifier.lexeme +
@@ -259,7 +260,7 @@ public:
       return;
     }
 
-    auto function = this->call_table.get(call->identifier.lexeme);
+    auto function = this->current_namespace->call_table.get(call->identifier.lexeme);
 
     if (function.param_count != call->args.size())
     {
@@ -321,14 +322,14 @@ public:
       return;
     }
 
-    this->type_table.declare(type_stmt->identifier.lexeme, SemanticType());
+    this->current_namespace->type_table.declare(type_stmt->identifier.lexeme, SemanticType());
   }
 
   bool identifer_in_any_environment(std::string identifer)
   {
-    return this->env.current_contains(identifer) ||
-           this->call_table.current_contains(identifer) ||
-           this->type_table.current_contains(identifer);
+    return this->current_namespace->environment.current_contains(identifer) ||
+           this->current_namespace->call_table.current_contains(identifer) ||
+           this->current_namespace->type_table.current_contains(identifer);
   }
 
   void visit_subscript(Subscript *subscript)
@@ -339,7 +340,7 @@ public:
 
   void visit_struct_decl(StructDecl *struct_decl)
   {
-    this->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
+    this->current_namespace->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access)

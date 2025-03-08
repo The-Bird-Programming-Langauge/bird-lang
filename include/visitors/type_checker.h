@@ -27,26 +27,31 @@
 class TypeChecker : public Visitor
 {
 public:
-  Environment<std::shared_ptr<BirdType>> env;
-  Environment<std::shared_ptr<BirdFunction>> call_table;
+  UserErrorTracker &user_error_tracker;
 
-  Environment<std::shared_ptr<BirdType>> type_table;
+  std::shared_ptr<Namespace<std::shared_ptr<BirdType>,
+                            std::shared_ptr<BirdFunction>,
+                            std::shared_ptr<BirdType>>>
+      global_namespace;
+
+  std::shared_ptr<Namespace<std::shared_ptr<BirdType>,
+                            std::shared_ptr<BirdFunction>,
+                            std::shared_ptr<BirdType>>>
+      current_namespace;
 
   std::set<std::string> struct_names;
 
   Stack<std::shared_ptr<BirdType>> stack;
   std::optional<std::shared_ptr<BirdType>> return_type;
-  UserErrorTracker &user_error_tracker;
   TypeConverter type_converter;
 
   TypeChecker(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker),
-        type_converter(this->type_table, this->struct_names)
-  {
-    this->env.push_env();
-    this->call_table.push_env();
-    this->type_table.push_env();
-  }
+        global_namespace(std::make_shared<Namespace<std::shared_ptr<BirdType>,
+                                                    std::shared_ptr<BirdFunction>,
+                                                    std::shared_ptr<BirdType>>>(nullptr)),
+        current_namespace(global_namespace),
+        type_converter(current_namespace->type_table, struct_names) {}
 
   std::map<Token::Type, Token::Type> assign_to_binary_map = {
       {Token::Type::PLUS_EQUAL, Token::Type::PLUS},
@@ -157,14 +162,14 @@ public:
 
   void visit_block(Block *block)
   {
-    this->env.push_env();
+    this->current_namespace->environment.push_env();
 
     for (auto &stmt : block->stmts)
     {
       stmt->accept(this);
     }
 
-    this->env.pop_env();
+    this->current_namespace->environment.pop_env();
   }
 
   void visit_decl_stmt(DeclStmt *decl_stmt)
@@ -176,8 +181,8 @@ public:
     {
       this->user_error_tracker.type_error("cannot declare void type",
                                           decl_stmt->identifier);
-      this->env.declare(decl_stmt->identifier.lexeme,
-                        std::make_shared<ErrorType>());
+      this->current_namespace->environment.declare(decl_stmt->identifier.lexeme,
+                                                   std::make_shared<ErrorType>());
       return;
     }
 
@@ -190,30 +195,30 @@ public:
         this->user_error_tracker.type_mismatch(
             "in declaration", decl_stmt->type.value()->get_token());
 
-        this->env.declare(decl_stmt->identifier.lexeme,
-                          std::make_unique<ErrorType>());
+        this->current_namespace->environment.declare(decl_stmt->identifier.lexeme,
+                                                     std::make_unique<ErrorType>());
         return;
       }
     }
 
-    this->env.declare(decl_stmt->identifier.lexeme, result);
+    this->current_namespace->environment.declare(decl_stmt->identifier.lexeme, result);
   }
 
   void visit_assign_expr(AssignExpr *assign_expr)
   {
-    if (!this->env.contains(assign_expr->identifier.lexeme))
+    if (!this->current_namespace->environment.contains(assign_expr->identifier.lexeme))
     {
       this->user_error_tracker.type_error("identifier not declared",
                                           assign_expr->identifier);
-      this->env.set(assign_expr->identifier.lexeme,
-                    std::make_shared<ErrorType>());
+      this->current_namespace->environment.set(assign_expr->identifier.lexeme,
+                                               std::make_shared<ErrorType>());
       return;
     }
 
     assign_expr->value->accept(this);
     auto result = this->stack.pop();
 
-    auto previous = this->env.get(assign_expr->identifier.lexeme);
+    auto previous = this->current_namespace->environment.get(assign_expr->identifier.lexeme);
 
     if (assign_expr->assign_operator.token_type == Token::Type::EQUAL)
     {
@@ -221,14 +226,14 @@ public:
       {
         this->user_error_tracker.type_mismatch("in assignment",
                                                assign_expr->assign_operator);
-        this->env.set(assign_expr->identifier.lexeme,
-                      std::make_shared<ErrorType>());
+        this->current_namespace->environment.set(assign_expr->identifier.lexeme,
+                                                 std::make_shared<ErrorType>());
 
         this->stack.push(std::make_shared<ErrorType>());
         return;
       }
 
-      this->env.set(assign_expr->identifier.lexeme, result);
+      this->current_namespace->environment.set(assign_expr->identifier.lexeme, result);
 
       this->stack.push(result);
       return;
@@ -242,8 +247,8 @@ public:
     {
       this->user_error_tracker.type_mismatch("in assignment",
                                              assign_expr->assign_operator);
-      this->env.set(assign_expr->identifier.lexeme,
-                    std::make_shared<ErrorType>());
+      this->current_namespace->environment.set(assign_expr->identifier.lexeme,
+                                               std::make_shared<ErrorType>());
 
       this->stack.push(std::make_shared<ErrorType>());
       return;
@@ -252,7 +257,7 @@ public:
     auto new_type = type_map.at({previous->type, result->type});
 
     auto new_type_bird_type = bird_type_type_to_bird_type(new_type);
-    this->env.set(assign_expr->identifier.lexeme, new_type_bird_type);
+    this->current_namespace->environment.set(assign_expr->identifier.lexeme, new_type_bird_type);
 
     this->stack.push(new_type_bird_type);
   }
@@ -306,8 +311,8 @@ public:
     {
       this->user_error_tracker.type_error("cannot declare void type",
                                           const_stmt->identifier);
-      this->env.declare(const_stmt->identifier.lexeme,
-                        std::make_shared<ErrorType>());
+      this->current_namespace->environment.declare(const_stmt->identifier.lexeme,
+                                                   std::make_shared<ErrorType>());
       return;
     }
 
@@ -320,13 +325,13 @@ public:
       {
         this->user_error_tracker.type_mismatch(
             "in declaration", const_stmt->type.value()->get_token());
-        this->env.declare(const_stmt->identifier.lexeme,
-                          std::make_shared<ErrorType>());
+        this->current_namespace->environment.declare(const_stmt->identifier.lexeme,
+                                                     std::make_shared<ErrorType>());
         return;
       }
     }
 
-    this->env.declare(const_stmt->identifier.lexeme, result);
+    this->current_namespace->environment.declare(const_stmt->identifier.lexeme, result);
   }
 
   void visit_while_stmt(WhileStmt *while_stmt)
@@ -346,7 +351,7 @@ public:
 
   void visit_for_stmt(ForStmt *for_stmt)
   {
-    this->env.push_env();
+    this->current_namespace->environment.push_env();
 
     if (for_stmt->initializer.has_value())
     {
@@ -370,7 +375,7 @@ public:
       for_stmt->increment.value()->accept(this);
     }
 
-    this->env.pop_env();
+    this->current_namespace->environment.pop_env();
   }
 
   void visit_binary(Binary *binary)
@@ -489,7 +494,7 @@ public:
     }
     case Token::Type::IDENTIFIER:
     {
-      this->stack.push(this->env.get(primary->value.lexeme));
+      this->stack.push(this->current_namespace->environment.get(primary->value.lexeme));
       break;
     }
     default:
@@ -555,9 +560,9 @@ public:
     else
     {
       // type_name is not primitive
-      if (this->type_table.contains(type_name))
+      if (this->current_namespace->type_table.contains(type_name))
       {
-        return this->type_table.get(type_name);
+        return this->current_namespace->type_table.get(type_name);
       }
 
       if (this->struct_names.find(type_name) != this->struct_names.end())
@@ -586,13 +591,13 @@ public:
 
     std::shared_ptr<BirdFunction> bird_function =
         std::make_shared<BirdFunction>(params, ret);
-    this->call_table.declare(func->identifier.lexeme, bird_function);
-    this->env.push_env();
+    this->current_namespace->call_table.declare(func->identifier.lexeme, bird_function);
+    this->current_namespace->environment.push_env();
 
     for (auto &param : func->param_list)
     {
-      this->env.declare(param.first.lexeme,
-                        this->type_converter.convert(param.second));
+      this->current_namespace->environment.declare(param.first.lexeme,
+                                                   this->type_converter.convert(param.second));
     }
 
     for (auto &stmt : dynamic_cast<Block *>(func->block.get())
@@ -602,7 +607,7 @@ public:
     }
 
     this->return_type = previous_return_type;
-    this->env.pop_env();
+    this->current_namespace->environment.pop_env();
   }
 
   void visit_if_stmt(IfStmt *if_stmt)
@@ -626,7 +631,7 @@ public:
 
   void visit_call(Call *call)
   {
-    auto function = this->call_table.get(call->identifier.lexeme);
+    auto function = this->current_namespace->call_table.get(call->identifier.lexeme);
 
     for (int i = 0; i < function->params.size(); i++)
     {
@@ -703,14 +708,14 @@ public:
 
   void visit_type_stmt(TypeStmt *type_stmt)
   {
-    if (this->type_table.contains(type_stmt->identifier.lexeme))
+    if (this->current_namespace->type_table.contains(type_stmt->identifier.lexeme))
     {
       this->user_error_tracker.type_error("type already declared",
                                           type_stmt->identifier);
       return;
     }
 
-    this->type_table.declare(
+    this->current_namespace->type_table.declare(
         type_stmt->identifier.lexeme,
         this->type_converter.convert(type_stmt->type_token));
   }
@@ -768,7 +773,7 @@ public:
 
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
-    this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
+    this->current_namespace->type_table.declare(struct_decl->identifier.lexeme, struct_type);
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access)
@@ -792,7 +797,7 @@ public:
         return;
       }
 
-      accessable = this->type_table.get(placeholder->name);
+      accessable = this->current_namespace->type_table.get(placeholder->name);
     }
 
     if (accessable->type != BirdTypeType::STRUCT)
@@ -825,7 +830,7 @@ public:
   void
   visit_struct_initialization(StructInitialization *struct_initialization)
   {
-    if (!this->type_table.contains(struct_initialization->identifier.lexeme))
+    if (!this->current_namespace->type_table.contains(struct_initialization->identifier.lexeme))
     {
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
@@ -833,7 +838,7 @@ public:
       return;
     }
 
-    auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+    auto type = this->current_namespace->type_table.get(struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -888,7 +893,7 @@ public:
               return;
             }
 
-            field.second = this->type_table.get(placeholder->name);
+            field.second = this->current_namespace->type_table.get(placeholder->name);
           }
 
           if (field_type->type == BirdTypeType::PLACEHOLDER)
@@ -904,7 +909,7 @@ public:
               return;
             }
 
-            field_type = this->type_table.get(placeholder->name);
+            field_type = this->current_namespace->type_table.get(placeholder->name);
           }
 
           if (*field.second != *field_type)
@@ -1131,7 +1136,31 @@ public:
     this->stack.push(else_arm_type);
   }
 
-  void visit_namespace(NamespaceStmt *_namespace) {}
+  void visit_namespace(NamespaceStmt *_namespace)
+  {
+    auto name = _namespace->identifier.lexeme;
+
+    auto previous_namespace = this->current_namespace;
+
+    if (this->current_namespace->nested_namespaces.find(name) ==
+        this->current_namespace->nested_namespaces.end())
+    {
+      auto new_ns = std::make_shared<Namespace<std::shared_ptr<BirdType>,
+                                               std::shared_ptr<BirdFunction>,
+                                               std::shared_ptr<BirdType>>>(this->current_namespace);
+
+      this->current_namespace->nested_namespaces[name] = new_ns;
+    }
+
+    this->current_namespace = this->current_namespace->nested_namespaces[name];
+
+    for (auto &member : _namespace->members)
+    {
+      member->accept(this);
+    }
+
+    this->current_namespace = previous_namespace;
+  }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
 };
