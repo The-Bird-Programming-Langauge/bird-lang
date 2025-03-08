@@ -790,13 +790,18 @@ public:
     auto name = scope_resolution->_namespace.lexeme;
     auto previous_namespace = this->current_namespace;
 
-    auto ns = this->current_namespace.get()->nested_namespaces.find(name);
-    if (ns == this->current_namespace.get()->nested_namespaces.end())
+    while (this->current_namespace &&
+           this->current_namespace->nested_namespaces.find(name) == this->current_namespace->nested_namespaces.end())
     {
-      throw std::runtime_error("undefined namespace");
+      this->current_namespace = this->current_namespace->parent;
     }
 
-    this->current_namespace = ns->second;
+    if (!this->current_namespace)
+    {
+      throw std::runtime_error("undefined namespace: " + name);
+    }
+
+    this->current_namespace = this->current_namespace->nested_namespaces[name];
 
     scope_resolution->identifier->accept(this);
 

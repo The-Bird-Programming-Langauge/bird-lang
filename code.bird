@@ -22,15 +22,22 @@ namespace Math {
     }
 }
 
-print Math::x;
-print Math::y;
-print Math::z;
+namespace Calc {
+    var x: float = Math::p.x;
+}
 
-print Math::Trig::w;
+print "Math::x ", Math::x;
+print "Math::y ", Math::y;
+print "Math::z ", Math::z;
 
-print Math::arr[0];
-print Math::arr[1];
-print Math::arr[2];
+print "Math::Trig::w ", Math::Trig::w;
 
-print Math::p.x;
-print Math::p.y;
+print "Math::arr[0] ", Math::arr[0];
+print "Math::arr[1] ", Math::arr[1];
+print "Math::arr[2] ", Math::arr[2];
+
+print "Math::p.x ", Math::p.x;
+print "Math::p.y ", Math::p.y;
+
+
+print "Calc::x ", Calc::x;
