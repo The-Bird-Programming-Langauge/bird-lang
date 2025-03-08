@@ -321,7 +321,7 @@ namespace_declaration_stmt:
 scope_resolution:
     IDENTIFIER SCOPE IDENTIFIER %prec SCOPE_RESOLUTION_EXPR
     { $$ = std::make_unique<ScopeResolutionExpr>($1, std::make_unique<Primary>($3)); }
-  | IDENTIFIER SCOPE scope_resolution
+   | IDENTIFIER SCOPE scope_resolution
     { $$ = std::make_unique<ScopeResolutionExpr>($1, std::move($3)); }
 
 struct_decl:

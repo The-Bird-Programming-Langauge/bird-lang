@@ -1,16 +1,27 @@
 namespace Math {
-    var x: int = 0;
+    var x: str = "math rules!";
+    var y: int = 42;
+    var z: float = 3.14;
     const arr = [ 1, 2, 3 ];
 
-    struct Person {
-        name: str,
-        age: int
+    struct point {
+        x: float,
+        y: float
     };
     namespace Trig {
-        fn sin(x: float) -> float {
+        var w: float = 1.41;
+        fn sin() -> float {
             return 0.7071;
         }
     }
 }
 
 print Math::x;
+print Math::y;
+print Math::z;
+
+print Math::Trig::w;
+
+print Math::arr[0];
+print Math::arr[1];
+print Math::arr[2];

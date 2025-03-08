@@ -771,5 +771,21 @@ public:
     this->current_namespace = previous_namespace;
   }
 
-  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution)
+  {
+    auto name = scope_resolution->_namespace.lexeme;
+    auto previous_namespace = this->current_namespace;
+
+    auto ns = this->current_namespace.get()->nested_namespaces.find(name);
+    if (ns == this->current_namespace.get()->nested_namespaces.end())
+    {
+      throw std::runtime_error("undefined namespace");
+    }
+
+    this->current_namespace = ns->second;
+
+    scope_resolution->identifier->accept(this);
+
+    this->current_namespace = previous_namespace;
+  }
 };

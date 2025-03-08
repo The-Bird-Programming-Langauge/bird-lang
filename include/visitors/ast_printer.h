@@ -353,5 +353,9 @@ public:
     std::cout << "}";
   }
 
-  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution)
+  {
+    std::cout << scope_resolution->_namespace.lexeme << "::";
+    scope_resolution->identifier->accept(this);
+  }
 };

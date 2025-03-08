@@ -391,7 +391,46 @@ public:
     match_expr->else_arm->accept(this);
   }
 
-  void visit_namespace(NamespaceStmt *_namespace) {}
+  void visit_namespace(NamespaceStmt *_namespace)
+  {
+    auto name = _namespace->identifier.lexeme;
 
-  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
+    auto previous_namespace = this->current_namespace;
+
+    if (this->current_namespace->nested_namespaces.find(name) ==
+        this->current_namespace->nested_namespaces.end())
+    {
+      auto new_ns = std::make_shared<Namespace<SemanticValue, SemanticCallable, SemanticType>>(this->current_namespace);
+
+      this->current_namespace->nested_namespaces[name] = new_ns;
+    }
+
+    this->current_namespace = this->current_namespace->nested_namespaces[name];
+
+    for (auto &member : _namespace->members)
+    {
+      member->accept(this);
+    }
+
+    this->current_namespace = previous_namespace;
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution)
+  {
+    auto name = scope_resolution->_namespace.lexeme;
+    auto previous_namespace = this->current_namespace;
+
+    auto ns = this->current_namespace.get()->nested_namespaces.find(name);
+    if (ns == this->current_namespace.get()->nested_namespaces.end())
+    {
+      user_error_tracker.semantic_error("namespace '" + name + "' not found.", scope_resolution->_namespace);
+      return;
+    }
+
+    this->current_namespace = ns->second;
+
+    scope_resolution->identifier->accept(this);
+
+    this->current_namespace = previous_namespace;
+  }
 };
