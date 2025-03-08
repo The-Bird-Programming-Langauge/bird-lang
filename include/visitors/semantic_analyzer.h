@@ -348,8 +348,7 @@ public:
     direct_member_access->accessable->accept(this);
   }
 
-  void
-  visit_struct_initialization(StructInitialization *struct_initialization)
+  void visit_struct_initialization(StructInitialization *struct_initialization)
   {
     for (auto &field_assignment : struct_initialization->field_assignments)
     {

@@ -1,13 +1,19 @@
+struct Point {
+    x: float,
+    y: float
+};
+
 namespace Math {
     var x: str = "math rules!";
     var y: int = 42;
     var z: float = 3.14;
     const arr = [ 1, 2, 3 ];
-
-    struct point {
-        x: float,
-        y: float
+    
+    var p: Point = Point {
+        x = 1.2,
+        y = 3.3
     };
+
     namespace Trig {
         var w: float = 1.41;
         fn sin() -> float {
@@ -25,3 +31,6 @@ print Math::Trig::w;
 print Math::arr[0];
 print Math::arr[1];
 print Math::arr[2];
+
+print Math::p.x;
+print Math::p.y;

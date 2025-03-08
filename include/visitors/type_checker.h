@@ -827,10 +827,16 @@ public:
     return;
   }
 
-  void
-  visit_struct_initialization(StructInitialization *struct_initialization)
+  void visit_struct_initialization(StructInitialization *struct_initialization)
   {
-    if (!this->current_namespace->type_table.contains(struct_initialization->identifier.lexeme))
+    auto previous_ns = this->current_namespace;
+
+    while (this->current_namespace && !this->current_namespace->type_table.contains(struct_initialization->identifier.lexeme))
+    {
+      this->current_namespace = this->current_namespace->parent;
+    }
+
+    if (!this->current_namespace)
     {
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
@@ -924,6 +930,8 @@ public:
         }
       }
     }
+
+    this->current_namespace = previous_ns;
 
     this->stack.push(type);
   }

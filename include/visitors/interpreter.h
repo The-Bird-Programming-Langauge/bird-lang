@@ -580,11 +580,23 @@ public:
     }
   }
 
-  void
-  visit_struct_initialization(StructInitialization *struct_initialization)
+  void visit_struct_initialization(StructInitialization *struct_initialization)
   {
     std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance =
         std::make_shared<std::unordered_map<std::string, Value>>();
+
+    auto previous_ns = this->current_namespace;
+
+    while (this->current_namespace && !this->current_namespace->type_table.contains(struct_initialization->identifier.lexeme))
+    {
+      this->current_namespace = this->current_namespace->parent;
+    }
+
+    if (!this->current_namespace)
+    {
+      throw std::runtime_error("cannot find struct type");
+    }
+
     auto type = this->current_namespace->type_table.get(struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
@@ -637,6 +649,8 @@ public:
         }
       }
     }
+
+    this->current_namespace = previous_ns;
 
     this->stack.push(Value(struct_instance));
   }
