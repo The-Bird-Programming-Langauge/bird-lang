@@ -51,4 +51,6 @@ public:
   void visit_match_expr(MatchExpr *match_expr) {}
 
   void visit_namespace(NamespaceStmt *_namespace) {}
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
 };

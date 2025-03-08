@@ -10,7 +10,8 @@ class Stmt;
 class Expr;
 class Interpreter;
 
-class Callable {
+class Callable
+{
 public:
   std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> param_list;
   std::shared_ptr<Stmt> block;
@@ -30,7 +31,8 @@ public:
   void call(Interpreter *Interpreter, std::vector<std::shared_ptr<Expr>> args);
 };
 
-struct SemanticCallable {
+struct SemanticCallable
+{
   int param_count;
 
   SemanticCallable(int param_count) : param_count(param_count) {}

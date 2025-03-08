@@ -1,6 +1,7 @@
 #include "../helpers/compile_helper.hpp"
 
-TEST(ForLoopTest, ScopedForLoopIncrement) {
+TEST(ForLoopTest, ScopedForLoopIncrement)
+{
   BirdTest::TestOptions options;
   options.code = "var x = 0;"
                  "{"
@@ -10,13 +11,15 @@ TEST(ForLoopTest, ScopedForLoopIncrement) {
                  "}"
                  "print x;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    EXPECT_EQ(as_type<int>(interpreter.env.get("x")), 5);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    EXPECT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 5);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &code_gen) {
+  options.after_compile = [&](std::string &output, CodeGen &code_gen)
+  {
     ASSERT_TRUE(output.find("5") != std::string::npos);
   };
 

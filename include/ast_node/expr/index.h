@@ -15,3 +15,4 @@
 #include "subscript.h"
 #include "ternary.h"
 #include "unary.h"
+#include "scope_resolution_expr.h"

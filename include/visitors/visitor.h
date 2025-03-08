@@ -30,6 +30,7 @@ class ArrayInit;
 class IndexAssign;
 class MatchExpr;
 class NamespaceStmt;
+class ScopeResolutionExpr;
 
 /*
  * the interface for all visitors,
@@ -68,4 +69,5 @@ public:
   virtual void visit_index_assign(IndexAssign *) = 0;
   virtual void visit_match_expr(MatchExpr *) = 0;
   virtual void visit_namespace(NamespaceStmt *) = 0;
+  virtual void visit_scope_resolution(ScopeResolutionExpr *) = 0;
 };

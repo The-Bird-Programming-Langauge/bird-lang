@@ -352,4 +352,6 @@ public:
 
     std::cout << "}";
   }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
 };

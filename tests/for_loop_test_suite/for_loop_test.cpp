@@ -1,6 +1,7 @@
 #include "../helpers/compile_helper.hpp"
 
-TEST(ForLoopTest, ForLoopIncrement) {
+TEST(ForLoopTest, ForLoopIncrement)
+{
   BirdTest::TestOptions options;
   options.code = "var z = 0;"
                  "for var x: int = 0; x <= 5; x += 1 {"
@@ -10,16 +11,18 @@ TEST(ForLoopTest, ForLoopIncrement) {
 
   options.compile = false;
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("z"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("z")));
-    EXPECT_EQ(as_type<int>(interpreter.env.get("z")), 5);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("z"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("z")));
+    EXPECT_EQ(as_type<int>(interpreter.current_namespace->environment.get("z")), 5);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ForLoopTest, BreakOutsideLoop) {
+TEST(ForLoopTest, BreakOutsideLoop)
+{
   BirdTest::TestOptions options;
   options.code = "break;";
 
@@ -27,7 +30,8 @@ TEST(ForLoopTest, BreakOutsideLoop) {
   options.interpret = false;
 
   options.after_semantic_analyze = [&](UserErrorTracker &error_tracker,
-                                       SemanticAnalyzer &analyzer) {
+                                       SemanticAnalyzer &analyzer)
+  {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
@@ -40,7 +44,8 @@ TEST(ForLoopTest, BreakOutsideLoop) {
   ASSERT_FALSE(BirdTest::compile(options));
 }
 
-TEST(ForLoopTest, ContinueOutsideLoop) {
+TEST(ForLoopTest, ContinueOutsideLoop)
+{
   BirdTest::TestOptions options;
   options.code = "continue;";
 
@@ -48,7 +53,8 @@ TEST(ForLoopTest, ContinueOutsideLoop) {
   options.interpret = false;
 
   options.after_semantic_analyze = [&](UserErrorTracker &error_tracker,
-                                       SemanticAnalyzer &analyzer) {
+                                       SemanticAnalyzer &analyzer)
+  {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
@@ -61,7 +67,8 @@ TEST(ForLoopTest, ContinueOutsideLoop) {
   ASSERT_FALSE(BirdTest::compile(options));
 }
 
-TEST(ForLoopTest, ForLoopBreak) {
+TEST(ForLoopTest, ForLoopBreak)
+{
   BirdTest::TestOptions options;
   options.code = "var z = 0;"
                  "for var x: int = 0; x <= 5; x += 1 {"
@@ -74,13 +81,15 @@ TEST(ForLoopTest, ForLoopBreak) {
 
   options.compile = false;
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("z"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("z")));
-    EXPECT_EQ(as_type<int>(interpreter.env.get("z")), 2);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("z"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("z")));
+    EXPECT_EQ(as_type<int>(interpreter.current_namespace->environment.get("z")), 2);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &code_gen) {
+  options.after_compile = [&](std::string &output, CodeGen &code_gen)
+  {
     ASSERT_TRUE(output.find("2") != std::string::npos);
     ASSERT_TRUE(output.find("3") == std::string::npos);
   };
@@ -88,7 +97,8 @@ TEST(ForLoopTest, ForLoopBreak) {
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ForLoopTest, ForLoopContinue) {
+TEST(ForLoopTest, ForLoopContinue)
+{
   BirdTest::TestOptions options;
   options.code = "var z = 0;"
                  "for var x: int = 0; x < 5; x += 1 {"
@@ -100,13 +110,15 @@ TEST(ForLoopTest, ForLoopContinue) {
 
   options.compile = false;
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("z"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("z")));
-    EXPECT_EQ(as_type<int>(interpreter.env.get("z")), 3);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("z"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("z")));
+    EXPECT_EQ(as_type<int>(interpreter.current_namespace->environment.get("z")), 3);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &code_gen) {
+  options.after_compile = [&](std::string &output, CodeGen &code_gen)
+  {
     ASSERT_TRUE(output.find("0") != std::string::npos);
     ASSERT_TRUE(output.find("1") != std::string::npos);
     ASSERT_TRUE(output.find("2") != std::string::npos);
@@ -117,7 +129,8 @@ TEST(ForLoopTest, ForLoopContinue) {
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ForLoopTest, EmptyForLoop) {
+TEST(ForLoopTest, EmptyForLoop)
+{
   BirdTest::TestOptions options;
   options.code = "var x = 0;"
                  "for ; ; {"
@@ -130,13 +143,15 @@ TEST(ForLoopTest, EmptyForLoop) {
 
   options.compile = false;
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    EXPECT_EQ(as_type<int>(interpreter.env.get("x")), 5);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    EXPECT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 5);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &code_gen) {
+  options.after_compile = [&](std::string &output, CodeGen &code_gen)
+  {
     ASSERT_TRUE(output.find("1") != std::string::npos);
     ASSERT_TRUE(output.find("2") != std::string::npos);
     ASSERT_TRUE(output.find("3") != std::string::npos);
@@ -147,7 +162,8 @@ TEST(ForLoopTest, EmptyForLoop) {
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(ForLoopTest, FalseForLoop) {
+TEST(ForLoopTest, FalseForLoop)
+{
   BirdTest::TestOptions options;
   options.code = "var x = 0;"
                  "for ; false; {"
@@ -155,13 +171,15 @@ TEST(ForLoopTest, FalseForLoop) {
                  "    print x;"
                  "}";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    EXPECT_EQ(as_type<int>(interpreter.env.get("x")), 0);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    EXPECT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 0);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &code_gen) {
+  options.after_compile = [&](std::string &output, CodeGen &code_gen)
+  {
     ASSERT_EQ(output, "\n");
   };
 

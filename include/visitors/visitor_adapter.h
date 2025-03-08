@@ -33,4 +33,5 @@ public:
   void visit_index_assign(IndexAssign *) override {}
   void visit_match_expr(MatchExpr *) override {}
   void visit_namespace(NamespaceStmt *) override {}
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) override {}
 };

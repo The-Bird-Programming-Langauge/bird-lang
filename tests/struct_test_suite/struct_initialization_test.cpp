@@ -3,11 +3,12 @@
 #define STRUCT_TYPE std::shared_ptr<std::unordered_map<std::string, Value>>
 #define ARRAY_TYPE std::shared_ptr<std::vector<Value>>
 
-static void struct_init_helper(Interpreter &interpreter) {
-  ASSERT_TRUE(interpreter.env.contains("p"));
-  bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("p"));
+static void struct_init_helper(Interpreter &interpreter)
+{
+  ASSERT_TRUE(interpreter.current_namespace->environment.contains("p"));
+  bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("p"));
   ASSERT_TRUE(is_correct_type);
-  auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("p"));
+  auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("p"));
   ASSERT_TRUE(instance->find("x") != instance->end());
   ASSERT_TRUE(instance->find("y") != instance->end());
 
@@ -18,7 +19,8 @@ static void struct_init_helper(Interpreter &interpreter) {
   ASSERT_EQ(as_type<int>((*instance)["y"]), 2);
 }
 
-TEST(StructTest, VarStructInitializationTest) {
+TEST(StructTest, VarStructInitializationTest)
+{
   BirdTest::TestOptions options;
   options.code = "struct Point { x: int, y: int };"
                  "var p = Point { x = 1, y = 2 };"
@@ -27,14 +29,16 @@ TEST(StructTest, VarStructInitializationTest) {
 
   options.after_interpret = struct_init_helper;
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, ConstStructInitializationTest) {
+TEST(StructTest, ConstStructInitializationTest)
+{
   BirdTest::TestOptions options;
   options.code = "struct Point { x: int, y: int };"
                  "const p = Point { x = 1, y = 2 };"
@@ -43,14 +47,16 @@ TEST(StructTest, ConstStructInitializationTest) {
 
   options.after_interpret = struct_init_helper;
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, FunctionStructInitializationTest) {
+TEST(StructTest, FunctionStructInitializationTest)
+{
   BirdTest::TestOptions options;
   options.code = "struct Point { x: int, y: int };"
                  "fn get_point() -> Point { return Point { x = 1, y = 2 }; }"
@@ -60,14 +66,16 @@ TEST(StructTest, FunctionStructInitializationTest) {
 
   options.after_interpret = struct_init_helper;
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, AllPrimitiveTypesStructInitialization) {
+TEST(StructTest, AllPrimitiveTypesStructInitialization)
+{
   BirdTest::TestOptions options;
   options.code = "struct Test { a: int, b: float, c: str, d: bool };"
                  "var t = Test { a = 1, b = 2.0, c = \"hello\", d = true };"
@@ -76,11 +84,12 @@ TEST(StructTest, AllPrimitiveTypesStructInitialization) {
                  "print t.c;"
                  "print t.d;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("t"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("t"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("t"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("t"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(instance->find("a") != instance->end());
     ASSERT_TRUE(instance->find("b") != instance->end());
     ASSERT_TRUE(instance->find("c") != instance->end());
@@ -97,14 +106,16 @@ TEST(StructTest, AllPrimitiveTypesStructInitialization) {
     ASSERT_EQ(as_type<bool>((*instance)["d"]), true);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, HoistedStructInitialization) {
+TEST(StructTest, HoistedStructInitialization)
+{
   BirdTest::TestOptions options;
   options.code = "var t = Test { a = 1, b = 2.0, c = \"hello\", d = true };"
                  "print t.a;"
@@ -113,11 +124,12 @@ TEST(StructTest, HoistedStructInitialization) {
                  "print t.d;"
                  "struct Test { a: int, b: float, c: str, d: bool };";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("t"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("t"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("t"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("t"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(instance->find("a") != instance->end());
     ASSERT_TRUE(instance->find("b") != instance->end());
     ASSERT_TRUE(instance->find("c") != instance->end());
@@ -134,14 +146,16 @@ TEST(StructTest, HoistedStructInitialization) {
     ASSERT_EQ(as_type<bool>((*instance)["d"]), true);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, ParamsOutOfOrderStructInitialization) {
+TEST(StructTest, ParamsOutOfOrderStructInitialization)
+{
   BirdTest::TestOptions options;
   options.code = "struct Test { a: int, b: float, c: str, d: bool };"
                  "var t = Test { b = 2.0, a = 1, d = true, c = \"hello\" };"
@@ -150,11 +164,12 @@ TEST(StructTest, ParamsOutOfOrderStructInitialization) {
                  "print t.c;"
                  "print t.d;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("t"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("t"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("t"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("t"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(instance->find("a") != instance->end());
     ASSERT_TRUE(instance->find("b") != instance->end());
     ASSERT_TRUE(instance->find("c") != instance->end());
@@ -171,14 +186,16 @@ TEST(StructTest, ParamsOutOfOrderStructInitialization) {
     ASSERT_EQ(as_type<bool>((*instance)["d"]), true);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, NoParamsStructInitialization) {
+TEST(StructTest, NoParamsStructInitialization)
+{
   BirdTest::TestOptions options;
   options.code = "struct Test { a: int, b: float, c: str, d: bool };"
                  "var t = Test {};"
@@ -187,11 +204,12 @@ TEST(StructTest, NoParamsStructInitialization) {
                  "print t.c;"
                  "print t.d;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("t"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("t"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("t"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("t"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(instance->find("a") != instance->end());
     ASSERT_TRUE(instance->find("b") != instance->end());
     ASSERT_TRUE(instance->find("c") != instance->end());
@@ -208,14 +226,16 @@ TEST(StructTest, NoParamsStructInitialization) {
     ASSERT_EQ(as_type<bool>((*instance)["d"]), false);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "0\n0\n\nfalse\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, MultipleStructInitialization) {
+TEST(StructTest, MultipleStructInitialization)
+{
   BirdTest::TestOptions options;
   options.code =
       "struct Test { a: int, b: float, c: str, d: bool };"
@@ -230,11 +250,12 @@ TEST(StructTest, MultipleStructInitialization) {
       "print second.c;"
       "print second.d;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("first"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("first"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("first"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("first"));
     ASSERT_TRUE(is_correct_type);
-    auto first_instance = as_type<STRUCT_TYPE>(interpreter.env.get("first"));
+    auto first_instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("first"));
     ASSERT_TRUE(first_instance->find("a") != first_instance->end());
     ASSERT_TRUE(first_instance->find("b") != first_instance->end());
     ASSERT_TRUE(first_instance->find("c") != first_instance->end());
@@ -250,10 +271,10 @@ TEST(StructTest, MultipleStructInitialization) {
     ASSERT_EQ(as_type<std::string>((*first_instance)["c"]), "hello");
     ASSERT_EQ(as_type<bool>((*first_instance)["d"]), true);
 
-    ASSERT_TRUE(interpreter.env.contains("second"));
-    is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("second"));
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("second"));
+    is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("second"));
     ASSERT_TRUE(is_correct_type);
-    auto second_instance = as_type<STRUCT_TYPE>(interpreter.env.get("second"));
+    auto second_instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("second"));
 
     ASSERT_TRUE(second_instance->find("a") != second_instance->end());
     ASSERT_TRUE(second_instance->find("b") != second_instance->end());
@@ -276,7 +297,8 @@ TEST(StructTest, MultipleStructInitialization) {
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, SomeParamsStructInitialization) {
+TEST(StructTest, SomeParamsStructInitialization)
+{
   BirdTest::TestOptions options;
   options.code = "struct Test { a: int, b: float, c: str, d: bool };"
                  "var t = Test { a = 1, c = \"hello\" };"
@@ -285,11 +307,12 @@ TEST(StructTest, SomeParamsStructInitialization) {
                  "print t.c;"
                  "print t.d;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("t"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("t"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("t"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("t"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("t"));
     ASSERT_TRUE(instance->find("a") != instance->end());
     ASSERT_TRUE(instance->find("b") != instance->end());
     ASSERT_TRUE(instance->find("c") != instance->end());
@@ -306,14 +329,16 @@ TEST(StructTest, SomeParamsStructInitialization) {
     ASSERT_EQ(as_type<bool>((*instance)["d"]), false);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n0\nhello\nfalse\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, NestedStructInitialization) {
+TEST(StructTest, NestedStructInitialization)
+{
   BirdTest::TestOptions options;
   options.code = "struct Point { x: int, y: int };"
                  "struct Line { start: Point, end: Point };"
@@ -324,11 +349,12 @@ TEST(StructTest, NestedStructInitialization) {
                  "print l.end.x;"
                  "print l.end.y;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("l"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("l"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("l"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("l"));
     ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("l"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("l"));
     ASSERT_TRUE(instance->find("start") != instance->end());
     ASSERT_TRUE(instance->find("end") != instance->end());
 
@@ -351,7 +377,8 @@ TEST(StructTest, NestedStructInitialization) {
     ASSERT_EQ(as_type<int>((*end_instance)["y"]), 4);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\n3\n4\n\n", true);
   };
 
@@ -359,7 +386,8 @@ TEST(StructTest, NestedStructInitialization) {
 }
 
 // TODO: fix segfault
-TEST(StructTest, AliasStructInitialization) {
+TEST(StructTest, AliasStructInitialization)
+{
   BirdTest::TestOptions options;
   options.code = "struct Point { x: int, y: int };"
                  "type P = Point;"
@@ -367,11 +395,12 @@ TEST(StructTest, AliasStructInitialization) {
                  "print p.x;"
                  "print p.y;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("p"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("p"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("p"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("p"));
     ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("p"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("p"));
     ASSERT_TRUE(instance->find("x") != instance->end());
     ASSERT_TRUE(instance->find("y") != instance->end());
 
@@ -382,25 +411,28 @@ TEST(StructTest, AliasStructInitialization) {
     ASSERT_EQ(as_type<int>((*instance)["y"]), 2);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, StructRecursiveInitialization) {
+TEST(StructTest, StructRecursiveInitialization)
+{
   BirdTest::TestOptions options;
   options.code = "struct A { b: B };"
                  "struct B { a: A };"
                  "var a = A { b = B { a = A {} } };"
                  "print a.b.a.b?;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("a"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("a"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("a"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("a"));
     ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("a"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("a"));
     ASSERT_TRUE(instance->find("b") != instance->end());
 
     auto b_instance = as_type<STRUCT_TYPE>((*instance)["b"]);
@@ -412,20 +444,23 @@ TEST(StructTest, StructRecursiveInitialization) {
     ASSERT_TRUE(is_type<std::nullptr_t>((*a_instance)["b"]));
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "false\n\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, StructWithAdditionalField) {
+TEST(StructTest, StructWithAdditionalField)
+{
   BirdTest::TestOptions options;
   options.code = "struct Point { x: int, y: int };"
                  "var p = Point { x = 1, y = 2, z = 3 };";
 
   options.after_type_check = [&](UserErrorTracker error_tracker,
-                                 TypeChecker &checker) {
+                                 TypeChecker &checker)
+  {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
@@ -437,7 +472,8 @@ TEST(StructTest, StructWithAdditionalField) {
   ASSERT_FALSE(BirdTest::compile(options));
 }
 
-TEST(StructTest, StructWithArrayField) {
+TEST(StructTest, StructWithArrayField)
+{
   BirdTest::TestOptions options;
   options.code = "struct A {"
                  "    a: int[]"
@@ -451,12 +487,13 @@ TEST(StructTest, StructWithArrayField) {
                  "print b.a[1];"
                  "print b.a[2];";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("b"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("b"));
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("b"));
+    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("b"));
     ASSERT_TRUE(is_correct_type);
 
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("b"));
+    auto instance = as_type<STRUCT_TYPE>(interpreter.current_namespace->environment.get("b"));
     ASSERT_TRUE(is_type<ARRAY_TYPE>((*instance)["a"]));
 
     auto array_instance = as_type<ARRAY_TYPE>((*instance)["a"]);
@@ -464,12 +501,14 @@ TEST(StructTest, StructWithArrayField) {
 
     std::vector<int> expected = {1, 2, 3};
 
-    for (int i = 0; i < array_instance->size(); i++) {
+    for (int i = 0; i < array_instance->size(); i++)
+    {
       ASSERT_EQ(as_type<int>((*array_instance)[i]), expected[i]);
     }
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "1\n2\n3\n\n", true);
   };
 

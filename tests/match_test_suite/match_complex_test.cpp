@@ -1,6 +1,7 @@
 #include "../helpers/compile_helper.hpp"
 
-TEST(MatchTest, NestedMatch) {
+TEST(MatchTest, NestedMatch)
+{
   BirdTest::TestOptions options;
   options.code = "var x = match 1 {"
                  "  1 => match 2 {"
@@ -11,20 +12,23 @@ TEST(MatchTest, NestedMatch) {
                  "};"
                  "print x;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 1);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 1);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "1\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(MatchTest, ReturnMatch) {
+TEST(MatchTest, ReturnMatch)
+{
   BirdTest::TestOptions options;
   options.code = "fn foo() -> int {"
                  "  return match 1 {"
@@ -35,20 +39,23 @@ TEST(MatchTest, ReturnMatch) {
                  "var x = foo();"
                  "print x;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 1);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 1);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "1\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(MatchTest, VoidMatch) {
+TEST(MatchTest, VoidMatch)
+{
   BirdTest::TestOptions options;
   options.code = "  match 1 {"
                  "    1 => print 1,"
@@ -57,7 +64,8 @@ TEST(MatchTest, VoidMatch) {
   ASSERT_FALSE(BirdTest::compile(options));
 }
 
-TEST(MatchTest, MatchInParams) {
+TEST(MatchTest, MatchInParams)
+{
   BirdTest::TestOptions options;
   options.code = "fn foo(x: int) -> int {"
                  "  return x;"
@@ -69,20 +77,23 @@ TEST(MatchTest, MatchInParams) {
                  "print x;";
   ;
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 1);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 1);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "1\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(MatchTest, MatchWithSideEffects) {
+TEST(MatchTest, MatchWithSideEffects)
+{
   BirdTest::TestOptions options;
   options.code = "var x = 0;"
                  "match 1 {"
@@ -91,20 +102,23 @@ TEST(MatchTest, MatchWithSideEffects) {
                  "};"
                  "print x;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 1);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 1);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "1\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(MatchTest, MatchWithStruct) {
+TEST(MatchTest, MatchWithStruct)
+{
   BirdTest::TestOptions options;
   options.code = "struct Foo {"
                  "  x: int"
@@ -115,20 +129,23 @@ TEST(MatchTest, MatchWithStruct) {
                  "}.x;"
                  "print x;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 1);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 1);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "1\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(MatchTest, MatchElse) {
+TEST(MatchTest, MatchElse)
+{
   BirdTest::TestOptions options;
   options.code = "var x = match 1 {"
                  "  2 => 1,"
@@ -136,13 +153,15 @@ TEST(MatchTest, MatchElse) {
                  "};"
                  "print x;";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 2);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 2);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "2\n\n");
   };
 

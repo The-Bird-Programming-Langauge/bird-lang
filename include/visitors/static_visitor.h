@@ -158,4 +158,6 @@ public:
   }
 
   void visit_namespace(NamespaceStmt *_namespace) {}
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
 };

@@ -12,12 +12,12 @@ TEST(IndexAssignTests, IndexAssignWithTypeInt)
 
   options.after_interpret = [&](Interpreter &interpreter)
   {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->size(), 1);
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x"))->size(), 1);
 
     ASSERT_EQ(
-        as_type<int>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(0)),
+        as_type<int>(as_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x"))->at(0)),
         1);
   };
   options.after_compile = [&](std::string &output, CodeGen &codegen)
@@ -37,12 +37,12 @@ TEST(IndexAssignTests, IndexAssignWithTypeStr)
 
   options.after_interpret = [&](Interpreter &interpreter)
   {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->size(), 3);
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x"))->size(), 3);
 
     ASSERT_EQ(
-        as_type<std::string>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(0)),
+        as_type<std::string>(as_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x"))->at(0)),
         "Goodbye");
   };
 
@@ -63,12 +63,12 @@ TEST(IndexAssignTests, IndexAssignWithTypeFloat)
 
   options.after_interpret = [&](Interpreter &interpreter)
   {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->size(), 1);
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x"))->size(), 1);
 
     ASSERT_EQ(
-        as_type<double>(as_type<ARRAY_TYPE>(interpreter.env.get("x"))->at(0)),
+        as_type<double>(as_type<ARRAY_TYPE>(interpreter.current_namespace->environment.get("x"))->at(0)),
         3.14);
   };
 

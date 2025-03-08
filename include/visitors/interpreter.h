@@ -6,6 +6,7 @@
 #include <set>
 #include <variant>
 #include <vector>
+#include <list>
 
 #include "../ast_node/index.h"
 #include "hoist_visitor.h"
@@ -22,6 +23,24 @@
 #include "../type_converter.h"
 #include "../value.h"
 
+template <typename T, typename U, typename V>
+struct Namespace
+{
+  Environment<T> environment;
+  Environment<U> call_table;
+  Environment<V> type_table;
+
+  std::shared_ptr<Namespace> parent = nullptr; // allows for backtracking to higher namespaces
+  std::unordered_map<std::string, std::shared_ptr<Namespace>> nested_namespaces;
+
+  Namespace(std::shared_ptr<Namespace> parent_ns) : parent(parent_ns)
+  {
+    environment.push_env();
+    call_table.push_env();
+    type_table.push_env();
+  }
+};
+
 /*
  * Visitor that interprets and evaluates the AST
  */
@@ -29,19 +48,17 @@ class Interpreter : public Visitor
 {
 
 public:
-  Environment<Value> env;
-  Environment<Callable> call_table;
-  Environment<std::shared_ptr<BirdType>> type_table;
+  std::shared_ptr<Namespace<Value, Callable, std::shared_ptr<BirdType>>> global_namespace;
+  std::shared_ptr<Namespace<Value, Callable, std::shared_ptr<BirdType>>> current_namespace;
+
   Stack<Value> stack;
   std::set<std::string> struct_names;
   TypeConverter type_converter;
 
-  Interpreter() : type_converter(this->type_table, this->struct_names)
-  {
-    this->env.push_env();
-    this->call_table.push_env();
-    this->type_table.push_env();
-  }
+  Interpreter()
+      : global_namespace(std::make_shared<Namespace<Value, Callable, std::shared_ptr<BirdType>>>(nullptr)),
+        current_namespace(global_namespace),
+        type_converter(current_namespace->type_table, struct_names) {}
 
   void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts)
   {
@@ -61,13 +78,13 @@ public:
 
   void visit_block(Block *block)
   {
-    this->env.push_env();
+    this->current_namespace->environment.push_env();
     for (auto &stmt : block->stmts)
     {
       stmt->accept(this);
     }
 
-    this->env.pop_env();
+    this->current_namespace->environment.pop_env();
   }
 
   void visit_decl_stmt(DeclStmt *decl_stmt)
@@ -77,12 +94,12 @@ public:
     auto result = std::move(this->stack.pop());
     result.is_mutable = true;
 
-    this->env.declare(decl_stmt->identifier.lexeme, std::move(result));
+    this->current_namespace->environment.declare(decl_stmt->identifier.lexeme, std::move(result));
   }
 
   void visit_assign_expr(AssignExpr *assign_expr)
   {
-    auto previous_value = this->env.get(assign_expr->identifier.lexeme);
+    auto previous_value = this->current_namespace->environment.get(assign_expr->identifier.lexeme);
 
     assign_expr->value->accept(this);
     auto value = std::move(this->stack.pop());
@@ -124,7 +141,7 @@ public:
                                assign_expr->assign_operator.lexeme);
     }
 
-    this->env.set(assign_expr->identifier.lexeme, previous_value);
+    this->current_namespace->environment.set(assign_expr->identifier.lexeme, previous_value);
   }
 
   void visit_expr_stmt(ExprStmt *expr_stmt) { expr_stmt->expr->accept(this); }
@@ -154,7 +171,7 @@ public:
 
     auto result = std::move(this->stack.pop());
 
-    this->env.declare(const_stmt->identifier.lexeme, std::move(result));
+    this->current_namespace->environment.declare(const_stmt->identifier.lexeme, std::move(result));
   }
 
   void visit_while_stmt(WhileStmt *while_stmt)
@@ -162,7 +179,7 @@ public:
     while_stmt->condition->accept(this);
     auto condition_result = std::move(this->stack.pop());
 
-    auto num_envs = this->env.envs.size();
+    auto num_envs = this->current_namespace->environment.envs.size();
 
     while (as_type<bool>(condition_result))
     {
@@ -172,20 +189,20 @@ public:
       }
       catch (BreakException e)
       {
-        auto previous_size = this->env.envs.size();
+        auto previous_size = this->current_namespace->environment.envs.size();
         for (int i = 0; i < previous_size - num_envs; i++)
         {
-          this->env.pop_env();
+          this->current_namespace->environment.pop_env();
         }
 
         break;
       }
       catch (ContinueException e)
       {
-        auto previous_size = this->env.envs.size();
+        auto previous_size = this->current_namespace->environment.envs.size();
         for (int i = 0; i < previous_size - num_envs; i++)
         {
-          this->env.pop_env();
+          this->current_namespace->environment.pop_env();
         }
 
         while_stmt->condition->accept(this);
@@ -200,14 +217,14 @@ public:
 
   void visit_for_stmt(ForStmt *for_stmt)
   {
-    this->env.push_env();
+    this->current_namespace->environment.push_env();
 
     if (for_stmt->initializer.has_value())
     {
       for_stmt->initializer.value()->accept(this);
     }
 
-    auto num_envs = this->env.envs.size();
+    auto num_envs = this->current_namespace->environment.envs.size();
 
     while (true)
     {
@@ -228,20 +245,20 @@ public:
       }
       catch (BreakException e)
       {
-        auto previous_size = this->env.envs.size();
+        auto previous_size = this->current_namespace->environment.envs.size();
         for (int i = 0; i < previous_size - num_envs; i++)
         {
-          this->env.pop_env();
+          this->current_namespace->environment.pop_env();
         }
 
         break;
       }
       catch (ContinueException e)
       {
-        auto previous_size = this->env.envs.size();
+        auto previous_size = this->current_namespace->environment.envs.size();
         for (int i = 0; i < previous_size - num_envs; i++)
         {
-          this->env.pop_env();
+          this->current_namespace->environment.pop_env();
         }
 
         if (for_stmt->increment.has_value())
@@ -257,7 +274,7 @@ public:
       }
     }
 
-    this->env.pop_env();
+    this->current_namespace->environment.pop_env();
   }
 
   void visit_binary(Binary *binary)
@@ -445,7 +462,7 @@ public:
       this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
       break;
     case Token::Type::IDENTIFIER:
-      this->stack.push(this->env.get(primary->value.lexeme));
+      this->stack.push(this->current_namespace->environment.get(primary->value.lexeme));
       break;
     default:
       throw std::runtime_error("undefined primary value");
@@ -469,7 +486,7 @@ public:
     Callable callable =
         Callable(func->param_list, func->block, func->return_type);
 
-    this->call_table.declare(func->identifier.lexeme, callable);
+    this->current_namespace->call_table.declare(func->identifier.lexeme, callable);
   }
 
   void visit_if_stmt(IfStmt *if_stmt)
@@ -485,7 +502,7 @@ public:
 
   void visit_call(Call *call)
   {
-    auto callable = this->call_table.get(call->identifier.lexeme);
+    auto callable = this->current_namespace->call_table.get(call->identifier.lexeme);
     callable.call(this, call->args);
   }
 
@@ -508,7 +525,7 @@ public:
 
   void visit_type_stmt(TypeStmt *type_stmt)
   {
-    this->type_table.declare(
+    this->current_namespace->type_table.declare(
         type_stmt->identifier.lexeme,
         this->type_converter.convert(type_stmt->type_token));
   }
@@ -537,7 +554,7 @@ public:
                                 this->type_converter.convert(field.second));
         });
 
-    this->type_table.declare(
+    this->current_namespace->type_table.declare(
         struct_decl->identifier.lexeme,
         std::make_shared<StructType>(struct_decl->identifier.lexeme,
                                      std::move(struct_fields)));
@@ -568,7 +585,7 @@ public:
   {
     std::shared_ptr<std::unordered_map<std::string, Value>> struct_instance =
         std::make_shared<std::unordered_map<std::string, Value>>();
-    auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+    auto type = this->current_namespace->type_table.get(struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -733,5 +750,26 @@ public:
 
   void visit_namespace(NamespaceStmt *_namespace)
   {
+    auto name = _namespace->identifier.lexeme;
+
+    auto previous_namespace = this->current_namespace;
+
+    if (this->current_namespace->nested_namespaces.find(name) ==
+        this->current_namespace->nested_namespaces.end())
+    {
+      auto new_ns = std::make_shared<Namespace<Value, Callable, std::shared_ptr<BirdType>>>(this->current_namespace);
+      this->current_namespace->nested_namespaces[name] = new_ns;
+    }
+
+    this->current_namespace = this->current_namespace->nested_namespaces[name];
+
+    for (auto &member : _namespace->members)
+    {
+      member->accept(this);
+    }
+
+    this->current_namespace = previous_namespace;
   }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
 };

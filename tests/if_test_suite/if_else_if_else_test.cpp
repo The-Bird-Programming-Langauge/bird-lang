@@ -1,6 +1,7 @@
 #include "../helpers/compile_helper.hpp"
 
-TEST(IfTest, IfElseTrue) {
+TEST(IfTest, IfElseTrue)
+{
   BirdTest::TestOptions options;
   options.code = "var x = 1;"
                  "if false {"
@@ -14,20 +15,23 @@ TEST(IfTest, IfElseTrue) {
                  "print x;"
                  "}";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 3);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 3);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "3\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(IfTest, IfElseFalse) {
+TEST(IfTest, IfElseFalse)
+{
   BirdTest::TestOptions options;
   options.code = "var x = 1;"
                  "if false {"
@@ -41,13 +45,15 @@ TEST(IfTest, IfElseFalse) {
                  "print x;"
                  "}";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 4);
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("x"));
+    ASSERT_TRUE(is_type<int>(interpreter.current_namespace->environment.get("x")));
+    ASSERT_EQ(as_type<int>(interpreter.current_namespace->environment.get("x")), 4);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output, "4\n\n");
   };
 

@@ -1,12 +1,14 @@
 #include "../helpers/compile_helper.hpp"
 
-TEST(StructTest, StructDeclTest) {
+TEST(StructTest, StructDeclTest)
+{
   BirdTest::TestOptions options;
   options.code = "struct Test { a: int, b: float, c: str, d: bool };";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_EQ(interpreter.type_table.contains("Test"), true);
-    auto type = interpreter.type_table.get("Test");
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_EQ(interpreter.current_namespace->type_table.contains("Test"), true);
+    auto type = interpreter.current_namespace->type_table.get("Test");
     ASSERT_EQ(type->type, BirdTypeType::STRUCT);
 
     auto struct_type = std::dynamic_pointer_cast<StructType>(type);
@@ -26,21 +28,24 @@ TEST(StructTest, StructDeclTest) {
     ASSERT_EQ(struct_type->fields[3].second->type, BirdTypeType::BOOL);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, StructNestedTest) {
+TEST(StructTest, StructNestedTest)
+{
   BirdTest::TestOptions options;
   options.code = " struct Third { a: int, b: float, c: str, d: bool }; struct "
                  "Second { third: Third }; struct First { second: Second };";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_EQ(interpreter.type_table.contains("First"), true);
-    auto type = interpreter.type_table.get("First");
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_EQ(interpreter.current_namespace->type_table.contains("First"), true);
+    auto type = interpreter.current_namespace->type_table.get("First");
     ASSERT_EQ(type->type, BirdTypeType::STRUCT);
 
     auto struct_type = std::dynamic_pointer_cast<StructType>(type);
@@ -77,20 +82,23 @@ TEST(StructTest, StructNestedTest) {
     ASSERT_EQ(third_struct_type->fields[3].second->type, BirdTypeType::BOOL);
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "\n", true);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, StructRecursiveTest) {
+TEST(StructTest, StructRecursiveTest)
+{
   BirdTest::TestOptions options;
   options.code = "struct Recursive { a: int, b: Recursive };";
 
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_EQ(interpreter.type_table.contains("Recursive"), true);
-    auto type = interpreter.type_table.get("Recursive");
+  options.after_interpret = [&](Interpreter &interpreter)
+  {
+    ASSERT_EQ(interpreter.current_namespace->type_table.contains("Recursive"), true);
+    auto type = interpreter.current_namespace->type_table.get("Recursive");
     ASSERT_EQ(type->type, BirdTypeType::STRUCT);
 
     auto struct_type = std::dynamic_pointer_cast<StructType>(type);
@@ -109,7 +117,8 @@ TEST(StructTest, StructRecursiveTest) {
     ASSERT_EQ(inner_struct_type->name, "Recursive");
   };
 
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
+  options.after_compile = [&](std::string &output, CodeGen &codegen)
+  {
     ASSERT_EQ(output == "\n", true);
   };
 
