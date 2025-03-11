@@ -14,6 +14,10 @@ namespace Math {
         y = 3.3
     };
 
+    fn foobar() -> int {
+        return 3;
+    }
+
     namespace Trig {
         var w: float = 1.41;
         fn sin() -> float {
@@ -41,3 +45,13 @@ print "Math::p.y ", Math::p.y;
 
 
 print "Calc::x ", Calc::x;
+
+print Math::foobar();
+
+fn shoebar() -> int {
+    return 4;
+}
+
+var x = shoebar;
+
+print shoebar();

@@ -18,11 +18,14 @@ class Expr;
  */
 class Call : public Expr {
 public:
-  Token identifier;
+  std::unique_ptr<Expr> callable;
   std::vector<std::shared_ptr<Expr>> args;
+  Token call_identifier;
 
-  Call(Token identifier, std::vector<std::shared_ptr<Expr>> args)
-      : identifier(identifier), args(std::move(args)) {};
+  Call(std::unique_ptr<Expr> callable, std::vector<std::shared_ptr<Expr>> args,
+       Token call_identifier)
+      : callable(std::move(callable)), args(std::move(args)),
+        call_identifier(call_identifier) {};
 
   void accept(Visitor *visitor) { visitor->visit_call(this); }
 };

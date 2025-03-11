@@ -319,10 +319,10 @@ namespace_declaration_stmt:
    | func { $$ = std::move($1); }
 
 scope_resolution:
-    IDENTIFIER SCOPE IDENTIFIER %prec SCOPE_RESOLUTION_EXPR
-    { $$ = std::make_unique<ScopeResolutionExpr>($1, std::make_unique<Primary>($3)); }
-   | IDENTIFIER SCOPE scope_resolution
+    IDENTIFIER SCOPE expr %prec SCOPE_RESOLUTION_EXPR
     { $$ = std::make_unique<ScopeResolutionExpr>($1, std::move($3)); }
+   
+
 
 struct_decl:
    STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
@@ -494,9 +494,9 @@ expr:
    | struct_initialization { $$ = std::move($1); }
    | array_initialization { $$ = std::move($1); }
    | match { $$ = std::move($1); }
+   | scope_resolution { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
-   | scope_resolution { $$ = std::move($1); }
 
 
 assign_expr:
@@ -558,14 +558,7 @@ or_expr:
 call_expr: 
    expr LPAREN maybe_arg_list RPAREN %prec CALL 
       { 
-         if(auto *identifier = dynamic_cast<Primary *>($1.get()))
-         {
-            if (identifier->value.token_type != Token::Type::IDENTIFIER)
-            {
-               // TODO: throw an error here
-            }
-            $$ = std::make_unique<Call>(identifier->value, std::move($3));
-         }
+         $$ = std::make_unique<Call>(std::move($1), std::move($3), Token());
       }
 
 struct_initialization:

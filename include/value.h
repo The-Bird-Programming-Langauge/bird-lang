@@ -6,6 +6,7 @@
 #include <variant>
 #include <vector>
 
+#include "callable.h"
 #include "exceptions/bird_exception.h"
 
 class Value;
@@ -20,9 +21,11 @@ template <typename T> inline T as_type(const Value &value);
 
 template <typename T, typename U> inline T to_type(Value value);
 
-using variant = std::variant<
-    int, double, std::string, bool, std::shared_ptr<std::vector<Value>>,
-    std::shared_ptr<std::unordered_map<std::string, Value>>, std::nullptr_t>;
+using variant =
+    std::variant<int, double, std::string, bool,
+                 std::shared_ptr<std::vector<Value>>,
+                 std::shared_ptr<std::unordered_map<std::string, Value>>,
+                 std::nullptr_t, Callable>;
 class Value {
 public:
   variant data;

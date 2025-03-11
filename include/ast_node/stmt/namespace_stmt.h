@@ -4,11 +4,11 @@
 #include "../../token.h"
 #include "../../visitors/visitor.h"
 #include "stmt.h"
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
-#include <map>
 
 // forward declaration
 class Visitor;
@@ -16,8 +16,7 @@ class Visitor;
 /*
  * Namespace definition AST Node
  */
-class NamespaceStmt : public Stmt
-{
+class NamespaceStmt : public Stmt {
 public:
   Token identifier;
   std::vector<std::unique_ptr<Stmt>> members;
