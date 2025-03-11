@@ -1,100 +1,115 @@
-#include "helpers/compile_helper.hpp"
+#include "../helpers/compile_helper.hpp"
 
-TEST(PrintTest, PrintBool)
-{
-    BirdTest::TestOptions options;
-    options.code = "print true;";
+TEST(PrintTest, PrintBool) {
+  BirdTest::TestOptions options;
+  options.code = "print true;";
 
-    options.after_compile = [](std::string &code, CodeGen &code_gen)
-    {
-        EXPECT_EQ(code, "1\n\n");
-    };
+  options.after_compile = [](std::string &code, CodeGen &code_gen) {
+    EXPECT_EQ(code, "true\n\n");
+  };
 
-    EXPECT_TRUE(BirdTest::compile(options));
+  EXPECT_TRUE(BirdTest::compile(options));
 }
 
-TEST(PrintTest, PrintStr)
-{
-    BirdTest::TestOptions options;
-    options.code = "print \"Hello, World!\";";
+TEST(PrintTest, PrintStr) {
+  BirdTest::TestOptions options;
+  options.code = "print \"Hello, World!\";";
 
-    options.after_compile = [](std::string &code, CodeGen &code_gen)
-    {
-        EXPECT_EQ(code, "Hello, World!\n\n");
-    };
+  options.after_compile = [](std::string &code, CodeGen &code_gen) {
+    EXPECT_EQ(code, "Hello, World!\n\n");
+  };
 
-    EXPECT_TRUE(BirdTest::compile(options));
+  EXPECT_TRUE(BirdTest::compile(options));
 }
 
-TEST(PrintTest, PrintInt)
-{
-    BirdTest::TestOptions options;
-    options.code = "print 42;";
+TEST(PrintTest, PrintInt) {
+  BirdTest::TestOptions options;
+  options.code = "print 42;";
 
-    options.after_compile = [](std::string &code, CodeGen &code_gen)
-    {
-        EXPECT_EQ(code, "42\n\n");
-    };
+  options.after_compile = [](std::string &code, CodeGen &code_gen) {
+    EXPECT_EQ(code, "42\n\n");
+  };
 
-    EXPECT_TRUE(BirdTest::compile(options));
+  EXPECT_TRUE(BirdTest::compile(options));
 }
 
-TEST(PrintTest, PrintFloat)
-{
-    BirdTest::TestOptions options;
-    options.code = "print 42.42;";
+TEST(PrintTest, PrintFloat) {
+  BirdTest::TestOptions options;
+  options.code = "print 42.42;";
 
-    options.after_compile = [](std::string &code, CodeGen &code_gen)
-    {
-        EXPECT_EQ(code, "42.42\n\n");
-    };
+  options.after_compile = [](std::string &code, CodeGen &code_gen) {
+    EXPECT_EQ(code, "42.42\n\n");
+  };
 
-    EXPECT_TRUE(BirdTest::compile(options));
+  EXPECT_TRUE(BirdTest::compile(options));
 }
 
-TEST(PrintTest, PrintAlias)
-{
-    BirdTest::TestOptions options;
-    options.code = "type num = int; var x: num = 42; print x;";
+TEST(PrintTest, PrintAlias) {
+  BirdTest::TestOptions options;
+  options.code = "type num = int; var x: num = 42; print x;";
 
-    options.after_compile = [](std::string &code, CodeGen &code_gen)
-    {
-        EXPECT_EQ(code, "42\n\n");
-    };
+  options.after_compile = [](std::string &code, CodeGen &code_gen) {
+    EXPECT_EQ(code, "42\n\n");
+  };
 
-    EXPECT_TRUE(BirdTest::compile(options));
+  EXPECT_TRUE(BirdTest::compile(options));
 }
 
-TEST(PrintTest, PrintStruct)
-{
-    BirdTest::TestOptions options;
-    options.code = "type Point = struct { x: int, y: int }; var p: Point = { x: 1, y: 2 }; print p;";
+TEST(PrintTest, PrintStruct) {
+  BirdTest::TestOptions options;
+  options.code = "type Point = struct { x: int, y: int }; var p: Point = { x: "
+                 "1, y: 2 }; print p;";
 
-    options.after_type_check = [&](UserErrorTracker &error_tracker, TypeChecker &analyzer)
-    {
-        ASSERT_TRUE(error_tracker.has_errors());
-        auto tup = error_tracker.get_errors()[0];
+  options.after_type_check = [&](UserErrorTracker &error_tracker,
+                                 TypeChecker &analyzer) {
+    ASSERT_TRUE(error_tracker.has_errors());
+    auto tup = error_tracker.get_errors()[0];
 
-        ASSERT_EQ(std::get<1>(tup).lexeme, "print");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: cannot print struct type (line 8, character 1)");
-    };
+    ASSERT_EQ(std::get<1>(tup).lexeme, "print");
+    ASSERT_EQ(
+        std::get<0>(tup),
+        ">>[ERROR] type error: cannot print struct type (line 8, character 1)");
+  };
 
-    EXPECT_FALSE(BirdTest::compile(options));
+  EXPECT_FALSE(BirdTest::compile(options));
 }
 
-TEST(PrintTest, PrintVoid)
-{
-    BirdTest::TestOptions options;
-    options.code = "fn foo() -> void { } print foo();";
+TEST(PrintTest, PrintVoid) {
+  BirdTest::TestOptions options;
+  options.code = "fn foo() -> void { } print foo();";
 
-    options.after_type_check = [&](UserErrorTracker &error_tracker, TypeChecker &analyzer)
-    {
-        ASSERT_TRUE(error_tracker.has_errors());
-        auto tup = error_tracker.get_errors()[0];
+  options.after_type_check = [&](UserErrorTracker &error_tracker,
+                                 TypeChecker &analyzer) {
+    ASSERT_TRUE(error_tracker.has_errors());
+    auto tup = error_tracker.get_errors()[0];
 
-        ASSERT_EQ(std::get<1>(tup).lexeme, "print");
-        ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: cannot print void type (line 1, character 22)");
-    };
+    ASSERT_EQ(std::get<1>(tup).lexeme, "print");
+    ASSERT_EQ(
+        std::get<0>(tup),
+        ">>[ERROR] type error: cannot print void type (line 1, character 22)");
+  };
 
-    EXPECT_FALSE(BirdTest::compile(options));
+  EXPECT_FALSE(BirdTest::compile(options));
+}
+
+TEST(PrintTest, PrintMultiple) {
+  BirdTest::TestOptions options;
+  options.code = "print \"test\", 2.5, 1, true, false, \"hello\";";
+
+  options.after_compile = [](std::string &code, CodeGen &code_gen) {
+    EXPECT_EQ(code, "test2.51truefalsehello\n\n");
+  };
+
+  EXPECT_TRUE(BirdTest::compile(options));
+}
+
+TEST(PrintTest, DoublePrint) {
+  BirdTest::TestOptions options;
+  options.code = "print \"test\"; print \"test\";";
+
+  options.after_compile = [](std::string &code, CodeGen &code_gen) {
+    EXPECT_EQ(code, "test\ntest\n\n");
+  };
+
+  EXPECT_TRUE(BirdTest::compile(options));
 }

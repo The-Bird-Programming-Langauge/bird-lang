@@ -1,13 +1,13 @@
 #pragma once
 
-#include <string>
 #include <memory>
 #include <optional>
+#include <string>
 
+#include "../../parse_type.h"
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "stmt.h"
-#include "token.h"
-#include "visitors/visitor.h"
-#include "parse_type.h"
 
 // forward declaration
 class Expr;
@@ -17,18 +17,13 @@ class Expr;
  * ex:
  * type x = int;
  */
-class TypeStmt : public Stmt
-{
+class TypeStmt : public Stmt {
 public:
-    Token identifier;
-    std::shared_ptr<ParseType::Type> type_token;
+  Token identifier;
+  std::shared_ptr<ParseType::Type> type_token;
 
-    TypeStmt(Token identifier, std::shared_ptr<ParseType::Type> type_token)
-        : identifier(identifier),
-          type_token(std::move(type_token)) {}
+  TypeStmt(Token identifier, std::shared_ptr<ParseType::Type> type_token)
+      : identifier(identifier), type_token(std::move(type_token)) {}
 
-    void accept(Visitor *visitor)
-    {
-        visitor->visit_type_stmt(this);
-    }
+  void accept(Visitor *visitor) { visitor->visit_type_stmt(this); }
 };

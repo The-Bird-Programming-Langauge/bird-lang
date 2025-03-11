@@ -1,6 +1,5 @@
 #pragma once
 
-struct SemanticType
-{
-    SemanticType() = default;
+struct SemanticType {
+  SemanticType() = default;
 };

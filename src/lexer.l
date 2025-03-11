@@ -106,6 +106,9 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "not"                  { yylval->emplace<Token>() = make_token(T::NOT);
                           return token::NOT; }
 
+"match"                 {yylval->emplace<Token>() = make_token(T::MATCH);
+                          return token::MATCH; }
+
 {TYPE_IDENT}            { yylval->emplace<Token>() = make_token(T::TYPE_LITERAL);
                           return token::TYPE_LITERAL;} 
 
@@ -215,6 +218,8 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "->"                    { yylval->emplace<Token>() = make_token(T::ARROW);
                           return token::ARROW; }
 
+"=>"                    { yylval->emplace<Token>() = make_token(T::FAT_ARROW);
+                          return token::FAT_ARROW; }
 
 \n                      { location->lines(); }
 

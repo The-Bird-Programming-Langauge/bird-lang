@@ -1,10 +1,9 @@
 #pragma once
 
-#include <string>
-#include <memory>
+#include "../../token.h"
+#include "../../visitors/visitor.h"
 #include "expr.h"
-#include "token.h"
-#include "visitors/visitor.h"
+#include <memory>
 
 /*
  * Assignment statement AST Node that represents variable assignments
@@ -12,20 +11,16 @@
  * x = 4;
  * x += 4;
  */
-class AssignExpr : public Expr
-{
+class AssignExpr : public Expr {
 public:
-    Token identifier;
-    Token assign_operator;
-    std::unique_ptr<Expr> value;
+  Token identifier;
+  Token assign_operator;
+  std::unique_ptr<Expr> value;
 
-    AssignExpr(Token identifier, Token assign_operator, std::unique_ptr<Expr> value)
-        : identifier(identifier),
-          assign_operator(assign_operator),
-          value(std::move(value)) {}
+  AssignExpr(Token identifier, Token assign_operator,
+             std::unique_ptr<Expr> value)
+      : identifier(identifier), assign_operator(assign_operator),
+        value(std::move(value)) {}
 
-    void accept(Visitor *visitor)
-    {
-        visitor->visit_assign_expr(this);
-    }
+  void accept(Visitor *visitor) { visitor->visit_assign_expr(this); }
 };

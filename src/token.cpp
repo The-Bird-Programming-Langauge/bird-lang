@@ -1,7 +1,7 @@
 #include "../include/token.h"
 
-#include <map>
 #include <iostream>
+#include <map>
 static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::AS, "AS"},
     {Token::Type::ARROW, "ARROW"},
@@ -19,6 +19,7 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::END, "END"},
     {Token::Type::EQUAL, "EQUAL"},
     {Token::Type::EQUAL_EQUAL, "EQUAL_EQUAL"},
+    {Token::Type::FAT_ARROW, "FAT_ARROW"},
     {Token::Type::FLOAT_LITERAL, "FLOAT_LITERAL"},
     {Token::Type::FN, "FN"},
     {Token::Type::FOR, "FOR"},
@@ -32,6 +33,7 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::LESS, "LESS"},
     {Token::Type::LESS_EQUAL, "LESS_EQUAL"},
     {Token::Type::LPAREN, "LPAREN"},
+    {Token::Type::MATCH, "MATCH"},
     {Token::Type::MINUS, "MINUS"},
     {Token::Type::MINUS_EQUAL, "MINUS_EQUAL"},
     {Token::Type::PERCENT, "PERCENT"},
@@ -61,11 +63,8 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::NOT, "NOT"},
 };
 
-void Token::print_token()
-{
-    std::cout << "{ "
-              << "token_type: " << token_strings.at(this->token_type)
-              << ",  lexeme: " << this->lexeme
-              << " }"
-              << std::endl;
+void Token::print_token() {
+  std::cout << "{ "
+            << "token_type: " << token_strings.at(this->token_type)
+            << ",  lexeme: " << this->lexeme << " }" << std::endl;
 }

@@ -4,12 +4,10 @@
 #include <string>
 
 /*
- * Break exception that should be thrown when a break statement is present in a loop,
- * which results in the loop exiting execution.
+ * Break exception that should be thrown when a break statement is present in a
+ * loop, which results in the loop exiting execution.
  */
-class BreakException : public std::exception
-{
-private:
+class BreakException : public std::exception {
 public:
-    BreakException() {}
+  BreakException() {}
 };
