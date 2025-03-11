@@ -344,7 +344,7 @@ TEST(ParserTest, FunctionFailsArrowNoReturnType) {
     ASSERT_EQ(errors.size(), 1);
     EXPECT_EQ(std::get<0>(errors[0]),
               ">>[ERROR] syntax error, unexpected {, expecting identifier or "
-              "type literal (line 1, character 18)");
+              "type literal or implements (line 1, character 18)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

@@ -702,6 +702,10 @@ public:
                        this->traits[trait.lexeme].end());
     });
 
+    if (trait_fns.size() != fns.size()) {
+      return false;
+    }
+
     for (auto [name, fn] : fns) {
       bool found = false;
       for (auto trait_fn : trait_fns) {
@@ -763,7 +767,8 @@ public:
       method->accept(this);
     }
 
-    if (!this->check_struct_implementation(struct_decl)) {
+    if (struct_decl->impls.size() &&
+        !this->check_struct_implementation(struct_decl)) {
       this->user_error_tracker.type_error("struct " +
                                               struct_decl->identifier.lexeme +
                                               " incorrectly implements trait",
