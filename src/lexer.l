@@ -36,9 +36,9 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 %%
 
-"//"                   { BEGIN(SINGLELINE_COMMENT); }
-<SINGLELINE_COMMENT>.  { }
-<SINGLELINE_COMMENT>\n { BEGIN(INITIAL); location->lines(); }
+"//"                    { BEGIN(SINGLELINE_COMMENT); }
+<SINGLELINE_COMMENT>.   { }
+<SINGLELINE_COMMENT>\n  { BEGIN(INITIAL); location->lines(); }
 
 "var"                   { yylval->emplace<Token>() = make_token(T::VAR);
                           return token::VAR; }
@@ -94,7 +94,7 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "as"                    { yylval->emplace<Token>() = make_token(T::AS);
                           return token::AS; } 
 
-"and"                  { yylval->emplace<Token>() = make_token(T::AND);
+"and"                   { yylval->emplace<Token>() = make_token(T::AND);
                           return token::AND; } 
 
 "or"                   { yylval->emplace<Token>() = make_token(T::OR);
@@ -128,7 +128,9 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
                           return token::IDENTIFIER;} 
 
 
-"."                     { return token::DOT; }
+"."                     { yylval->emplace<Token>() = make_token(T::DOT);
+                          return token::DOT; }
+
 "?"                     { yylval->emplace<Token>() = make_token(T::QUESTION);
                           return token::QUESTION; } 
 
@@ -183,20 +185,41 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "%="                    { yylval->emplace<Token>() = make_token(T::PERCENT_EQUAL);
                           return token::PERCENT_EQUAL; } 
 
+":"                     { yylval->emplace<Token>() = make_token(T::COLON);
+                          return token::COLON; } 
 
-":"                     { return token::COLON; } 
-","                     { return token::COMMA; } 
-"}"                     { return token::RBRACE; } 
-"{"                     { return token::LBRACE; } 
-")"                     { return token::RPAREN; } 
+","                     { yylval->emplace<Token>() = make_token(T::COMMA);
+                          return token::COMMA; }
+
+"}"                     { yylval->emplace<Token>() = make_token(T::RBRACE);
+                          return token::RBRACE; }
+
+"{"                     { yylval->emplace<Token>() = make_token(T::LBRACE);
+                          return token::LBRACE; }
+
+")"                     { yylval->emplace<Token>() = make_token(T::RPAREN);
+                          return token::RPAREN; }
+
 "["                     { yylval->emplace<Token>() = make_token(T::LBRACKET);
                         return token::LBRACKET; }
-"]"                     { return token::RBRACKET; }
-"("                     { return token::LPAREN; }
-";"                     { return token::SEMICOLON; } 
-"!"                     { return token::BANG; } 
-"->"                    { return token::ARROW; } 
-"=>"                    { return token::FAT_ARROW; }
+
+"]"                     { yylval->emplace<Token>() = make_token(T::RBRACKET);
+                          return token::RBRACKET; }
+
+"("                     { yylval->emplace<Token>() = make_token(T::LPAREN);
+                          return token::LPAREN; }
+
+";"                     { yylval->emplace<Token>() = make_token(T::SEMICOLON);
+                          return token::SEMICOLON; }
+
+"!"                     { yylval->emplace<Token>() = make_token(T::BANG);
+                          return token::BANG; }
+
+"->"                    { yylval->emplace<Token>() = make_token(T::ARROW);
+                          return token::ARROW; }
+
+"=>"                    { yylval->emplace<Token>() = make_token(T::FAT_ARROW);
+                          return token::FAT_ARROW; }
 
 \n                      { location->lines(); }
 

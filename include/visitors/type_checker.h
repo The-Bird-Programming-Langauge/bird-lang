@@ -919,13 +919,10 @@ public:
 
       if (expr_type_array->element_type->type == BirdTypeType::VOID) {
         this->stack.push(to_type);
-      } else if (*expr_type_array->element_type ==
-                 *to_type_array->element_type) {
+        return;
+      }
+      if (*expr_type_array->element_type == *to_type_array->element_type) {
         this->stack.push(to_type);
-      } else {
-        this->user_error_tracker.type_mismatch("in 'as' type cast",
-                                               as_cast->type->get_token());
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
     }
