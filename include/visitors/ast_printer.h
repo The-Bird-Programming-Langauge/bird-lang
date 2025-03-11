@@ -299,4 +299,6 @@ public:
   void visit_method_call(MethodCall *method_call) {
     this->visit_call(method_call);
   }
+
+  void visit_trait(Trait *trait) {}
 };

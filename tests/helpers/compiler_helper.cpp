@@ -8,13 +8,14 @@ bool BirdTest::compile(const TestOptions options) {
   if (options.parse) {
     Parser parser(code, &error_tracker);
     ast = parser.parse();
-    if (error_tracker.has_errors()) {
-      error_tracker.print_errors();
-      return false;
-    }
 
     if (options.after_parse.has_value()) {
       options.after_parse.value()(error_tracker, parser, ast);
+    }
+
+    if (error_tracker.has_errors()) {
+      error_tracker.print_errors();
+      return false;
     }
   }
 

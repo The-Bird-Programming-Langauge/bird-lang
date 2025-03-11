@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../ast_node/expr/method_call.h"
 #include "../bird_type.h"
 #include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
@@ -16,7 +17,6 @@
 #include "../stack.h"
 #include "../sym_table.h"
 #include "../type_converter.h"
-#include "ast_node/expr/method_call.h"
 #include "hoist_visitor.h"
 
 /*
@@ -38,6 +38,8 @@ public:
   std::optional<std::shared_ptr<BirdType>> return_type;
   UserErrorTracker &user_error_tracker;
   TypeConverter type_converter;
+
+  std::unordered_map<std::string, std::vector<TraitMethodSignature>> traits;
 
   std::unordered_map<
       std::string,
@@ -690,6 +692,57 @@ public:
     this->stack.push(array_type->element_type);
   }
 
+  bool check_struct_implementation(StructDecl *struct_decl) {
+    const auto fns = this->v_table[struct_decl->identifier.lexeme];
+    const auto traits = struct_decl->impls;
+
+    auto trait_fns = std::vector<TraitMethodSignature>();
+    std::for_each(traits.begin(), traits.end(), [&](Token trait) {
+      trait_fns.insert(trait_fns.end(), this->traits[trait.lexeme].begin(),
+                       this->traits[trait.lexeme].end());
+    });
+
+    for (auto [name, fn] : fns) {
+      bool found = false;
+      for (auto trait_fn : trait_fns) {
+        if (trait_fn.identifier.lexeme != name) {
+          continue;
+        }
+
+        if ((trait_fn.return_type.has_value()
+                 ? *this->type_converter.convert(trait_fn.return_type.value())
+                 : *std::make_shared<VoidType>()) != *fn->ret) {
+          continue;
+        }
+
+        // minus one to account for self parameter
+        if (fn->params.size() - 1 != trait_fn.params.size()) {
+          continue;
+        }
+
+        bool valid_params = true;
+        for (int i = 0; i < trait_fn.params.size(); i += 1) {
+          if (fn->params[i] !=
+              this->type_converter.convert(trait_fn.params[i].second)) {
+            valid_params = false;
+            continue;
+          }
+        }
+
+        if (!valid_params) {
+          break;
+        }
+
+        found = true;
+      }
+      if (!found) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   void visit_struct_decl(StructDecl *struct_decl) {
     std::vector<std::pair<std::string, std::shared_ptr<BirdType>>>
         struct_fields;
@@ -708,6 +761,15 @@ public:
 
     for (auto &method : struct_decl->fns) {
       method->accept(this);
+    }
+
+    if (!this->check_struct_implementation(struct_decl)) {
+      this->user_error_tracker.type_error("struct " +
+                                              struct_decl->identifier.lexeme +
+                                              " incorrectly implements trait",
+                                          struct_decl->identifier);
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
     }
 
     for (auto &method : struct_decl->fns) {
@@ -1051,5 +1113,11 @@ public:
                                   new_params);
 
     this->stack.push(method->ret);
+  }
+
+  void visit_trait(Trait *trait) {
+    this->traits[trait->identifier.lexeme].insert(
+        this->traits[trait->identifier.lexeme].end(), trait->signatures.begin(),
+        trait->signatures.end());
   }
 };

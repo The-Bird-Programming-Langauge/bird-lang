@@ -321,7 +321,7 @@ TEST(ExprTest, UnclosedGrouping) {
     auto errors = error_tracker.get_errors();
     ASSERT_EQ(errors.size(), 1);
     EXPECT_EQ(std::get<0>(errors[0]),
-              ">>[ERROR] expected ) after grouping (line 1, character 24)");
+              ">>[ERROR] syntax error, unexpected ; (line 1, character 24)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));
@@ -337,8 +337,8 @@ TEST(ExprTest, MalformedTernaryGrouping) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto errors = error_tracker.get_errors();
     ASSERT_EQ(errors.size(), 1);
-    EXPECT_EQ(std::get<0>(errors[0]),
-              ">>[ERROR] expected identifier or i32  (line 1, character 20)");
+    EXPECT_EQ(std::get<0>(errors[0]), ">>[ERROR] syntax error, unexpected (, "
+                                      "expecting ; (line 1, character 19)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

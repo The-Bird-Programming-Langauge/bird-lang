@@ -68,6 +68,8 @@ XOR "xor"
 OR "or"
 NOT "not"
 MATCH "match"
+TRAIT "trait"
+IMPLEMENTS "implements"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -118,6 +120,7 @@ continue_stmt
 expr_stmt
 type_stmt
 struct_decl
+trait_stmt
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -188,6 +191,16 @@ member_decl
 %type <std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>>
 maybe_member_decls
 member_decls
+
+%type <std::vector<Token>>
+identifiers
+
+%type <std::vector<std::tuple<Token, std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>, std::optional<std::shared_ptr<ParseType::Type>>>>>
+maybe_function_signatures
+function_signatures
+
+%type <std::tuple<Token, std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>, std::optional<std::shared_ptr<ParseType::Type>>>>
+function_signature
 
 %type <std::pair<Token, std::shared_ptr<ParseType::Type>>>
 param
@@ -271,6 +284,7 @@ top_level_stmt:
    | struct_decl SEMICOLON {$$ = std::move($1); }
    | stmt { $$ = std::move($1); }
    | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
+   | trait_stmt SEMICOLON {$$ = std::move($1); }
 
 stmt:
    decl_stmt SEMICOLON { $$ = std::move($1); }
@@ -286,9 +300,39 @@ stmt:
    | expr_stmt SEMICOLON { $$ = std::move($1); }
    | type_stmt SEMICOLON { $$ = std::move($1); }
 
+
+trait_stmt:
+   TRAIT IDENTIFIER LBRACE maybe_function_signatures RBRACE {$$ = std::make_unique<Trait>($2, std::move($4)); }
+
+maybe_function_signatures:
+   %empty { $$ = std::vector<std::tuple<Token, std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>, std::optional<std::shared_ptr<ParseType::Type>>>>(); }
+   | function_signatures { $$ = std::move($1); }
+
+function_signatures:
+   function_signature {
+      $$ = std::vector<std::tuple<Token, std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>, std::optional<std::shared_ptr<ParseType::Type>>>>(); 
+      $$.push_back(std::move($1));
+   }
+   | function_signatures function_signature {
+      $$ = std::move($1);
+      $$.push_back(std::move($2));
+   }
+
+function_signature:
+   FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type {
+     $$ = std::tuple<Token, std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>, std::optional<std::shared_ptr<ParseType::Type>>>({$2, $4, $6});
+   }
+
 struct_decl:
    STRUCT IDENTIFIER LBRACE maybe_member_decls RBRACE 
-      { $$ = std::make_unique<StructDecl>($2, std::move($4)); }
+      { $$ = std::make_unique<StructDecl>($2, std::move($4), std::vector<Token>()); }
+   | STRUCT IDENTIFIER IMPLEMENTS identifiers LBRACE maybe_member_decls RBRACE
+      { $$ = std::make_unique<StructDecl>($2, std::move($6), $4); }
+
+identifiers:
+   %empty { $$ = std::vector<Token>(); }
+   | IDENTIFIER  {$$ = std::vector<Token>(); $$.push_back($1); }
+   | identifiers IDENTIFIER {$$ = $1; $$.push_back($2); }
 
 maybe_member_decls:
    %empty { $$ = std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>(); }
@@ -621,6 +665,7 @@ type_identifier:
    IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
    | TYPE_LITERAL { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
+   | IMPLEMENTS IDENTIFIER {$$ = std::make_shared<ParseType::ImplType>($2); }
 
 %%
 

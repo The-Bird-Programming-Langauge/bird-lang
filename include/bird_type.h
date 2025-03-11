@@ -19,7 +19,8 @@ enum class BirdTypeType {
   STRUCT,
   ARRAY,
   FUNCTION,
-  PLACEHOLDER
+  PLACEHOLDER,
+  IMPLS
 };
 
 // TODO: figure out how to do first class functions
@@ -106,6 +107,7 @@ struct StructType : BirdType {
     }
     return false;
   }
+
   bool operator!=(BirdType &other) const { return !(*this == other); }
 };
 
@@ -122,6 +124,7 @@ struct ArrayType : BirdType {
     return *dynamic_cast<ArrayType *>(&other)->element_type ==
            *this->element_type;
   }
+
   bool operator!=(BirdType &other) const { return !(*this == other); }
 };
 
@@ -172,14 +175,23 @@ struct PlaceholderType : BirdType {
       auto placeholder = dynamic_cast<PlaceholderType *>(&other);
       return placeholder->name == this->name;
     }
-
     if (other.type == BirdTypeType::STRUCT) {
       auto struct_type = dynamic_cast<StructType *>(&other);
       return struct_type->name == this->name;
     }
-
     return false;
   }
+  bool operator!=(BirdType &other) const { return !(*this == other); }
+};
+
+struct ImplementsType : BirdType {
+  std::string trait;
+  ImplementsType(std::string trait)
+      : BirdType(BirdTypeType::IMPLS), trait(trait) {}
+  ~ImplementsType() {}
+
+  bool operator==(BirdType &other) const { return this->type == other.type; }
+
   bool operator!=(BirdType &other) const { return !(*this == other); }
 };
 

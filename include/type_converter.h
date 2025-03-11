@@ -57,6 +57,11 @@ public:
       auto array_type =
           safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
       return std::make_shared<ArrayType>(this->convert(array_type->child));
+    } else if (type->tag == ParseType::Tag::IMPL) {
+      auto impl_type =
+          safe_dynamic_pointer_cast<ParseType::ImplType, ParseType::Type>(type);
+
+      return std::make_shared<ImplementsType>(impl_type->trait.lexeme);
     }
 
     return std::make_shared<ErrorType>();

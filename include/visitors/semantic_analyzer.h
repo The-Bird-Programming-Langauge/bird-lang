@@ -17,6 +17,7 @@
 #include "../sym_table.h"
 #include "../type.h"
 #include <optional>
+#include <set>
 
 /*
  * Visitor that analyzes semantics of the AST
@@ -33,6 +34,7 @@ public:
   int loop_depth;
   int function_depth;
   bool in_method = false;
+  std::set<std::string> traits;
 
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
@@ -217,28 +219,14 @@ public:
   }
 
   void visit_call(Call *call) {
-    // if (!core_call_table.table.contains(call->identifier.lexeme) &&
-    //     !this->call_table.contains(call->identifier.lexeme)) {
-    //   this->user_error_tracker.semantic_error("Function call identifier '" +
-    //                                               call->identifier.lexeme +
-    //                                               "' is not declared.",
-    //                                           call->identifier);
-    //   return;
-    // }
-
-    // auto function = core_call_table.table.contains(call->identifier.lexeme)
-    //                     ? SemanticCallable(core_call_table.table
-    //                                            .get(call->identifier.lexeme)
-    //                                            ->params.size())
-    //                     : this->call_table.get(call->identifier.lexeme);
-
-    // if (function.param_count != call->args.size()) {
-    //   this->user_error_tracker.semantic_error(
-    //       "Function call identifer '" + call->identifier.lexeme +
-    //           "' does not use the correct number of arguments.",
-    //       call->identifier);
-    //   return;
-    // }
+    if (!core_call_table.table.contains(call->identifier.lexeme) &&
+        !this->call_table.contains(call->identifier.lexeme)) {
+      this->user_error_tracker.semantic_error("Function call identifier '" +
+                                                  call->identifier.lexeme +
+                                                  "' is not declared.",
+                                              call->identifier);
+      return;
+    }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
@@ -301,6 +289,14 @@ public:
     for (auto method : struct_decl->fns) {
       method->accept(this);
     }
+
+    for (auto trait : struct_decl->impls) {
+      if (this->traits.find(trait.lexeme) == this->traits.end()) {
+        this->user_error_tracker.semantic_error(
+            "Trait " + trait.lexeme + " does not exist", trait);
+        return;
+      }
+    }
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
@@ -353,5 +349,9 @@ public:
     for (auto &arg : method_call->args) {
       arg->accept(this);
     }
+  }
+
+  void visit_trait(Trait *trait) {
+    this->traits.insert(trait->identifier.lexeme);
   }
 };

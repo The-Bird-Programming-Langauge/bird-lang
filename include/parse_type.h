@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace ParseType {
-enum Tag { PRIMITIVE, USER_DEFINED, ARRAY };
+enum Tag { PRIMITIVE, USER_DEFINED, ARRAY, IMPL };
 
 struct Type {
   Tag tag;
@@ -28,5 +28,11 @@ struct Array : Type {
   std::shared_ptr<Type> child;
   Array(std::shared_ptr<Type> child) : Type(Tag::ARRAY), child(child) {}
   Token get_token() override { return child->get_token(); }
+};
+
+struct ImplType : Type {
+  Token trait;
+  ImplType(Token trait) : Type(Tag::IMPL), trait(trait) {}
+  Token get_token() override { return trait; }
 };
 } // namespace ParseType

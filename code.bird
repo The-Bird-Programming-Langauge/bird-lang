@@ -1,0 +1,39 @@
+
+
+trait ToString {
+    fn to_string() -> str
+};
+
+// implementing a non-existent trait
+
+struct Person implements ToString {
+    name: str;
+    fn to_string() -> str {
+        return "{ name: " + self.name + " }";
+    }
+};
+
+
+
+const p: Person = Person {
+    name = "cole"
+};
+
+print p.to_string();
+
+struct Animal {
+    name: str;
+};
+
+const a: Animal = Animal {
+    name = "max"
+};
+
+fn foo(x: Person) {
+    print x.name;
+}
+
+
+// test this
+foo(p);
+foo(a);

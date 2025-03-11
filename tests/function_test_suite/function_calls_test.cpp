@@ -31,9 +31,9 @@ TEST(FunctionTest, MalformedCall) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
-    ASSERT_EQ(std::get<1>(tup).lexeme, ";");
-    ASSERT_EQ(std::get<0>(tup),
-              ">>[ERROR] expected identifier or i32  (line 1, character 25)");
+    ASSERT_EQ(std::get<1>(tup).token_type, Token::Type::END);
+    ASSERT_EQ(std::get<0>(tup), ">>[ERROR] syntax error, unexpected ;, "
+                                "expecting ) (line 1, character 26)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

@@ -63,6 +63,11 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
       throw BirdException("continue statement not allowed in main function");
     }
 
+    if (auto trait = dynamic_cast<Trait *>(stmt.get())) {
+      trait->accept(this);
+      continue;
+    }
+
     stmt->accept(this);
     auto result = this->stack.pop();
     if (result.type->type != BirdTypeType::VOID) {

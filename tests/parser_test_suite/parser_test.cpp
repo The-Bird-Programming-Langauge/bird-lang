@@ -343,7 +343,8 @@ TEST(ParserTest, FunctionFailsArrowNoReturnType) {
     auto errors = error_tracker.get_errors();
     ASSERT_EQ(errors.size(), 1);
     EXPECT_EQ(std::get<0>(errors[0]),
-              ">>[ERROR] expected type after arrow (line 0, character 15)");
+              ">>[ERROR] syntax error, unexpected {, expecting identifier or "
+              "type literal (line 1, character 18)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));
@@ -594,7 +595,9 @@ TEST(ParserTest, ParseTernaryReject) {
   options.after_parse = [&](UserErrorTracker &error_tracker, Parser &parser,
                             const std::vector<std::unique_ptr<Stmt>> &ast) {
     ASSERT_TRUE(error_tracker.has_errors());
-    ASSERT_EQ(ast.size(), 0);
+    ASSERT_EQ(std::get<0>(error_tracker.get_errors()[0]),
+              ">>[ERROR] syntax error, unexpected print, expecting ; (line 1, "
+              "character 9)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

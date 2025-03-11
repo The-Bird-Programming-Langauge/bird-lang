@@ -1,7 +1,7 @@
 #pragma once
 #include "../ast_node/index.h"
+#include "visitor.h"
 #include "visitor_adapter.h"
-#include "visitors/visitor.h"
 #include <cmath>
 #include <memory>
 #include <vector>
@@ -153,4 +153,6 @@ public:
       arg->accept(this);
     }
   }
+
+  void visit_trait(Trait *trait) {}
 };

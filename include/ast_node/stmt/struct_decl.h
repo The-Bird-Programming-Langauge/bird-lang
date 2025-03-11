@@ -23,18 +23,11 @@ class Expr;
  * type x = int;
  */
 class StructDecl : public Stmt {
-public:
-  Token identifier;
-  std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> fields;
-  std::vector<std::shared_ptr<Method>> fns;
-
-  StructDecl(
-      Token identifier,
+  void initialize_methods_and_fields(
       std::vector<
           std::variant<std::shared_ptr<Stmt>,
                        std::pair<Token, std::shared_ptr<ParseType::Type>>>>
-          fields_and_fns)
-      : identifier(identifier) {
+          fields_and_fns) {
     for (auto &stmt : fields_and_fns) {
       if (std::holds_alternative<std::shared_ptr<Stmt>>(stmt)) {
         auto func = std::dynamic_pointer_cast<Func>(
@@ -47,6 +40,23 @@ public:
             std::get<std::pair<Token, std::shared_ptr<ParseType::Type>>>(stmt));
       }
     }
+  }
+
+public:
+  Token identifier;
+  std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> fields;
+  std::vector<std::shared_ptr<Method>> fns;
+  std::vector<Token> impls;
+
+  StructDecl(
+      Token identifier,
+      std::vector<
+          std::variant<std::shared_ptr<Stmt>,
+                       std::pair<Token, std::shared_ptr<ParseType::Type>>>>
+          fields_and_fns,
+      std::vector<Token> impls)
+      : identifier(identifier), impls(impls) {
+    this->initialize_methods_and_fields(fields_and_fns);
   }
 
   void accept(Visitor *visitor) { visitor->visit_struct_decl(this); }

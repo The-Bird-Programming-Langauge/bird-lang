@@ -644,4 +644,8 @@ public:
     this->v_table[struct_val.name][method_call->identifier.lexeme].call(this,
                                                                         args);
   }
+
+  void visit_trait(Trait *trait) {
+    // do nothing
+  }
 };

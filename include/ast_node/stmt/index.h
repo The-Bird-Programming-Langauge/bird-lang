@@ -14,5 +14,6 @@
 #include "return_stmt.h"
 #include "stmt.h"
 #include "struct_decl.h"
+#include "trait.h"
 #include "type_stmt.h"
 #include "while_stmt.h"

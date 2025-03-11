@@ -6,6 +6,8 @@ class Token {
 public:
   enum Type {
     // keywords
+    AND,
+    AS,
     BREAK,
     CONST,
     CONTINUE,
@@ -14,19 +16,19 @@ public:
     FN,
     FOR,
     IF,
+    IMPLEMENTS,
+    MATCH,
+    NOT,
+    OR,
     PRINT,
     RETURN,
     SELF,
     STRUCT,
+    TRAIT,
     TYPE,
     VAR,
     WHILE,
-    AS,
-    AND,
     XOR,
-    OR,
-    NOT,
-    MATCH,
 
     // types
     TYPE_LITERAL,

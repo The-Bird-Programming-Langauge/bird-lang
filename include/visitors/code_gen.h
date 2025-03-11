@@ -252,6 +252,7 @@ class CodeGen : public Visitor {
   get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
                        Tagged<BinaryenExpressionRef> &index,
                        std::shared_ptr<BirdType> type);
+  void visit_trait(Trait *trait);
 
 public:
   ~CodeGen();
