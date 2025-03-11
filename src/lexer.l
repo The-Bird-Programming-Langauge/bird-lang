@@ -109,6 +109,12 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "match"                 {yylval->emplace<Token>() = make_token(T::MATCH);
                           return token::MATCH; }
 
+"import"                 {yylval->emplace<Token>() = make_token(T::IMPORT);
+                          return token::IMPORT; }
+
+"from"                 {yylval->emplace<Token>() = make_token(T::FROM);
+                          return token::FROM; }
+
 {TYPE_IDENT}            { yylval->emplace<Token>() = make_token(T::TYPE_LITERAL);
                           return token::TYPE_LITERAL;} 
 
@@ -182,6 +188,9 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 "%="                    { yylval->emplace<Token>() = make_token(T::PERCENT_EQUAL);
                           return token::PERCENT_EQUAL; } 
+
+"::"                    { yylval->emplace<Token>() = make_token(T::COLON_COLON);
+                          return token::COLON_COLON; } 
 
 
 ":"                     { return token::COLON; } 

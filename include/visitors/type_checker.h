@@ -968,4 +968,6 @@ public:
 
     this->stack.push(else_arm_type);
   }
+
+  void visit_import_stmt(ImportStmt *import_stmt) {};
 };

@@ -231,6 +231,9 @@ class CodeGen : public Visitor {
   TaggedExpression match_helper(TaggedExpression expr, MatchExpr *match_expr,
                                 int index);
 
+  void visit_import_stmt(ImportStmt *import_stmt);
+  void import_function(std::string import_item);
+
 public:
   ~CodeGen();
   CodeGen();

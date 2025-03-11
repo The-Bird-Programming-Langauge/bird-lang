@@ -67,6 +67,8 @@ XOR "xor"
 OR "or"
 NOT "not"
 MATCH "match"
+IMPORT "import"
+FROM "from"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -86,6 +88,7 @@ PLUS "+"
 SLASH "/"
 STAR "*"
 QUESTION "?"
+COLON_COLON "::"
 
 %token 
 SEMICOLON ";"
@@ -120,6 +123,7 @@ continue_stmt
 expr_stmt
 type_stmt
 struct_decl
+import_stmt
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -200,6 +204,12 @@ param_list
 
 %type <std::shared_ptr<ParseType::Type>>
 type_identifier
+
+%type <std::vector<std::vector<Token>>>
+import_item_list
+
+%type <std::vector<Token>>
+import_item
 
 %right ASSIGN
    EQUAL
@@ -286,6 +296,7 @@ block_valid_stmt:
    | continue_stmt SEMICOLON { $$ = std::move($1); }
    | expr_stmt SEMICOLON { $$ = std::move($1); }
    | type_stmt SEMICOLON { $$ = std::move($1); }
+   | import_stmt { $$ = std::move($1); }
 
 struct_decl:
    STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
@@ -403,6 +414,30 @@ expr_stmt:
 type_stmt: 
    TYPE IDENTIFIER EQUAL type_identifier 
       { $$ = std::make_unique<TypeStmt>($2, $4); }
+
+import_stmt: 
+   IMPORT import_item_list
+      { $$ = std::make_unique<ImportStmt>($1, $2); }
+   | IMPORT import_item_list FROM import_item
+      {
+         for (auto& i : $2)
+         {
+            i.insert(i.begin(), $4.begin(), $4.end());
+         }
+         $$ = std::make_unique<ImportStmt>($1, $2);
+      }
+
+import_item_list:
+   import_item
+      { $$ = std::vector<std::vector<Token>>{$1}; }
+   | import_item_list COMMA import_item
+      { $1.push_back($3); $$ = $1; }
+
+import_item:
+   IDENTIFIER
+      { $$ = std::vector<Token>{$1}; }
+   | import_item COLON_COLON IDENTIFIER
+      { $1.push_back($3); $$ = $1; }
 
 maybe_arg_list: 
    %empty { $$ = (std::vector<std::shared_ptr<Expr>>()); }

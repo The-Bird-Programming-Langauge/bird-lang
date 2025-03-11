@@ -289,4 +289,22 @@ public:
     match_expr->else_arm->accept(this);
     std::cout << "}";
   }
+
+  void visit_import_stmt(ImportStmt *import_stmt) {
+    std::cout << "import ";
+
+    for (int i = 0; i < import_stmt->import_items.size(); i += 1) {
+      for (int j = 0; j < import_stmt->import_items[i].size(); j += 1) {
+        std::cout << import_stmt->import_items[i][j].lexeme;
+        
+        if (j < import_stmt->import_items[i].size() - 1) {
+          std::cout << "::";
+        }
+      }
+      
+      if (i < import_stmt->import_items.size() - 1) {
+        std::cout << ", ";
+      }
+    }
+  };
 };

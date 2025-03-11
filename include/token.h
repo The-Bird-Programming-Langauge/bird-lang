@@ -27,6 +27,8 @@ public:
     OR,
     NOT,
     MATCH,
+    IMPORT,
+    FROM,
 
     // types
     TYPE_LITERAL,
@@ -62,6 +64,7 @@ public:
     LESS_EQUAL,
     MINUS_EQUAL,
     PERCENT_EQUAL,
+    COLON_COLON,
     PLUS_EQUAL,
     SLASH_EQUAL,
     STAR_EQUAL,

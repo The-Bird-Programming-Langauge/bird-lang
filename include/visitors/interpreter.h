@@ -597,4 +597,6 @@ public:
 
     match_expr->else_arm->accept(this);
   }
+
+  void visit_import_stmt(ImportStmt *import_stmt) {};
 };
