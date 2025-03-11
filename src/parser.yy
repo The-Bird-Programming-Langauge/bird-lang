@@ -86,8 +86,6 @@ PLUS "+"
 SLASH "/"
 STAR "*"
 QUESTION "?"
-
-%token 
 SEMICOLON ";"
 COMMA ","
 RBRACE "}"
@@ -95,8 +93,7 @@ LBRACE "{"
 RPAREN ")"
 LPAREN "("
 RBRACKET "]"
-%token <Token> LBRACKET "["
-%token
+LBRACKET "["
 COLON ":"
 BANG "!"
 ARROW "->"
@@ -104,8 +101,8 @@ FAT_ARROW "=>"
 DOT "."
 
 %type <std::unique_ptr<Stmt>> 
+top_level_stmt
 stmt
-block_valid_stmt
 decl_stmt
 if_stmt
 const_stmt
@@ -176,14 +173,14 @@ struct_initialization_list
 return_type
 
 %type <std::optional<std::unique_ptr<Stmt>>>
-maybe_block_valid_stmt
+maybe_stmt
 
 %type <std::optional<std::unique_ptr<Expr>>>
 maybe_expr
 
 %type <std::vector<std::unique_ptr<Stmt>>>
-maybe_block_valid_stmts
-block_valid_stmts
+maybe_top_level_stmts
+top_level_stmts
 maybe_stmts
 stmts
 
@@ -255,25 +252,25 @@ type_identifier
 %%
 
 program: 
-   maybe_stmts { stmts = std::move($1); }
+   maybe_top_level_stmts { stmts = std::move($1); }
 
-maybe_stmts:
+maybe_top_level_stmts:
     %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
-   | stmts { $$ = std::move($1); }
+   | top_level_stmts { $$ = std::move($1); }
 
-stmts: 
-   stmt 
+top_level_stmts: 
+   top_level_stmt 
       { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
-   | stmts stmt 
+   | top_level_stmts top_level_stmt 
       { $1.push_back(std::move($2)); $$ = std::move($1); }
 
-stmt: 
+top_level_stmt: 
    func { $$ = std::move($1); }
    | struct_decl SEMICOLON {$$ = std::move($1); }
-   | block_valid_stmt { $$ = std::move($1); }
+   | stmt { $$ = std::move($1); }
    | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
 
-block_valid_stmt:
+stmt:
    decl_stmt SEMICOLON { $$ = std::move($1); }
    | if_stmt { $$ = std::move($1); }
    | const_stmt SEMICOLON { $$ = std::move($1); }
@@ -312,6 +309,12 @@ decl_stmt:
    | VAR IDENTIFIER COLON type_identifier EQUAL expr
       { $$ = std::make_unique<DeclStmt>($2, $4, std::move($6)); }
 
+const_stmt: 
+   CONST IDENTIFIER EQUAL expr 
+      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, std::move($4)); }
+   | CONST IDENTIFIER COLON type_identifier EQUAL expr 
+      { $$ = std::make_unique<ConstStmt>($2, std::move($4), std::move($6)); }
+
 if_stmt: 
    IF expr block %prec THEN 
       { $$ = std::make_unique<IfStmt>(
@@ -332,41 +335,12 @@ if_stmt:
             std::move($3), 
             std::move($5)); }
 
-const_stmt: 
-   CONST IDENTIFIER EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, std::move($4)); }
-   | CONST IDENTIFIER COLON type_identifier EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, std::move($4), std::move($6)); }
-   
-
-print_stmt: 
-   PRINT arg_list 
-      { $$ = std::make_unique<PrintStmt>(std::move($2), $1); }
-
-block: 
-   LBRACE maybe_block_valid_stmts RBRACE 
-      { $$ = std::make_unique<Block>(std::move($2)); }
-
-maybe_block_valid_stmts:
-    %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
-   | block_valid_stmts { $$ = std::move($1); }
-
-block_valid_stmts: 
-   block_valid_stmt 
-      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
-   | block_valid_stmts block_valid_stmt 
-      { $1.push_back(std::move($2)); $$ = std::move($1); }
-
-func: 
-   FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
-      { $$ = std::make_unique<Func>($2, $6, $4, std::move($7)); }
-
 while_stmt: 
    WHILE expr block 
       { $$ = std::make_unique<WhileStmt>($1, std::move($2), std::move($3)); }
 
 for_stmt: 
-   FOR maybe_block_valid_stmt maybe_expr SEMICOLON maybe_expr block 
+   FOR maybe_stmt maybe_expr SEMICOLON maybe_expr block 
       { $$ = std::make_unique<ForStmt>(  
             $1, 
             std::move($2), 
@@ -374,9 +348,31 @@ for_stmt:
             std::move($5), 
             std::move($6)); }
 
-maybe_block_valid_stmt: 
+print_stmt: 
+   PRINT arg_list 
+      { $$ = std::make_unique<PrintStmt>(std::move($2), $1); }
+
+block: 
+   LBRACE maybe_stmts RBRACE 
+      { $$ = std::make_unique<Block>(std::move($2)); }
+
+maybe_stmts:
+    %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   | stmts { $$ = std::move($1); }
+
+stmts: 
+   stmt 
+      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   | stmts stmt 
+      { $1.push_back(std::move($2)); $$ = std::move($1); }
+
+func: 
+   FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
+      { $$ = std::make_unique<Func>($2, $6, $4, std::move($7)); }
+
+maybe_stmt: 
    SEMICOLON { $$ = std::nullopt; }
-   | block_valid_stmt { $$ = std::move($1); }
+   | stmt { $$ = std::move($1); }
 
 maybe_expr: 
    %empty { $$ = std::nullopt; }
