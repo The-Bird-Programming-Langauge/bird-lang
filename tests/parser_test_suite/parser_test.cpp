@@ -1,4 +1,7 @@
 #include "../helpers/compile_helper.hpp"
+#include "ast_node/expr/array_init.h"
+#include "ast_node/expr/as_cast.h"
+#include <gtest/gtest.h>
 
 TEST(ParserTest, ParseBlockStmt) {
   BirdTest::TestOptions options;
@@ -736,7 +739,7 @@ TEST(ParserTest, SingleLineComments) {
 
 TEST(ParserTest, ArrayWithoutInit) {
   BirdTest::TestOptions options;
-  options.code = "var x: int[] = [];";
+  options.code = "var x: int[] = [] as int[];";
 
   options.compile = false;
   options.interpret = false;
@@ -755,9 +758,11 @@ TEST(ParserTest, ArrayWithoutInit) {
     ASSERT_NE(array, nullptr);
     ASSERT_EQ(array->get_token().lexeme, "int");
 
-    ArrayInit *array_init = dynamic_cast<ArrayInit *>(decl_stmt->value.get());
+    AsCast *as_cast = dynamic_cast<AsCast *>(decl_stmt->value.get());
+    ASSERT_NE(as_cast, nullptr);
+
+    ArrayInit *array_init = dynamic_cast<ArrayInit *>(as_cast->expr.get());
     ASSERT_NE(array_init, nullptr);
-    ASSERT_EQ(array_init->elements.size(), 0);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));

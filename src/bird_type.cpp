@@ -39,8 +39,8 @@ std::shared_ptr<BirdType> token_to_bird_type(Token token) {
   }
 }
 
-std::string bird_type_to_string(std::shared_ptr<BirdType> type) {
-  switch (type->type) {
+std::string bird_type_type_to_string(BirdTypeType type) {
+  switch (type) {
   case BirdTypeType::INT:
     return "int";
   case BirdTypeType::FLOAT:
@@ -62,4 +62,8 @@ std::string bird_type_to_string(std::shared_ptr<BirdType> type) {
   case BirdTypeType::ERROR:
     return "error";
   }
+}
+
+std::string bird_type_to_string(std::shared_ptr<BirdType> type) {
+  return bird_type_type_to_string(type->type);
 }
