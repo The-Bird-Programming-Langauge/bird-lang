@@ -12,7 +12,8 @@ public:
     table.declare(
         "length",
         std::make_shared<BirdFunction>(
-            std::vector{std::make_shared<BirdType>(BirdTypeType::ARRAY)},
-            std::make_shared<BirdType>(BirdTypeType::INT)));
+            std::vector<std::shared_ptr<BirdType>>{
+                std::make_shared<ArrayType>(std::make_shared<VoidType>())},
+            std::make_shared<IntType>()));
   }
 };
