@@ -120,7 +120,6 @@ struct_decl
 
 %type <std::unique_ptr<Expr>> 
 expr
-decl_valid_expr
 assign_expr
 type_cast
 ternary_expr
@@ -295,15 +294,15 @@ field_member:
       { $$ = std::make_pair($1.lexeme, $3); }
 
 decl_stmt: 
-   VAR IDENTIFIER EQUAL decl_valid_expr 
+   VAR IDENTIFIER EQUAL expr 
       { $$ = std::make_unique<DeclStmt>($2, std::nullopt, std::move($4)); }
-   | VAR IDENTIFIER COLON type_identifier EQUAL decl_valid_expr
+   | VAR IDENTIFIER COLON type_identifier EQUAL expr
       { $$ = std::make_unique<DeclStmt>($2, $4, std::move($6)); }
 
 const_stmt: 
-   CONST IDENTIFIER EQUAL decl_valid_expr 
+   CONST IDENTIFIER EQUAL expr 
       { $$ = std::make_unique<ConstStmt>($2, std::nullopt, std::move($4)); }
-   | CONST IDENTIFIER COLON type_identifier EQUAL decl_valid_expr 
+   | CONST IDENTIFIER COLON type_identifier EQUAL expr 
       { $$ = std::make_unique<ConstStmt>($2, std::move($4), std::move($6)); }
 
 if_stmt: 
@@ -437,13 +436,11 @@ expr:
    | subscript_expr { $$ = std::move($1); }
    | index_assign { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
+   | struct_initialization { $$ = std::move($1); }
+   | array_initialization { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
 
-decl_valid_expr:
-   expr { $$ = std::move($1); }
-   | struct_initialization { $$ = std::move($1); }
-   | array_initialization { $$ = std::move($1); }
 
 assign_expr:
    primary ASSIGN_OP expr %prec ASSIGN 
