@@ -243,6 +243,15 @@ class CodeGen : public Visitor {
   void visit_method_call(MethodCall *method_call);
   TaggedExpression create_call_with(std::string function_name,
                                     std::vector<BinaryenExpressionRef> args);
+  void generate_array_length_fn();
+  void create_struct_constructor(std::shared_ptr<StructType> type);
+  void init_array_constructor();
+  BinaryenExpressionRef
+  get_array_data(Tagged<BinaryenExpressionRef> &subscriptable);
+  BinaryenExpressionRef
+  get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
+                       Tagged<BinaryenExpressionRef> &index,
+                       std::shared_ptr<BirdType> type);
 
 public:
   ~CodeGen();

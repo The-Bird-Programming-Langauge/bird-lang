@@ -15,10 +15,7 @@
 #define TEST_EXPR_STMT new ExprStmt(std::unique_ptr<Expr>())
 
 class ReorderAstTest : public testing::TestWithParam<std::vector<Stmt *>> {
-public:
-  int initial_size;
-  std::vector<std::unique_ptr<Stmt>> stmts;
-  void setUp() {
+  void SetUp() override {
     auto stmt_ptrs = GetParam();
 
     for (auto stmt : stmt_ptrs) {
@@ -29,6 +26,9 @@ public:
     reorder_ast(this->stmts);
   }
 
+public:
+  int initial_size;
+  std::vector<std::unique_ptr<Stmt>> stmts;
   bool structs_then_type_stmts_first() {
     bool type_stmt_seen = false;
     bool seen_else = false;
@@ -52,8 +52,6 @@ public:
 };
 
 TEST_P(ReorderAstTest, TestOrder) {
-  setUp();
-
   ASSERT_EQ(initial_size, stmts.size());
   ASSERT_TRUE(structs_then_type_stmts_first());
 }

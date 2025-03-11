@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "../bird_type.h"
+#include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
 #include "../exceptions/user_error_tracker.h"
 #include "../stack.h"
@@ -23,6 +24,8 @@
  */
 class TypeChecker : public Visitor {
 public:
+  CoreCallTable core_call_table;
+
   Environment<std::shared_ptr<BirdType>> env;
   Environment<std::shared_ptr<BirdFunction>> call_table;
 

@@ -11,6 +11,7 @@
 
 #include "../bird_type.h"
 #include "../callable.h"
+#include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
 #include "../exceptions/break_exception.h"
 #include "../exceptions/continue_exception.h"
@@ -26,6 +27,8 @@
 class Interpreter : public Visitor {
 
 public:
+  CoreCallTable core_call_table;
+
   Environment<Value> env;
   Environment<Callable> call_table;
   Environment<std::shared_ptr<BirdType>> type_table;
@@ -403,6 +406,10 @@ public:
   }
 
   void visit_call(Call *call) {
+    if (core_call_table.table.contains(call->identifier.lexeme)) {
+      run_core_call(call);
+      return;
+    }
     auto callable = this->call_table.get(call->identifier.lexeme);
 
     std::vector<Value> args = {};
@@ -412,6 +419,14 @@ public:
     }
 
     callable.call(this, args);
+  }
+
+  void run_core_call(Call *call) {
+    if (call->identifier.lexeme == "length") {
+      call->args[0]->accept(this);
+      auto result = std::move(this->stack.pop());
+      stack.push(result.length());
+    }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {

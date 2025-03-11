@@ -23,7 +23,7 @@ TEST(ArrayTestSuite, IntArraySubscript) {
   };
 
   options.after_compile = [&](std::string &output, CodeGen &codegen) {
-    ASSERT_EQ(output == "1\n2\n3\n\n", true);
+    ASSERT_EQ(output, "1\n2\n3\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
@@ -53,7 +53,7 @@ TEST(ArrayTestSuite, FloatArraySubscript) {
   };
 
   options.after_compile = [&](std::string &output, CodeGen &codegen) {
-    ASSERT_EQ(output == "1.1\n2.2\n3.3\n\n", true);
+    ASSERT_EQ(output, "1.1\n2.2\n3.3\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
