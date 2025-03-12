@@ -13,7 +13,7 @@ TEST(FunctionTest, FunctionReturnTypeInt)
 
   options.after_interpret = [&](Interpreter &interpreter)
   {
-    ASSERT_TRUE(interpreter.current_namespace->call_table.contains("function"));
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("function"));
     ASSERT_TRUE(interpreter.current_namespace->environment.contains("result"));
     auto result = interpreter.current_namespace->environment.get("result");
     ASSERT_TRUE(is_type<int>(result));
@@ -36,7 +36,7 @@ TEST(FunctionTest, FunctionReturnTypeString)
 
   options.after_interpret = [&](Interpreter &interpreter)
   {
-    ASSERT_TRUE(interpreter.current_namespace->call_table.contains("function"));
+    ASSERT_TRUE(interpreter.current_namespace->environment.contains("function"));
     ASSERT_TRUE(interpreter.current_namespace->environment.contains("result"));
     auto result = interpreter.current_namespace->environment.get("result");
     ASSERT_TRUE(is_type<std::string>(result));

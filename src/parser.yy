@@ -558,7 +558,12 @@ or_expr:
 call_expr: 
    expr LPAREN maybe_arg_list RPAREN %prec CALL 
       { 
-         $$ = std::make_unique<Call>(std::move($1), std::move($3), Token());
+         Token identifier_token;
+
+         if (auto* call = dynamic_cast<Primary *>($1.get())) {
+            identifier_token = call->value;
+         }
+         $$ = std::make_unique<Call>(std::move($1), std::move($3), identifier_token);
       }
 
 struct_initialization:

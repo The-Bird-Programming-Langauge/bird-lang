@@ -87,7 +87,7 @@ TEST(NamespaceTest, TripleNestedNamespace)
 
     EXPECT_TRUE(outer_ns->environment.contains("a"));
     EXPECT_TRUE(outer_ns->type_table.contains("OuterStruct"));
-    EXPECT_TRUE(outer_ns->call_table.contains("outer_func"));
+    EXPECT_TRUE(outer_ns->environment.contains("outer_func"));
 
     auto middle = outer_ns->nested_namespaces.find("Middle");
     EXPECT_NE(middle, outer_ns->nested_namespaces.end());
@@ -96,7 +96,7 @@ TEST(NamespaceTest, TripleNestedNamespace)
 
     EXPECT_TRUE(middle_ns->environment.contains("b"));
     EXPECT_TRUE(middle_ns->type_table.contains("MiddleStruct"));
-    EXPECT_TRUE(middle_ns->call_table.contains("middle_func"));
+    EXPECT_TRUE(middle_ns->environment.contains("middle_func"));
 
     auto inner = middle_ns->nested_namespaces.find("Inner");
     EXPECT_NE(inner, middle_ns->nested_namespaces.end());
@@ -105,7 +105,7 @@ TEST(NamespaceTest, TripleNestedNamespace)
 
     EXPECT_TRUE(inner_ns->environment.contains("c"));
     EXPECT_TRUE(inner_ns->type_table.contains("InnerStruct"));
-    EXPECT_TRUE(inner_ns->call_table.contains("inner_func"));
+    EXPECT_TRUE(inner_ns->environment.contains("inner_func"));
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
