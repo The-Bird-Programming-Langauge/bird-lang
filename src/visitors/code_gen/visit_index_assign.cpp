@@ -19,8 +19,8 @@ void CodeGen::visit_index_assign(IndexAssign *index_assign) {
       BinaryenConst(this->mod,
                     BinaryenLiteralInt32(bird_type_byte_size(lhs_val.type))));
 
-  bool float_flag = (lhs_val.type->type == BirdTypeType::FLOAT &&
-                     rhs_val.type->type == BirdTypeType::FLOAT);
+  bool float_flag = (lhs_val.type->get_tag() == TypeTag::FLOAT &&
+                     rhs_val.type->get_tag() == TypeTag::FLOAT);
 
   BinaryenExpressionRef result;
   switch (index_assign->op.token_type) {
@@ -79,6 +79,6 @@ void CodeGen::visit_index_assign(IndexAssign *index_assign) {
                                    mem_offset_literal, result};
 
   this->stack.push(BinaryenCall(this->mod,
-                                get_mem_set_for_type(lhs_val.type->type), args,
-                                3, BinaryenTypeNone()));
+                                get_mem_set_for_type(lhs_val.type->get_tag()),
+                                args, 3, BinaryenTypeNone()));
 }

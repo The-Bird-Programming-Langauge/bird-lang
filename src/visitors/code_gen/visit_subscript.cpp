@@ -11,7 +11,7 @@ void CodeGen::visit_subscript(Subscript *subscript) {
   subscript->subscriptable->accept(this);
   auto subscriptable = this->stack.pop();
 
-  if (subscriptable.type->type != BirdTypeType::ARRAY) {
+  if (subscriptable.type->get_tag() != TypeTag::ARRAY) {
     throw BirdException("Tried to subscript into non-array type");
   }
 
@@ -31,7 +31,7 @@ void CodeGen::visit_subscript(Subscript *subscript) {
       // TODO: Get the commented-out line to work and replace the
       // line below with it BinaryenThrow(this->mod, "Error:
       // index out of bounds", {}, 0));
-      BinaryenConst(this->mod, type->type == BirdTypeType::FLOAT
+      BinaryenConst(this->mod, type->get_tag() == TypeTag::FLOAT
                                    ? BinaryenLiteralFloat64(0)
                                    : BinaryenLiteralInt32(0)));
 
@@ -57,6 +57,6 @@ CodeGen::get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
   BinaryenExpressionRef mem_get_args[2] = {get_array_data(subscriptable),
                                            mem_position};
   return BinaryenCall(
-      mod, type->type == BirdTypeType::FLOAT ? "mem_get_64" : "mem_get_32",
+      mod, type->get_tag() == TypeTag::FLOAT ? "mem_get_64" : "mem_get_32",
       mem_get_args, 2, bird_type_to_binaryen_type(type));
 }

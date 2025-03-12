@@ -502,17 +502,17 @@ public:
       }
 
       if (!found) {
-        if (field.second->type == BirdTypeType::BOOL) {
+        if (field.second->get_tag() == TypeTag::BOOL) {
           (*struct_instance)[field.first] = Value(false);
-        } else if (field.second->type == BirdTypeType::INT) {
+        } else if (field.second->get_tag() == TypeTag::INT) {
           (*struct_instance)[field.first] = Value(0);
-        } else if (field.second->type == BirdTypeType::FLOAT) {
+        } else if (field.second->get_tag() == TypeTag::FLOAT) {
           (*struct_instance)[field.first] = Value(0.0);
-        } else if (field.second->type == BirdTypeType::STRING) {
+        } else if (field.second->get_tag() == TypeTag::STRING) {
           (*struct_instance)[field.first] = Value("");
-        } else if (field.second->type == BirdTypeType::STRUCT) {
+        } else if (field.second->get_tag() == TypeTag::STRUCT) {
           (*struct_instance)[field.first] = Value(nullptr);
-        } else if (field.second->type == BirdTypeType::PLACEHOLDER) {
+        } else if (field.second->get_tag() == TypeTag::PLACEHOLDER) {
           (*struct_instance)[field.first] = Value(nullptr);
         } else {
           throw std::runtime_error("Cannot assign member of non-struct type.");

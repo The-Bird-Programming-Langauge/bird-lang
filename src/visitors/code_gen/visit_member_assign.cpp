@@ -24,7 +24,7 @@ void CodeGen::visit_member_assign(MemberAssign *member_assign) {
       value.value};
 
   this->stack.push(TaggedExpression(
-      BinaryenCall(this->mod, get_mem_set_for_type(value.type->type), args, 3,
-                   BinaryenTypeNone()),
+      BinaryenCall(this->mod, get_mem_set_for_type(value.type->get_tag()), args,
+                   3, BinaryenTypeNone()),
       std::shared_ptr<BirdType>(new VoidType())));
 }

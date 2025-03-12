@@ -8,8 +8,8 @@ void CodeGen::visit_assign_expr(AssignExpr *assign_expr) {
   assign_expr->value->accept(this);
   TaggedExpression rhs_val = this->stack.pop();
 
-  bool float_flag = (index.type->type == BirdTypeType::FLOAT &&
-                     rhs_val.type->type == BirdTypeType::FLOAT);
+  bool float_flag = (index.type->get_tag() == TypeTag::FLOAT &&
+                     rhs_val.type->get_tag() == TypeTag::FLOAT);
 
   BinaryenExpressionRef result;
   switch (assign_expr->assign_operator.token_type) {

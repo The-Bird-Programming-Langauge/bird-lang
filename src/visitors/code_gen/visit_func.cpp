@@ -53,7 +53,7 @@ void CodeGen::visit_func(Func *func) {
     stmt->accept(this);
     auto result = this->stack.pop();
 
-    if (result.type->type != BirdTypeType::VOID) {
+    if (result.type->get_tag() != TypeTag::VOID) {
       current_function_body.push_back(BinaryenDrop(this->mod, result.value));
     } else {
       current_function_body.push_back(result.value);

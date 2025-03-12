@@ -49,15 +49,16 @@ void CodeGen::visit_binary_normal(Binary *binary) {
   auto right = this->stack.pop();
   auto left = this->stack.pop();
 
-  if (right.type->type == BirdTypeType::STRING &&
-      left.type->type == BirdTypeType::STRING) {
+  if (right.type->get_tag() == TypeTag::STRING &&
+      left.type->get_tag() == TypeTag::STRING) {
     this->handle_binary_string_operations(binary->op.token_type, right, left);
     return;
   }
 
   try {
     auto binary_op = this->binary_operations.at(binary->op.token_type);
-    auto binary_op_fn = binary_op.at({left.type->type, right.type->type});
+    auto binary_op_fn =
+        binary_op.at({left.type->get_tag(), right.type->get_tag()});
 
     this->stack.push(
         TaggedExpression(BinaryenBinary(this->mod, binary_op_fn.value(),

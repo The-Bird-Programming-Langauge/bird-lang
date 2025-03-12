@@ -6,7 +6,7 @@ void CodeGen::visit_direct_member_access(
   auto accessable = this->stack.pop();
 
   std::shared_ptr<StructType> struct_type;
-  if (accessable.type->type == BirdTypeType::PLACEHOLDER) {
+  if (accessable.type->get_tag() == TypeTag::PLACEHOLDER) {
     std::shared_ptr<PlaceholderType> placeholder =
         safe_dynamic_pointer_cast<PlaceholderType>(accessable.type);
     if (this->struct_names.find(placeholder->name) ==
@@ -36,7 +36,7 @@ void CodeGen::visit_direct_member_access(
       accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
 
   auto func_name =
-      member_type->type == BirdTypeType::FLOAT ? "mem_get_64" : "mem_get_32";
+      member_type->get_tag() == TypeTag::FLOAT ? "mem_get_64" : "mem_get_32";
 
   this->stack.push(
       TaggedExpression(BinaryenCall(this->mod, func_name, args, 2,
