@@ -1,57 +1,95 @@
-struct Point {
-    x: float,
-    y: float
+namespace Math {
+    namespace Trig {
+        fn sin(a: float, c: float) -> float {
+            return a / c;
+        }
+
+        fn cos(b: float, c: float) -> float {
+            return b / c;
+        }
+
+        fn tan(a: float, b: float) -> float {
+            return a / b;
+        }
+
+        fn arcsin(x: float) -> float {
+            var sum: float = x;
+            var term: float = x;
+            var n: int = 1;
+            var prev_sum: float = sum;
+
+            while n < 10 {  
+                term *= (x * x) * ((2.0 * n as float - 1.0) / (2.0 * n as float));
+                sum += term / (2.0 * n as float + 1.0);
+                n += 1;
+
+                if (sum == prev_sum) {
+                    break;
+                }
+                prev_sum = sum;
+            }
+
+            return sum;
+        }
+
+
+        fn arccos(x: float) -> float {
+            return 3.1415926 / 2.0 - Math::Trig::arcsin(x);
+        }
+
+
+        fn arctan(x: float) -> float {
+            if x > 1.0 {
+                // needing Math::Trig::arctan here is not expected, will fix.
+                return 3.14159 / 2.0 - Math::Trig::arctan(1.0 / x);
+            }
+
+            var sum: float = x;
+            var term: float = x;
+            var n: int = 1;
+            var sign: float = -1.0;
+
+            while n < 10 { 
+                term *= x * x;
+                sum += (sign * term) / (2 * n + 1) as float;
+                sign *= -1.0; 
+                n += 1;
+            }
+
+            return sum;
+        }
+
+        fn to_degrees(theta: float) -> float {
+            return theta * 180.0 / 3.14159;
+        }
+
+        struct Triangle {
+            a: float,
+            b: float, 
+            c: float
+        };
+    }
+}
+
+var t: Math::Trig::Triangle = Math::Trig::Triangle {
+    a = 3.0,
+    b = 4.0,
+    c = 5.0
 };
 
-namespace Math {
-    var x: str = "math rules!";
-    var y: int = 42;
-    var z: float = 3.14;
-    const arr = [ 1, 2, 3 ];
-    
-    var p: Point = Point {
-        x = 1.2,
-        y = 3.3
-    };
+var sin_x: float = Math::Trig::sin(t.a, t.c);
+var cos_x: float = Math::Trig::cos(t.b, t.c);
+var tan_x: float = Math::Trig::tan(t.a, t.b);
 
-    fn foobar() -> int {
-        return 3;
-    }
+print "sin(x): ", Math::Trig::to_degrees(sin_x), " (θ: ", Math::Trig::to_degrees(Math::Trig::arcsin(sin_x)), " degrees)";
+print "cos(x): ", Math::Trig::to_degrees(cos_x), " (θ: ", Math::Trig::to_degrees(Math::Trig::arccos(cos_x)), " degrees)";
+print "tan(x): ", Math::Trig::to_degrees(tan_x), " (θ: ", Math::Trig::to_degrees(Math::Trig::arctan(tan_x)), " degrees)";
 
-    namespace Trig {
-        var w: float = 1.41;
-        fn sin() -> float {
-            return 0.7071;
-        }
-    }
-}
-
-namespace Calc {
-    var x: float = Math::p.x;
-}
-
-print "Math::x ", Math::x;
-print "Math::y ", Math::y;
-print "Math::z ", Math::z;
-
-print "Math::Trig::w ", Math::Trig::w;
-
-print "Math::arr[0] ", Math::arr[0];
-print "Math::arr[1] ", Math::arr[1];
-print "Math::arr[2] ", Math::arr[2];
-
-print "Math::p.x ", Math::p.x;
-print "Math::p.y ", Math::p.y;
-
-
-print "Calc::x ", Calc::x;
-
-print Math::foobar();
-
-fn shoebar() -> int {
-    return 4;
-}
-
-var x = shoebar;
-
-print shoebar();
+/*
+            |\
+            | \ 
+      a = 3 |  \ c = 5
+            |   \
+            |___θ\ 
+            b = 4
+*/

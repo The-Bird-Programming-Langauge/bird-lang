@@ -152,7 +152,6 @@ public:
     for (auto &stmt : *stmts) {
       stmt->accept(this);
     }
-
     while (!this->stack.empty()) {
       this->stack.pop();
     }
@@ -170,6 +169,7 @@ public:
 
   void visit_decl_stmt(DeclStmt *decl_stmt) {
     decl_stmt->value->accept(this);
+
     auto result = this->stack.pop();
 
     if (result->type == BirdTypeType::VOID) {
@@ -181,14 +181,25 @@ public:
     }
 
     if (decl_stmt->type.has_value()) {
-      std::shared_ptr<BirdType> type =
-          this->type_converter.convert(decl_stmt->type.value());
+      std::shared_ptr<BirdType> type = this->type_converter.convert(
+          this->current_namespace->type_table, decl_stmt->type.value());
+
       if (*type != *result) {
+        auto placeholder = std::dynamic_pointer_cast<PlaceholderType>(type);
+        if (placeholder) {
+          if (this->struct_names.find(placeholder->name) !=
+              this->struct_names.end()) {
+            this->current_namespace->environment.declare(
+                decl_stmt->identifier.lexeme, result);
+            return;
+          }
+        }
+
         this->user_error_tracker.type_mismatch(
             "in declaration", decl_stmt->type.value()->get_token());
 
         this->current_namespace->environment.declare(
-            decl_stmt->identifier.lexeme, std::make_unique<ErrorType>());
+            decl_stmt->identifier.lexeme, std::make_shared<ErrorType>());
         return;
       }
     }
@@ -300,8 +311,8 @@ public:
     }
 
     if (const_stmt->type.has_value()) {
-      std::shared_ptr<BirdType> type =
-          this->type_converter.convert(const_stmt->type.value());
+      std::shared_ptr<BirdType> type = this->type_converter.convert(
+          this->current_namespace->type_table, const_stmt->type.value());
 
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
@@ -507,12 +518,14 @@ public:
 
     std::transform(func->param_list.begin(), func->param_list.end(),
                    std::back_inserter(params), [&](auto param) {
-                     return this->type_converter.convert(param.second);
+                     return this->type_converter.convert(
+                         this->current_namespace->type_table, param.second);
                    });
 
     std::shared_ptr<BirdType> ret =
         func->return_type.has_value()
-            ? this->type_converter.convert(func->return_type.value())
+            ? this->type_converter.convert(this->current_namespace->type_table,
+                                           func->return_type.value())
             : std::shared_ptr<BirdType>(new VoidType());
     auto previous_return_type = this->return_type;
     this->return_type = ret;
@@ -526,7 +539,9 @@ public:
 
     for (auto &param : func->param_list) {
       this->current_namespace->environment.declare(
-          param.first.lexeme, this->type_converter.convert(param.second));
+          param.first.lexeme,
+          this->type_converter.convert(this->current_namespace->type_table,
+                                       param.second));
     }
 
     for (auto &stmt : dynamic_cast<Block *>(func->block.get())
@@ -630,7 +645,8 @@ public:
 
     this->current_namespace->type_table.declare(
         type_stmt->identifier.lexeme,
-        this->type_converter.convert(type_stmt->type_token));
+        this->type_converter.convert(this->current_namespace->type_table,
+                                     type_stmt->type_token));
   }
 
   void visit_subscript(Subscript *subscript) {
@@ -672,8 +688,10 @@ public:
         struct_decl->fields.begin(), struct_decl->fields.end(),
         std::back_inserter(struct_fields),
         [&](std::pair<std::string, std::shared_ptr<ParseType::Type>> field) {
-          return std::make_pair(field.first,
-                                this->type_converter.convert(field.second));
+          return std::make_pair(
+              field.first,
+              this->type_converter.convert(this->current_namespace->type_table,
+                                           field.second));
         });
 
     // TODO: check invalid field types
@@ -872,7 +890,8 @@ public:
       return;
     }
 
-    auto to_type = this->type_converter.convert(as_cast->type);
+    auto to_type = this->type_converter.convert(
+        this->current_namespace->type_table, as_cast->type);
 
     if (*to_type == *expr) {
       this->stack.push(to_type);

@@ -5,7 +5,7 @@ void CodeGen::visit_as_cast(AsCast *as_cast) {
   auto expr = this->stack.pop();
 
   std::shared_ptr<BirdType> to_type =
-      this->type_converter.convert(as_cast->type);
+      this->type_converter.convert(this->type_table, as_cast->type);
 
   if (to_type->type == BirdTypeType::INT &&
       expr.type->type == BirdTypeType::FLOAT) {

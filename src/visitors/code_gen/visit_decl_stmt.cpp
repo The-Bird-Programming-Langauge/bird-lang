@@ -7,7 +7,8 @@ void CodeGen::visit_decl_stmt(DeclStmt *decl_stmt) {
   std::shared_ptr<BirdType> type;
   if (decl_stmt->type.has_value()) // not inferred
   {
-    type = this->type_converter.convert(decl_stmt->type.value());
+    type =
+        this->type_converter.convert(this->type_table, decl_stmt->type.value());
   } else {
     if (initializer_value.type->type != BirdTypeType::VOID) {
       type = initializer_value.type;

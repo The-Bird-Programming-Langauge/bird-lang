@@ -210,6 +210,9 @@ param_list
 %type <std::shared_ptr<ParseType::Type>>
 type_identifier
 
+%type <std::vector<Token>>
+type_resolution
+
 /* %type <std::map<std::Token, std::unique_ptr<Stmt>>> */
 
 %right ASSIGN
@@ -321,8 +324,6 @@ namespace_declaration_stmt:
 scope_resolution:
     IDENTIFIER SCOPE expr %prec SCOPE_RESOLUTION_EXPR
     { $$ = std::make_unique<ScopeResolutionExpr>($1, std::move($3)); }
-   
-
 
 struct_decl:
    STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
@@ -666,7 +667,11 @@ type_identifier:
    IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
    | TYPE_LITERAL { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
+   | type_resolution SCOPE IDENTIFIER { $$ = std::make_shared<ParseType::ScopedType>($1, std::make_shared<ParseType::UserDefined>($3)); }
 
+type_resolution:
+   IDENTIFIER { $$ = std::vector<Token>({$1}); }
+   | type_resolution SCOPE IDENTIFIER { $$ = $1; $$.push_back($3); }
 %%
 
 void yy::yyParser::error( const location_type &loc, const std::string &err_message )

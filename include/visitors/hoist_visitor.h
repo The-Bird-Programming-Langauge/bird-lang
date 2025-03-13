@@ -6,43 +6,42 @@
 #include <set>
 #include <vector>
 
-class HoistVisitor : public VisitorAdapter
-{
+class HoistVisitor : public VisitorAdapter {
   std::set<std::string> &struct_names;
 
 public:
   HoistVisitor(std::set<std::string> &struct_names)
       : struct_names(struct_names) {}
 
-  void hoist(std::vector<std::unique_ptr<Stmt>> *stmts)
-  {
-    for (auto &stmt : *stmts)
-    {
+  void hoist(std::vector<std::unique_ptr<Stmt>> *stmts) {
+    for (auto &stmt : *stmts) {
       stmt->accept(this);
     }
   }
 
-  void visit_type_stmt(TypeStmt *type_stmt)
-  {
+  void visit_type_stmt(TypeStmt *type_stmt) {
     auto type_name = type_stmt->type_token->get_token().lexeme;
 
     if (this->struct_names.find(type_stmt->type_token->get_token().lexeme) !=
-        this->struct_names.end())
-    {
+        this->struct_names.end()) {
       return;
     }
 
     this->struct_names.insert(type_stmt->type_token->get_token().lexeme);
   }
 
-  void visit_struct_decl(StructDecl *struct_decl)
-  {
+  void visit_struct_decl(StructDecl *struct_decl) {
     if (this->struct_names.find(struct_decl->identifier.lexeme) !=
-        this->struct_names.end())
-    {
+        this->struct_names.end()) {
       return;
     }
 
     this->struct_names.insert(struct_decl->identifier.lexeme);
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace_stmt) {
+    for (auto &stmt : _namespace_stmt->members) {
+      stmt->accept(this);
+    }
   }
 };

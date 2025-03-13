@@ -5,8 +5,8 @@ void CodeGen::visit_func(Func *func) {
   auto func_name = func->identifier.lexeme;
 
   if (func->return_type.has_value()) {
-    auto bird_return_type =
-        this->type_converter.convert(func->return_type.value());
+    auto bird_return_type = this->type_converter.convert(
+        this->type_table, func->return_type.value());
     auto binaryen_return_type = bird_type_to_binaryen_type(bird_return_type);
 
     this->function_return_types[func_name] =
@@ -25,7 +25,8 @@ void CodeGen::visit_func(Func *func) {
   std::vector<BinaryenType> param_types;
 
   for (auto &param : func->param_list) {
-    auto param_type = this->type_converter.convert(param.second);
+    auto param_type =
+        this->type_converter.convert(this->type_table, param.second);
     param_types.push_back(bird_type_to_binaryen_type(param_type));
     this->function_locals[func_name].push_back(
         bird_type_to_binaryen_type(param_type));
@@ -36,8 +37,8 @@ void CodeGen::visit_func(Func *func) {
 
   BinaryenType result_type =
       func->return_type.has_value()
-          ? bird_type_to_binaryen_type(
-                this->type_converter.convert(func->return_type.value()))
+          ? bird_type_to_binaryen_type(this->type_converter.convert(
+                this->type_table, func->return_type.value()))
           : BinaryenTypeNone();
 
   this->environment.push_env();
@@ -46,7 +47,8 @@ void CodeGen::visit_func(Func *func) {
   for (auto &param : func->param_list) {
     this->environment.declare(
         param.first.lexeme,
-        TaggedIndex(index++, this->type_converter.convert(param.second)));
+        TaggedIndex(index++, this->type_converter.convert(this->type_table,
+                                                          param.second)));
   }
 
   for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts) {

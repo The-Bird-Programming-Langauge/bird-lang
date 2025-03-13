@@ -6,7 +6,8 @@ void CodeGen::visit_const_stmt(ConstStmt *const_stmt) {
 
   std::shared_ptr<BirdType> type;
   if (const_stmt->type.has_value()) {
-    type = this->type_converter.convert(const_stmt->type.value());
+    type = this->type_converter.convert(this->type_table,
+                                        const_stmt->type.value());
   } else {
     if (initializer.type->type != BirdTypeType::VOID) {
       type = initializer.type;
