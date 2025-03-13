@@ -16,7 +16,7 @@ void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
   auto count = 0;
   std::sort(struct_fields.begin(), struct_fields.end(),
             [&](const bird_pair first, const bird_pair second) {
-              if (type_is_on_heap(first.second->type)) {
+              if (type_is_on_heap(first.second->get_tag())) {
                 count += 1;
                 return true;
               }

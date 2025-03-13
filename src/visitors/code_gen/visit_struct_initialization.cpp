@@ -27,7 +27,7 @@ void CodeGen::visit_struct_initialization(
 
     if (!found) {
       auto default_value =
-          field.second->type == BirdTypeType::FLOAT
+          field.second->get_tag() == TypeTag::FLOAT
               ? BinaryenConst(this->mod, BinaryenLiteralFloat64(0.0))
               : BinaryenConst(this->mod, BinaryenLiteralInt32(0));
       args.push_back(default_value);
@@ -83,9 +83,9 @@ void CodeGen::create_struct_constructor(
         BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
         BinaryenLocalGet(this->mod, count++, bird_type_to_binaryen_type(type))};
 
-    constructor_body.push_back(BinaryenCall(this->mod,
-                                            get_mem_set_for_type(type->type),
-                                            args, 3, BinaryenTypeNone()));
+    constructor_body.push_back(
+        BinaryenCall(this->mod, get_mem_set_for_type(type->get_tag()), args, 3,
+                     BinaryenTypeNone()));
   }
 
   constructor_body.push_back(

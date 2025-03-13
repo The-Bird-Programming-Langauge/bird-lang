@@ -9,7 +9,7 @@ void CodeGen::visit_decl_stmt(DeclStmt *decl_stmt) {
   {
     type = this->type_converter.convert(decl_stmt->type.value());
   } else {
-    if (initializer_value.type->type != BirdTypeType::VOID) {
+    if (initializer_value.type->get_tag() != TypeTag::VOID) {
       type = initializer_value.type;
     } else {
       BinaryenType binaryen_type =
