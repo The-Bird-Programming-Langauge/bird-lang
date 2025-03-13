@@ -29,10 +29,3 @@ public:
 
   void call(Interpreter *Interpreter, std::vector<std::shared_ptr<Expr>> args);
 };
-
-struct SemanticCallable {
-  int param_count;
-
-  SemanticCallable(int param_count) : param_count(param_count) {}
-  SemanticCallable() = default;
-};

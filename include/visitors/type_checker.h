@@ -30,7 +30,6 @@ public:
   CoreCallTable core_call_table;
 
   Environment<std::shared_ptr<BirdType>> env;
-  Environment<std::shared_ptr<BirdFunction>> call_table;
 
   Environment<std::shared_ptr<BirdType>> type_table;
 
@@ -45,7 +44,6 @@ public:
       : user_error_tracker(user_error_tracker),
         type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
-    this->call_table.push_env();
     this->type_table.push_env();
   }
 
@@ -501,7 +499,7 @@ public:
 
     std::shared_ptr<BirdFunction> bird_function =
         std::make_shared<BirdFunction>(params, ret);
-    this->call_table.declare(func->identifier.lexeme, bird_function);
+    this->env.declare(func->identifier.lexeme, bird_function);
     this->env.push_env();
 
     for (auto &param : func->param_list) {
@@ -536,9 +534,19 @@ public:
   }
 
   void visit_call(Call *call) {
-    auto function = core_call_table.table.contains(call->identifier.lexeme)
-                        ? core_call_table.table.get(call->identifier.lexeme)
-                        : this->call_table.get(call->identifier.lexeme);
+    auto function_temp =
+        core_call_table.table.contains(call->identifier.lexeme)
+            ? core_call_table.table.get(call->identifier.lexeme)
+            : this->env.get(call->identifier.lexeme);
+
+    auto function = std::dynamic_pointer_cast<BirdFunction>(function_temp);
+
+    if (function->params.size() != call->args.size()) {
+      this->user_error_tracker.type_error(
+          "Function call identifer '" + call->identifier.lexeme +
+              "' does not use the correct number of arguments.",
+          call->identifier);
+    }
 
     for (int i = 0; i < function->params.size(); i++) {
       call->args[i]->accept(this);
@@ -654,7 +662,6 @@ public:
         });
 
     // TODO: check invalid field types
-
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
     this->type_table.declare(struct_decl->identifier.lexeme, struct_type);

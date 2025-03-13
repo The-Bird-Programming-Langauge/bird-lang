@@ -203,6 +203,10 @@ param_list
 %type <std::shared_ptr<ParseType::Type>>
 type_identifier
 
+%type <std::vector<std::shared_ptr<ParseType::Type>>>
+maybe_type_identifier_list
+type_identifier_list
+
 %right ASSIGN
    EQUAL
    PLUS_EQUAL
@@ -632,6 +636,15 @@ type_identifier:
    | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
+   | FN LPAREN maybe_type_identifier_list RPAREN COLON type_identifier { $$ = std::make_shared<ParseType::Function>( $1, $3, $6);}
+
+maybe_type_identifier_list:
+   %empty { $$ = std::vector<std::shared_ptr<ParseType::Type>>{}; }
+   | type_identifier_list { $$ = $1; }
+
+type_identifier_list:
+   type_identifier { $$ = std::vector<std::shared_ptr<ParseType::Type>>({std::move($1)}); }
+   | type_identifier_list COMMA type_identifier { $$ = $1; $$.push_back(std::move($3)); }
 
 %%
 

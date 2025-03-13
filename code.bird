@@ -1,0 +1,8 @@
+
+
+
+
+fn foo(bar: fn(int, float):void, arg: int, arg2: float) -> int {
+    bar(arg, arg2);
+    return 3;
+}
