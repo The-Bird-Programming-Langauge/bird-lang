@@ -1,0 +1,7 @@
+fn print_int(x: int) {
+    print x;
+}
+
+var x = 0;
+
+x.print_int();
