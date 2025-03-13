@@ -79,11 +79,11 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "type"                  { yylval->emplace<Token>() = make_token(T::TYPE);
                           return token::TYPE; }
 
-"true"                  { yylval->emplace<Token>() = make_token(T::BOOL_LITERAL);
-                          return token::BOOL_LITERAL;} 
+"true"                  { yylval->emplace<Token>() = make_token(T::TRUE);
+                          return token::TRUE;} 
 
-"false"                 { yylval->emplace<Token>() = make_token(T::BOOL_LITERAL);
-                          return token::BOOL_LITERAL;}
+"false"                 { yylval->emplace<Token>() = make_token(T::FALSE);
+                          return token::FALSE;}
 
 "struct"                { yylval->emplace<Token>() = make_token(T::STRUCT);
                           return token::STRUCT; }
