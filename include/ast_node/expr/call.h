@@ -27,5 +27,8 @@ public:
       : call_token(call_token), callable(std::move(callable)),
         args(std::move(args)) {};
 
+  Call(const Call *call)
+      : identifier(call->identifier), args(std::move(call->args)) {}
+
   void accept(Visitor *visitor) { visitor->visit_call(this); }
 };

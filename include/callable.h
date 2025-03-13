@@ -11,6 +11,7 @@
 class Stmt;
 class Expr;
 class Interpreter;
+class Value;
 
 class Callable {
 public:

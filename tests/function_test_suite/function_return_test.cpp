@@ -88,15 +88,14 @@ TEST(FunctionTest, ExplicitReturnTypeNoReturn) {
   BirdTest::TestOptions options;
   options.code = "fn function() -> int {}";
 
-  options.after_semantic_analyze = [&](UserErrorTracker &error_tracker,
-                                       SemanticAnalyzer &semantic_analyzer) {
+  options.after_type_check = [&](auto &error_tracker, auto &type_checker) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "function");
     ASSERT_EQ(std::get<0>(tup),
-              ">>[ERROR] semantic error: Function 'function' does not have a "
-              "return statement. (line 1, character 4)");
+              ">>[ERROR] type error: Missing return in a non-void function "
+              "'function.' (line 1, character 4)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

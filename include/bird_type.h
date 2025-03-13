@@ -137,9 +137,7 @@ struct ArrayType : BirdType {
   }
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::ARRAY; }
-  std::string to_string() const {
-    return "array<" + element_type->to_string() + ">";
-  }
+  std::string to_string() const { return element_type->to_string() + "[]"; }
 };
 
 struct BirdFunction : BirdType {

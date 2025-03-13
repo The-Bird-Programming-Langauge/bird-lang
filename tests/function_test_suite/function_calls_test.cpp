@@ -83,15 +83,14 @@ TEST(FunctionTest, ArityFail) {
   options.code = "fn function(i: int, j: str) {}"
                  "function(4, 6, 7);";
 
-  options.after_type_check = [&](auto &error_tracker, auto &type_checker) {
+  options.after_type_check = [&](auto &error_tracker, auto &analyzer) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "function");
-    ASSERT_EQ(
-        std::get<0>(tup),
-        ">>[ERROR] type error: Function call identifer 'function' does not "
-        "use the correct number of arguments. (line 1, character 31)");
+
+    ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: Invalid number of "
+                                "arguments to function (line 1, character 31)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

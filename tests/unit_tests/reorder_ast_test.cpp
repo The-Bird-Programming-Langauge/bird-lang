@@ -7,7 +7,9 @@
 #define TEST_STRUCT_DECL                                                       \
   new StructDecl(                                                              \
       Token(),                                                                 \
-      std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>())
+      std::vector<                                                             \
+          std::variant<std::shared_ptr<Stmt>,                                  \
+                       std::pair<Token, std::shared_ptr<ParseType::Type>>>>())
 
 #define TEST_TYPE_STMT new TypeStmt(Token(), std::shared_ptr<ParseType::Type>())
 #define TEST_EXPR_STMT new ExprStmt(std::unique_ptr<Expr>())

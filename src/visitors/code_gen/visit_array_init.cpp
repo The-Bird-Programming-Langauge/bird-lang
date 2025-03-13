@@ -29,16 +29,16 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
                           BinaryenLiteralInt32(array_init->elements.size()))
           : BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
 
-  BinaryenExpressionRef local_set = this->binaryen_set(
+  TaggedExpression local_set = this->binaryen_set(
       identifier, BinaryenCall(this->mod, "mem_alloc", args.data(), args.size(),
                                BinaryenTypeInt32()));
 
-  std::vector<BinaryenExpressionRef> binaryen_calls = {local_set};
+  std::vector<BinaryenExpressionRef> binaryen_calls = {local_set.value};
 
   unsigned int offset = 0;
   for (auto val : vals) {
     BinaryenExpressionRef args[3] = {
-        this->binaryen_get(identifier),
+        this->binaryen_get(identifier).value,
         BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), val};
     binaryen_calls.push_back(BinaryenCall(this->mod,
                                           get_mem_set_for_type(type->get_tag()),
@@ -47,7 +47,7 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
   }
 
   std::vector<BinaryenExpressionRef> array_struct_args = {
-      this->binaryen_get(identifier),
+      this->binaryen_get(identifier).value,
       BinaryenConst(this->mod,
                     BinaryenLiteralInt32(array_init->elements.size()))};
 

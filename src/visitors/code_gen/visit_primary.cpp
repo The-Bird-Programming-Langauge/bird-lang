@@ -53,10 +53,12 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 
   case Token::Type::IDENTIFIER: {
-    TaggedIndex tagged_index = this->environment.get(primary->value.lexeme);
-    BinaryenExpressionRef local_get = this->binaryen_get(primary->value.lexeme);
+    this->stack.push(this->binaryen_get(primary->value.lexeme));
+    break;
+  }
 
-    this->stack.push(TaggedExpression(local_get, tagged_index.type));
+  case Token::Type::SELF: {
+    this->stack.push(this->binaryen_get("self"));
     break;
   }
 

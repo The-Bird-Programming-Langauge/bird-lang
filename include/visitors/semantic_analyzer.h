@@ -1,8 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <set>
-#include <variant>
+#include <optional>
 #include <vector>
 
 #include "../ast_node/index.h"
@@ -14,9 +13,10 @@
 #include "../exceptions/continue_exception.h"
 #include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
+#include "../semantic_value.h"
 #include "../sym_table.h"
 #include "../type.h"
-#include "../value.h"
+#include <optional>
 
 /*
  * Visitor that analyzes semantics of the AST
@@ -31,7 +31,7 @@ public:
   UserErrorTracker &user_error_tracker;
   int loop_depth;
   int function_depth;
-  bool found_return;
+  bool in_method = false;
 
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
@@ -67,10 +67,7 @@ public:
     }
 
     decl_stmt->value->accept(this);
-
-    SemanticValue mutable_value;
-    mutable_value.is_mutable = true;
-    this->env.declare(decl_stmt->identifier.lexeme, mutable_value);
+    this->env.declare(decl_stmt->identifier.lexeme, SemanticValue(true));
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
@@ -162,6 +159,12 @@ public:
           primary->value);
       return;
     }
+
+    if (primary->value.token_type == Token::Type::SELF && !this->in_method) {
+      this->user_error_tracker.semantic_error(
+          "Use of self outside of struct member function.", primary->value);
+      return;
+    }
   }
 
   void visit_ternary(Ternary *ternary) {
@@ -170,17 +173,8 @@ public:
     ternary->false_expr->accept(this);
   }
 
-  void visit_func(Func *func) {
+  void visit_func_helper(Func *func) {
     this->function_depth += 1;
-    this->found_return = false;
-
-    if (this->identifer_in_any_environment(func->identifier.lexeme)) {
-      this->user_error_tracker.semantic_error(
-          "Identifier '" + func->identifier.lexeme + "' is already declared.",
-          func->identifier);
-      return;
-    }
-
     this->env.declare(func->identifier.lexeme, SemanticValue());
 
     this->env.push_env();
@@ -194,17 +188,20 @@ public:
       stmt->accept(this);
     }
 
-    if (!found_return && func->return_type.has_value() &&
-        func->return_type.value()->get_token().lexeme != "void") {
-      this->user_error_tracker.semantic_error(
-          "Function '" + func->identifier.lexeme +
-              "' does not have a return statement.",
-          func->identifier);
-    }
-
     this->env.pop_env();
 
     this->function_depth -= 1;
+  }
+
+  void visit_func(Func *func) {
+    if (this->identifer_in_any_environment(func->identifier.lexeme)) {
+      this->user_error_tracker.semantic_error(
+          "Identifier '" + func->identifier.lexeme + "' is already declared.",
+          func->identifier);
+      return;
+    }
+
+    this->visit_func_helper(func);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -219,7 +216,6 @@ public:
   void visit_call(Call *call) { call->callable->accept(this); }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
-    this->found_return = true;
     if (this->function_depth == 0) {
       this->user_error_tracker.semantic_error(
           "Return statement is declared outside of a function.",
@@ -274,6 +270,10 @@ public:
 
   void visit_struct_decl(StructDecl *struct_decl) {
     this->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
+
+    for (auto method : struct_decl->fns) {
+      method->accept(this);
+    }
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
@@ -313,5 +313,18 @@ public:
     }
 
     match_expr->else_arm->accept(this);
+  }
+
+  void visit_method(Method *method) {
+    this->in_method = true;
+    this->visit_func_helper(method);
+    this->in_method = false;
+  }
+
+  void visit_method_call(MethodCall *method_call) {
+    method_call->instance->accept(this);
+    for (auto &arg : method_call->args) {
+      arg->accept(this);
+    }
   }
 };

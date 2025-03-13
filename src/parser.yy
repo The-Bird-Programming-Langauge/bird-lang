@@ -20,6 +20,7 @@
    #include <memory>
    #include <optional>
    #include <utility>
+   #include <variant>
 
    #include "../include/ast_node/index.h"
 
@@ -138,6 +139,7 @@ struct_initialization
 array_initialization
 match
 direct_member_access
+method_call
 index_assign
 grouping
 and_expr
@@ -162,14 +164,6 @@ EQUALITY_OP
 maybe_match_arms
 match_arms
 
-
-%type <std::pair<std::string, std::shared_ptr<ParseType::Type>>>
-field_member
-
-%type <std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>>
-maybe_field_map
-field_map
-
 %type <std::vector<std::pair<std::string, std::unique_ptr<Expr>>>>
 maybe_struct_initialization_list
 struct_initialization_list
@@ -193,8 +187,16 @@ stmts
 maybe_arg_list
 arg_list
 
+%type <std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>
+member_decl
+
+%type <std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>>
+maybe_member_decls
+member_decls
+
 %type <std::pair<Token, std::shared_ptr<ParseType::Type>>>
 param
+prop_decl
 
 %type <std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>> 
 maybe_param_list
@@ -294,23 +296,23 @@ stmt:
    | type_stmt SEMICOLON { $$ = std::move($1); }
 
 struct_decl:
-   STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
-      { $$ = std::make_unique<StructDecl>($2, $4); }
+   STRUCT IDENTIFIER LBRACE maybe_member_decls RBRACE 
+      { $$ = std::make_unique<StructDecl>($2, std::move($4)); }
 
-maybe_field_map:
-   %empty { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); }
-   | field_map
-   | field_map COMMA
+maybe_member_decls:
+   %empty { $$ = std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>(); }
+   | member_decls { $$ = std::move($1); }
 
-field_map: 
-   field_member
-      { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); $$.push_back($1); }
-   | field_map COMMA field_member
-      { $$ = std::move($1); $$.push_back($3); }
+member_decls:
+   member_decl {$$ = std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>(); $$.push_back(std::move($1)); }
+   | member_decls member_decl { $$ = std::move($1); $$.push_back(std::move($2)); }
 
-field_member:
-   IDENTIFIER COLON type_identifier
-      { $$ = std::make_pair($1.lexeme, $3); }
+member_decl:
+   func { $$ = std::move($1); }
+   | prop_decl { $$ = std::move($1); }
+
+prop_decl: 
+   IDENTIFIER COLON type_identifier SEMICOLON { $$ = std::pair<Token, std::shared_ptr<ParseType::Type>>({$1, $3}); }
 
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 
@@ -452,6 +454,7 @@ expr:
    | unary_expr { $$ = std::move($1); }
    | type_cast {$$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
+   | method_call {$$ = std::move($1); }
    | subscript_expr { $$ = std::move($1); }
    | index_assign { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
@@ -522,6 +525,7 @@ call_expr:
    expr LPAREN maybe_arg_list RPAREN %prec CALL 
       { $$ = std::make_unique<Call>($2, std::move($1), std::move($3)); }
 
+
 struct_initialization:
    IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
       { $$ = std::make_unique<StructInitialization>($1, std::move($3)); }
@@ -552,6 +556,10 @@ direct_member_access:
    expr DOT IDENTIFIER %prec SUBSCRIPT
       { $$ = std::make_unique<DirectMemberAccess>(std::move($1), $3); }
 
+method_call:
+   expr DOT call_expr %prec CALL
+      { $$ = std::make_unique<MethodCall>(std::move($1), dynamic_cast<Call *>($3.get())); }
+
 match:
    MATCH expr LBRACE maybe_match_arms match_else_arm RBRACE %prec MATCH_EXPR
    { $$ = std::make_unique<MatchExpr>($1, std::move($2), std::move($4), std::move($5)); }
@@ -578,6 +586,7 @@ match_else_arm:
 
 primary: 
    IDENTIFIER 
+   | SELF
    | INT_LITERAL 
    | FLOAT_LITERAL
    | TRUE
