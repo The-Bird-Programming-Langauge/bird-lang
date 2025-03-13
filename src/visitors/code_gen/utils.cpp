@@ -19,28 +19,28 @@ Token::Type assign_expr_binary_equivalent(Token::Type token_type) {
   }
 }
 
-bool type_is_on_heap(const BirdTypeType type) {
-  return type == BirdTypeType::STRUCT || type == BirdTypeType::ARRAY ||
-         type == BirdTypeType::PLACEHOLDER;
+bool type_is_on_heap(const TypeTag type) {
+  return type == TypeTag::STRUCT || type == TypeTag::ARRAY ||
+         type == TypeTag::PLACEHOLDER;
 }
 
-const char *get_mem_set_for_type(const BirdTypeType type) {
+const char *get_mem_set_for_type(const TypeTag type) {
   switch (type) {
-  case BirdTypeType::FLOAT:
+  case TypeTag::FLOAT:
     return "mem_set_64";
     break;
-  case BirdTypeType::STRUCT:
-  case BirdTypeType::ARRAY:
-  case BirdTypeType::PLACEHOLDER:
+  case TypeTag::STRUCT:
+  case TypeTag::ARRAY:
+  case TypeTag::PLACEHOLDER:
     return "mem_set_ptr";
   default:
     return "mem_set_32";
   }
 }
 
-const char *get_mem_get_for_type(const BirdTypeType type) {
+const char *get_mem_get_for_type(const TypeTag type) {
   switch (type) {
-  case BirdTypeType::FLOAT:
+  case TypeTag::FLOAT:
     return "mem_get_64";
   default:
     return "mem_get_32";
@@ -48,22 +48,22 @@ const char *get_mem_get_for_type(const BirdTypeType type) {
 }
 
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) {
-  switch (type->type) {
-  case BirdTypeType::INT:
+  switch (type->get_tag()) {
+  case TypeTag::INT:
     return 4;
-  case BirdTypeType::FLOAT:
+  case TypeTag::FLOAT:
     return 8;
-  case BirdTypeType::BOOL:
+  case TypeTag::BOOL:
     return 4;
-  case BirdTypeType::VOID:
+  case TypeTag::VOID:
     return 0;
-  case BirdTypeType::STRING:
+  case TypeTag::STRING:
     return 4;
-  case BirdTypeType::STRUCT:
+  case TypeTag::STRUCT:
     return 4;
-  case BirdTypeType::ARRAY:
+  case TypeTag::ARRAY:
     return 4;
-  case BirdTypeType::PLACEHOLDER:
+  case TypeTag::PLACEHOLDER:
     return 4;
   default:
     return 0;
@@ -71,25 +71,25 @@ unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) {
 }
 
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type) {
-  if (bird_type->type == BirdTypeType::BOOL)
+  if (bird_type->get_tag() == TypeTag::BOOL)
     return BinaryenTypeInt32();
-  else if (bird_type->type == BirdTypeType::INT)
+  else if (bird_type->get_tag() == TypeTag::INT)
     return BinaryenTypeInt32();
-  else if (bird_type->type == BirdTypeType::FLOAT)
+  else if (bird_type->get_tag() == TypeTag::FLOAT)
     return BinaryenTypeFloat64();
-  else if (bird_type->type == BirdTypeType::VOID)
+  else if (bird_type->get_tag() == TypeTag::VOID)
     return BinaryenTypeNone();
-  else if (bird_type->type == BirdTypeType::STRING)
+  else if (bird_type->get_tag() == TypeTag::STRING)
     return BinaryenTypeInt32();
-  else if (bird_type->type == BirdTypeType::STRUCT)
+  else if (bird_type->get_tag() == TypeTag::STRUCT)
     return BinaryenTypeInt32(); // ptr
-  else if (bird_type->type == BirdTypeType::PLACEHOLDER)
+  else if (bird_type->get_tag() == TypeTag::PLACEHOLDER)
     return BinaryenTypeInt32();
-  else if (bird_type->type == BirdTypeType::ARRAY)
+  else if (bird_type->get_tag() == TypeTag::ARRAY)
     return BinaryenTypeInt32();
-  else if (bird_type->type == BirdTypeType::FUNCTION)
+  else if (bird_type->get_tag() == TypeTag::FUNCTION)
     return BinaryenTypeInt32();
-  else if (bird_type->type == BirdTypeType::ERROR)
+  else if (bird_type->get_tag() == TypeTag::ERROR)
     throw BirdException("found error type");
 
   throw BirdException("invalid type");

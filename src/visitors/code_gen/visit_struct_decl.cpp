@@ -16,13 +16,14 @@ void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
       });
 
   auto count =
-      std::count_if(struct_fields.begin(), struct_fields.end(),
-                    [&](auto el) { return type_is_on_heap(el.second->type); });
+      std::count_if(struct_fields.begin(), struct_fields.end(), [&](auto el) {
+        return type_is_on_heap(el.second->get_tag());
+      });
 
   std::sort(struct_fields.begin(), struct_fields.end(),
             [&](const bird_pair first, const bird_pair second) {
-              return type_is_on_heap(first.second->type) >
-                     type_is_on_heap(second.second->type);
+              return type_is_on_heap(first.second->get_tag()) >
+                     type_is_on_heap(second.second->get_tag());
             });
 
   this->struct_name_to_num_pointers[struct_decl->identifier.lexeme] = count;

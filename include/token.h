@@ -29,7 +29,11 @@ public:
     MATCH,
 
     // types
-    TYPE_LITERAL,
+    INT,
+    FLOAT,
+    BOOL,
+    STR,
+    VOID,
 
     // single character
     BANG,
@@ -67,7 +71,8 @@ public:
     STAR_EQUAL,
 
     // values
-    BOOL_LITERAL,
+    TRUE,
+    FALSE,
     FLOAT_LITERAL,
     IDENTIFIER,
     INT_LITERAL,

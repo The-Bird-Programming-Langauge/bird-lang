@@ -2,11 +2,11 @@
 #include <binaryen-c.h>
 
 static bool object_should_be_cleaned(const TaggedIndex value) {
-  const auto type = value.type->type;
+  const auto type = value.type->get_tag();
   if (type_is_on_heap(type))
     return true;
 
-  if (type == BirdTypeType::STRING) {
+  if (type == TypeTag::STRING) {
     return safe_dynamic_pointer_cast<StringType>(value.type)->dynamic;
   }
 

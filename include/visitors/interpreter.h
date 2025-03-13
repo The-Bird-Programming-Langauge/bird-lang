@@ -354,9 +354,11 @@ public:
     case Token::Type::FLOAT_LITERAL:
       this->stack.push(Value(variant(std::stod(primary->value.lexeme))));
       break;
-    case Token::Type::BOOL_LITERAL:
-      this->stack.push(
-          Value(variant(primary->value.lexeme == "true" ? true : false)));
+    case Token::Type::TRUE:
+      this->stack.push(Value(variant(true)));
+      break;
+    case Token::Type::FALSE:
+      this->stack.push(Value(variant(false)));
       break;
     case Token::Type::STR_LITERAL:
       this->stack.push(Value(variant(primary->value.lexeme)));
@@ -516,17 +518,17 @@ public:
       }
 
       if (!found) {
-        if (field.second->type == BirdTypeType::BOOL) {
+        if (field.second->get_tag() == TypeTag::BOOL) {
           (*struct_instance.fields)[field.first] = Value(false);
-        } else if (field.second->type == BirdTypeType::INT) {
+        } else if (field.second->get_tag() == TypeTag::INT) {
           (*struct_instance.fields)[field.first] = Value(0);
-        } else if (field.second->type == BirdTypeType::FLOAT) {
+        } else if (field.second->get_tag() == TypeTag::FLOAT) {
           (*struct_instance.fields)[field.first] = Value(0.0);
-        } else if (field.second->type == BirdTypeType::STRING) {
+        } else if (field.second->get_tag() == TypeTag::STRING) {
           (*struct_instance.fields)[field.first] = Value("");
-        } else if (field.second->type == BirdTypeType::STRUCT) {
+        } else if (field.second->get_tag() == TypeTag::STRUCT) {
           (*struct_instance.fields)[field.first] = Value(nullptr);
-        } else if (field.second->type == BirdTypeType::PLACEHOLDER) {
+        } else if (field.second->get_tag() == TypeTag::PLACEHOLDER) {
           (*struct_instance.fields)[field.first] = Value(nullptr);
         } else {
           throw std::runtime_error("Cannot assign member of non-struct type.");

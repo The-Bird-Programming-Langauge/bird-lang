@@ -32,14 +32,14 @@ void CodeGen::visit_member_assign(MemberAssign *member_assign) {
       accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
 
   auto original_value = BinaryenCall(
-      this->mod, get_mem_get_for_type(original_value_type->type), get_args, 2,
-      bird_type_to_binaryen_type(original_value_type));
+      this->mod, get_mem_get_for_type(original_value_type->get_tag()), get_args,
+      2, bird_type_to_binaryen_type(original_value_type));
 
   if (member_assign->assign_operator.token_type != Token::EQUAL) {
     auto binary_op = this->binary_operations.at(assign_expr_binary_equivalent(
         member_assign->assign_operator.token_type));
     auto binary_op_fn =
-        binary_op.at({original_value_type->type, value.type->type});
+        binary_op.at({original_value_type->get_tag(), value.type->get_tag()});
 
     value = TaggedExpression(BinaryenBinary(this->mod, binary_op_fn.value(),
                                             original_value, value.value),
@@ -51,7 +51,7 @@ void CodeGen::visit_member_assign(MemberAssign *member_assign) {
       value.value};
 
   this->stack.push(TaggedExpression(
-      BinaryenCall(this->mod, get_mem_set_for_type(value.type->type), args, 3,
-                   BinaryenTypeNone()),
+      BinaryenCall(this->mod, get_mem_set_for_type(value.type->get_tag()), args,
+                   3, BinaryenTypeNone()),
       std::shared_ptr<BirdType>(new VoidType())));
 }

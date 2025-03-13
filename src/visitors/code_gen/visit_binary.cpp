@@ -54,15 +54,16 @@ void CodeGen::visit_binary_short_circuit(Token::Type op,
 
 void CodeGen::visit_binary_normal(Token::Type op, TaggedExpression left,
                                   TaggedExpression right) {
-  if (right.type->type == BirdTypeType::STRING &&
-      left.type->type == BirdTypeType::STRING) {
+  if (right.type->get_tag() == TypeTag::STRING &&
+      left.type->get_tag() == TypeTag::STRING) {
     this->handle_binary_string_operations(op, right, left);
     return;
   }
 
   try {
     auto binary_op = this->binary_operations.at(op);
-    auto binary_op_fn = binary_op.at({left.type->type, right.type->type});
+    auto binary_op_fn =
+        binary_op.at({left.type->get_tag(), right.type->get_tag()});
 
     this->stack.push(
         TaggedExpression(BinaryenBinary(this->mod, binary_op_fn.value(),

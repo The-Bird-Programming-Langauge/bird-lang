@@ -24,7 +24,7 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
 
   std::vector<BinaryenExpressionRef> args = {
       BinaryenConst(this->mod, BinaryenLiteralInt32(mem_size)),
-      type_is_on_heap(type->type)
+      type_is_on_heap(type->get_tag())
           ? BinaryenConst(this->mod,
                           BinaryenLiteralInt32(array_init->elements.size()))
           : BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
@@ -41,7 +41,7 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
         this->binaryen_get(identifier).value,
         BinaryenConst(this->mod, BinaryenLiteralInt32(offset)), val};
     binaryen_calls.push_back(BinaryenCall(this->mod,
-                                          get_mem_set_for_type(type->type),
+                                          get_mem_set_for_type(type->get_tag()),
                                           args, 3, BinaryenTypeNone()));
     offset += bird_type_byte_size(type);
   }

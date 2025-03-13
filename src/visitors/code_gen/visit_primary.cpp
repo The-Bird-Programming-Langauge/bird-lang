@@ -20,10 +20,18 @@ void CodeGen::visit_primary(Primary *primary) {
     break;
   }
 
-  case Token::Type::BOOL_LITERAL: {
-    BinaryenExpressionRef bool_literal = BinaryenConst(
-        this->mod, primary->value.lexeme == "true" ? BinaryenLiteralInt32(1)
-                                                   : BinaryenLiteralInt32(0));
+  case Token::Type::TRUE: {
+    BinaryenExpressionRef bool_literal =
+        BinaryenConst(this->mod, BinaryenLiteralInt32(1));
+
+    this->stack.push(TaggedExpression(
+        bool_literal, std::shared_ptr<BirdType>(new BoolType())));
+    break;
+  }
+
+  case Token::Type::FALSE: {
+    BinaryenExpressionRef bool_literal =
+        BinaryenConst(this->mod, BinaryenLiteralInt32(0));
 
     this->stack.push(TaggedExpression(
         bool_literal, std::shared_ptr<BirdType>(new BoolType())));

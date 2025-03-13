@@ -99,13 +99,13 @@ TEST(StructMethods, MethodCallFailsForNonMethodFunction) {
   options.compile = false;
   options.interpret = false;
 
-  options.after_semantic_analyze = [&](auto &error_tracker,
-                                       auto &semantic_analyzer) {
+  options.after_type_check = [&](auto &error_tracker, auto &type_checker) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto errors = error_tracker.get_errors();
     ASSERT_EQ(errors.size(), 1);
     EXPECT_EQ(std::get<0>(errors[0]),
-              ">>[ERROR] method 'print_foo' does not exist in type 'Foo'");
+              ">>[ERROR] type error: method 'print_foo' does not exist on type "
+              "struct Foo (line 1, character 89)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));
@@ -122,13 +122,13 @@ TEST(StructMethods, MethodCallFailsForNonStructType) {
   options.compile = false;
   options.interpret = false;
 
-  options.after_semantic_analyze = [&](auto &error_tracker,
-                                       auto &semantic_analyzer) {
+  options.after_type_check = [&](auto &error_tracker, auto &type_checker) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto errors = error_tracker.get_errors();
     ASSERT_EQ(errors.size(), 1);
     EXPECT_EQ(std::get<0>(errors[0]),
-              ">>[ERROR] method call 'print_int' does not exist in type 'int'");
+              ">>[ERROR] type error: method "
+              "'print_int' does not exist on type int (line 1, character 46)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

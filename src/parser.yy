@@ -44,11 +44,16 @@
 VAR "var"
 CONST "const"
 IDENTIFIER _("identifier")
-TYPE_LITERAL _("type literal")
 INT_LITERAL _("int literal")
 FLOAT_LITERAL _("float literal")
-BOOL_LITERAL _("bool literal")
 STR_LITERAL _("string literal")
+TRUE "true"
+FALSE "false"
+INT "int"
+FLOAT "float"
+BOOL "bool"
+STR "str"
+VOID "void"
 IF "if"
 ELSE "else"
 WHILE "while"
@@ -579,7 +584,8 @@ primary:
    | SELF
    | INT_LITERAL 
    | FLOAT_LITERAL
-   | BOOL_LITERAL
+   | TRUE
+   | FALSE
    | STR_LITERAL
 
 grouping: 
@@ -619,7 +625,11 @@ PREFIX_UNARY_OP:
 
 type_identifier:
    IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
-   | TYPE_LITERAL { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | INT { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | FLOAT { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | BOOL { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
 
 %%

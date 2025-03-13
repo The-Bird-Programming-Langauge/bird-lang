@@ -56,7 +56,7 @@ void CodeGen::add_func_with_name(Func *func, std::string func_name) {
     stmt->accept(this);
     auto result = this->stack.pop();
 
-    if (result.type->type != BirdTypeType::VOID) {
+    if (result.type->get_tag() != TypeTag::VOID) {
       current_function_body.push_back(BinaryenDrop(this->mod, result.value));
     } else {
       current_function_body.push_back(result.value);

@@ -13,9 +13,9 @@
 Token::Type assign_expr_binary_equivalent(Token::Type token_type);
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
-const char *get_mem_set_for_type(const BirdTypeType type);
-const char *get_mem_get_for_type(const BirdTypeType type);
-bool type_is_on_heap(const BirdTypeType type);
+const char *get_mem_get_for_type(const TypeTag type);
+const char *get_mem_set_for_type(const TypeTag type);
+bool type_is_on_heap(const TypeTag type);
 
 template <typename T> struct Tagged {
   T value;
@@ -45,111 +45,111 @@ struct MemorySegment {
 class CodeGen : public Visitor {
   // and, or, and string operations are handled separately
   // differently
-  const std::map<Token::Type, std::map<std::pair<BirdTypeType, BirdTypeType>,
-                                       TaggedBinaryOpFn>>
+  const std::map<Token::Type,
+                 std::map<std::pair<TypeTag, TypeTag>, TaggedBinaryOpFn>>
       binary_operations = {
           {Token::Type::PLUS,
-           {{{BirdTypeType::INT, BirdTypeType::INT},
+           {{{TypeTag::INT, TypeTag::INT},
              TaggedBinaryOpFn(BinaryenAddInt32, std::make_shared<IntType>())},
-            {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+            {{TypeTag::FLOAT, TypeTag::FLOAT},
              TaggedBinaryOpFn(BinaryenAddFloat64,
                               std::make_shared<FloatType>())}}},
           {Token::Type::MINUS,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenSubInt32,
                                  std::make_shared<IntType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenSubFloat64,
                                  std::make_shared<FloatType>())},
            }},
           {Token::Type::STAR,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenMulInt32,
                                  std::make_shared<IntType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenMulFloat64,
                                  std::make_shared<FloatType>())},
            }},
           {Token::Type::SLASH,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenDivSInt32,
                                  std::make_shared<IntType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenDivFloat64,
                                  std::make_shared<FloatType>())},
            }},
           {Token::Type::EQUAL_EQUAL,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenEqInt32,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenEqFloat64,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::BOOL, BirdTypeType::BOOL},
+               {{TypeTag::BOOL, TypeTag::BOOL},
                 TaggedBinaryOpFn(BinaryenEqInt32,
                                  std::make_shared<BoolType>())},
            }},
           {Token::Type::BANG_EQUAL,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenNeInt32,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenNeFloat64,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::BOOL, BirdTypeType::BOOL},
+               {{TypeTag::BOOL, TypeTag::BOOL},
                 TaggedBinaryOpFn(BinaryenNeInt32,
                                  std::make_shared<BoolType>())},
            }},
           {Token::Type::GREATER,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenGtSInt32,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenGtFloat64,
                                  std::make_shared<BoolType>())},
            }},
           {Token::Type::GREATER_EQUAL,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenGeSInt32,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenGeFloat64,
                                  std::make_shared<BoolType>())},
            }},
           {Token::Type::LESS,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenLtSInt32,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenLtFloat64,
                                  std::make_shared<BoolType>())},
            }},
           {Token::Type::LESS_EQUAL,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenLeSInt32,
                                  std::make_shared<BoolType>())},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenLeFloat64,
                                  std::make_shared<BoolType>())},
            }},
           {Token::Type::XOR,
            {
-               {{BirdTypeType::BOOL, BirdTypeType::BOOL},
+               {{TypeTag::BOOL, TypeTag::BOOL},
                 TaggedBinaryOpFn(BinaryenXorInt32,
                                  std::make_shared<BoolType>())},
            }},
           {Token::Type::PERCENT,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenRemSInt32,
                                  std::make_shared<IntType>())},
            }},

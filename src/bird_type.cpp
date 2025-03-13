@@ -1,19 +1,19 @@
 #include "../include/bird_type.h"
 #include "../include/token.h"
 
-std::shared_ptr<BirdType> bird_type_type_to_bird_type(BirdTypeType type) {
+std::shared_ptr<BirdType> bird_type_type_to_bird_type(TypeTag type) {
   switch (type) {
-  case BirdTypeType::INT:
+  case TypeTag::INT:
     return std::make_shared<IntType>();
-  case BirdTypeType::FLOAT:
+  case TypeTag::FLOAT:
     return std::make_shared<FloatType>();
-  case BirdTypeType::STRING:
+  case TypeTag::STRING:
     return std::make_shared<StringType>();
-  case BirdTypeType::BOOL:
+  case TypeTag::BOOL:
     return std::make_shared<BoolType>();
-  case BirdTypeType::VOID:
+  case TypeTag::VOID:
     return std::make_shared<VoidType>();
-  case BirdTypeType::ERROR:
+  case TypeTag::ERROR:
     return std::make_shared<ErrorType>();
   default:
     // cannot create a struct type, function type, or alias type
@@ -39,31 +39,31 @@ std::shared_ptr<BirdType> token_to_bird_type(Token token) {
   }
 }
 
-std::string bird_type_type_to_string(BirdTypeType type) {
+std::string bird_type_type_to_string(TypeTag type) {
   switch (type) {
-  case BirdTypeType::INT:
+  case TypeTag::INT:
     return "int";
-  case BirdTypeType::FLOAT:
+  case TypeTag::FLOAT:
     return "float";
-  case BirdTypeType::BOOL:
+  case TypeTag::BOOL:
     return "bool";
-  case BirdTypeType::VOID:
+  case TypeTag::VOID:
     return "void";
-  case BirdTypeType::STRING:
+  case TypeTag::STRING:
     return "string";
-  case BirdTypeType::STRUCT:
+  case TypeTag::STRUCT:
     return "struct";
-  case BirdTypeType::ARRAY:
+  case TypeTag::ARRAY:
     return "array";
-  case BirdTypeType::PLACEHOLDER:
+  case TypeTag::PLACEHOLDER:
     return "placeholder";
-  case BirdTypeType::FUNCTION:
+  case TypeTag::FUNCTION:
     return "function";
-  case BirdTypeType::ERROR:
+  case TypeTag::ERROR:
     return "error";
   }
 }
 
 std::string bird_type_to_string(std::shared_ptr<BirdType> type) {
-  return bird_type_type_to_string(type->type);
+  return bird_type_type_to_string(type->get_tag());
 }
