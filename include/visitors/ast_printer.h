@@ -246,6 +246,21 @@ public:
 
       std::cout << primitive->type.lexeme;
       return;
+    } else if (type->tag == ParseType::SCOPED_TYPE) {
+      auto scoped_type =
+          safe_dynamic_pointer_cast<ParseType::ScopedType, ParseType::Type>(
+              type);
+
+      for (auto &scope_id : scoped_type->path) {
+        std::cout << scope_id.lexeme << "::";
+      }
+
+      auto user_defined =
+          safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(
+              scoped_type->type);
+
+      std::cout << user_defined->type.lexeme;
+      return;
     }
 
     throw BirdException("unknown parse type");
