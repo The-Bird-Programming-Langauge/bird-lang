@@ -7,7 +7,7 @@ TEST(FunctionTest, GoodFunctionCall) {
                  "print(result);";
 
   options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.call_table.contains("function"));
+    ASSERT_TRUE(interpreter.env.contains("function"));
     ASSERT_TRUE(interpreter.env.contains("result"));
     auto result = interpreter.env.get("result");
     ASSERT_TRUE(is_type<int>(result));
@@ -144,7 +144,7 @@ TEST(FunctionTest, FunctionReturnBool) {
                  "print result;";
 
   options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.call_table.contains("function"));
+    ASSERT_TRUE(interpreter.env.contains("function"));
     ASSERT_TRUE(interpreter.env.contains("result"));
     auto result = interpreter.env.get("result");
     ASSERT_TRUE(is_type<bool>(result));

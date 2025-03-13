@@ -3,6 +3,7 @@
 #include "parse_type.h"
 #include "sym_table.h"
 #include <functional>
+#include <memory>
 #include <set>
 #include <string>
 
@@ -23,9 +24,7 @@ public:
 
   std::shared_ptr<BirdType> convert(std::shared_ptr<ParseType::Type> type) {
     if (type->tag == ParseType::Tag::PRIMITIVE) {
-      Token token =
-          safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type)
-              ->type;
+      Token token = type->get_token();
       auto type_name = token.lexeme;
 
       if (type_name == "int") {
@@ -40,10 +39,7 @@ public:
         return std::make_shared<VoidType>();
       }
     } else if (type->tag == ParseType::Tag::USER_DEFINED) {
-      Token token =
-          safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(
-              type)
-              ->type;
+      Token token = type->get_token();
       auto type_name = token.lexeme;
 
       if (this->type_table.contains(type_name)) {
@@ -54,9 +50,18 @@ public:
         return std::make_shared<PlaceholderType>(type_name);
       }
     } else if (type->tag == ParseType::Tag::ARRAY) {
-      auto array_type =
-          safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
+      auto array_type = std::dynamic_pointer_cast<ParseType::Array>(type);
       return std::make_shared<ArrayType>(this->convert(array_type->child));
+    } else if (type->tag == ParseType::Tag::FUNCTION) {
+      auto function_type = std::dynamic_pointer_cast<ParseType::Function>(type);
+
+      std::vector<std::shared_ptr<BirdType>> params;
+      for (auto param : function_type->params) {
+        params.push_back(this->convert(param));
+      }
+
+      auto ret = this->convert(function_type->ret);
+      return std::make_shared<BirdFunction>(params, ret);
     }
 
     return std::make_shared<ErrorType>();

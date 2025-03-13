@@ -164,7 +164,7 @@ public:
   }
 
   void visit_call(Call *call) {
-    std::cout << call->identifier.lexeme;
+    call->callable->accept(this);
     std::cout << "(";
 
     for (auto &arg : call->args) {

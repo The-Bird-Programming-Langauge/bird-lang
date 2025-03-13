@@ -30,9 +30,7 @@ public:
   CoreCallTable core_call_table;
 
   Environment<std::shared_ptr<BirdType>> env;
-
   Environment<std::shared_ptr<BirdType>> type_table;
-
   std::set<std::string> struct_names;
 
   Stack<std::shared_ptr<BirdType>> stack;
@@ -44,6 +42,9 @@ public:
       : user_error_tracker(user_error_tracker),
         type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
+    for (auto [name, fn] : this->core_call_table.table) {
+      this->env.declare(name, fn);
+    }
     this->type_table.push_env();
   }
 
@@ -534,18 +535,23 @@ public:
   }
 
   void visit_call(Call *call) {
-    auto function_temp =
-        core_call_table.table.contains(call->identifier.lexeme)
-            ? core_call_table.table.get(call->identifier.lexeme)
-            : this->env.get(call->identifier.lexeme);
+    call->callable->accept(this);
+    auto function_temp = stack.pop();
+
+    if (function_temp->get_tag() != TypeTag::FUNCTION) {
+      this->stack.push(std::make_shared<ErrorType>());
+      this->user_error_tracker.type_error("expected a function",
+                                          call->call_token);
+      return;
+    }
 
     auto function = std::dynamic_pointer_cast<BirdFunction>(function_temp);
 
     if (function->params.size() != call->args.size()) {
       this->user_error_tracker.type_error(
-          "Function call identifer '" + call->identifier.lexeme +
+          "Function call identifer '" + call->call_token.lexeme +
               "' does not use the correct number of arguments.",
-          call->identifier);
+          call->call_token);
     }
 
     for (int i = 0; i < function->params.size(); i++) {
@@ -565,8 +571,9 @@ public:
       }
 
       if (*arg != *param) {
-        this->user_error_tracker.type_mismatch("in function call",
-                                               call->identifier);
+        this->user_error_tracker.type_mismatch(
+            "expected " + param->to_string() + ", found " + arg->to_string(),
+            call->call_token);
       }
     }
 

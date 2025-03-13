@@ -19,7 +19,7 @@ TEST(FunctionParamsTest, ParamMutability) {
                  "print(result);";
 
   options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.call_table.contains("function"));
+    ASSERT_TRUE(interpreter.env.contains("function"));
     ASSERT_TRUE(interpreter.env.contains("result"));
     auto result = interpreter.env.get("result");
     ASSERT_TRUE(is_type<int>(result));
@@ -44,7 +44,7 @@ TEST(FunctionParamsTest, StructReference) {
                  "print(input.name);";
 
   options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.call_table.contains("function"));
+    ASSERT_TRUE(interpreter.env.contains("function"));
     ASSERT_TRUE(interpreter.env.contains("input"));
     auto result = interpreter.env.get("input");
     auto type_is_map =
@@ -76,7 +76,7 @@ TEST(FunctionParamsTest, ArrayReferenceTest) {
                  "print(input[0]);";
 
   options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.call_table.contains("function"));
+    ASSERT_TRUE(interpreter.env.contains("function"));
     ASSERT_TRUE(interpreter.env.contains("input"));
     auto result = interpreter.env.get("input");
     ASSERT_TRUE(is_type<std::shared_ptr<std::vector<Value>>>(result));

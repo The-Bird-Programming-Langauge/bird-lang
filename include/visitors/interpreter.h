@@ -29,10 +29,7 @@
 class Interpreter : public Visitor {
 
 public:
-  CoreCallTable core_call_table;
-
   Environment<Value> env;
-  Environment<Callable> call_table;
   Environment<std::shared_ptr<BirdType>> type_table;
   Stack<Value> stack;
   std::set<std::string> struct_names;
@@ -40,7 +37,6 @@ public:
 
   Interpreter() : type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
-    this->call_table.push_env();
     this->type_table.push_env();
   }
 
@@ -389,7 +385,7 @@ public:
     Callable callable =
         Callable(func->param_list, func->block, func->return_type);
 
-    this->call_table.declare(func->identifier.lexeme, callable);
+    this->env.declare(func->identifier.lexeme, Value(callable));
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -403,19 +399,18 @@ public:
   }
 
   void visit_call(Call *call) {
-    if (core_call_table.table.contains(call->identifier.lexeme)) {
-      run_core_call(call);
-      return;
-    }
-    auto callable = this->call_table.get(call->identifier.lexeme);
+    call->callable->accept(this);
+    auto callable = as_type<Callable>(stack.pop());
     callable.call(this, call->args);
   }
 
-  void run_core_call(Call *call) {
-    if (call->identifier.lexeme == "length") {
-      call->args[0]->accept(this);
+  void run_core_call(std::string name,
+                     std::vector<std::shared_ptr<Expr>> args) {
+    if (name == "length") {
+      args[0]->accept(this);
       auto result = std::move(this->stack.pop());
       stack.push(result.length());
+      return;
     }
   }
 

@@ -216,19 +216,7 @@ public:
     }
   }
 
-  void visit_call(Call *call) {
-    if (core_call_table.table.contains(call->identifier.lexeme)) {
-      return;
-    }
-    if (this->env.contains(call->identifier.lexeme)) {
-      return;
-    }
-
-    this->user_error_tracker.semantic_error("Function call identifier '" +
-                                                call->identifier.lexeme +
-                                                "' is not declared.",
-                                            call->identifier);
-  }
+  void visit_call(Call *call) { call->callable->accept(this); }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
     this->found_return = true;

@@ -520,16 +520,7 @@ or_expr:
 
 call_expr: 
    expr LPAREN maybe_arg_list RPAREN %prec CALL 
-      { 
-         if(auto *identifier = dynamic_cast<Primary *>($1.get()))
-         {
-            if (identifier->value.token_type != Token::Type::IDENTIFIER)
-            {
-               // TODO: throw an error here
-            }
-            $$ = std::make_unique<Call>(identifier->value, std::move($3));
-         }
-      }
+      { $$ = std::make_unique<Call>($2, std::move($1), std::move($3)); }
 
 struct_initialization:
    IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
@@ -636,7 +627,7 @@ type_identifier:
    | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
-   | FN LPAREN maybe_type_identifier_list RPAREN COLON type_identifier { $$ = std::make_shared<ParseType::Function>( $1, $3, $6);}
+   | FN LPAREN maybe_type_identifier_list RPAREN type_identifier { $$ = std::make_shared<ParseType::Function>( $1, $3, $5);}
 
 maybe_type_identifier_list:
    %empty { $$ = std::vector<std::shared_ptr<ParseType::Type>>{}; }

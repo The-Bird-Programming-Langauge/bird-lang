@@ -43,3 +43,8 @@ void Callable::call(Interpreter *interpreter,
     interpreter->env.pop_env();
   }
 }
+
+void Length::call(Interpreter *interpreter,
+                  std::vector<std::shared_ptr<Expr>> args) {
+  interpreter->run_core_call("length", args);
+};

@@ -156,7 +156,7 @@ struct BirdFunction : BirdType {
     }
     auto fn = dynamic_cast<BirdFunction *>(&other);
 
-    if (fn->ret != this->ret) {
+    if (*fn->ret != *this->ret) {
       return false;
     }
 
@@ -165,7 +165,7 @@ struct BirdFunction : BirdType {
     }
 
     for (int i = 0; i < this->params.size(); i++) {
-      if (this->params[i] != fn->params[i]) {
+      if (*this->params[i] != *fn->params[i]) {
         return false;
       }
     }
