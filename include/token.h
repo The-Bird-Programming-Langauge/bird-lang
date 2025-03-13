@@ -29,7 +29,11 @@ public:
     MATCH,
 
     // types
-    TYPE_LITERAL,
+    INT,
+    FLOAT,
+    BOOL,
+    STR,
+    VOID,
 
     // single character
     BANG,

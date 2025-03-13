@@ -29,7 +29,6 @@ using T = Token::Type;
 
 EXP             ([Ee][-+]?[0-9]+)
 IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
-TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 
 %x MULTILINE_COMMENT
 %x SINGLELINE_COMMENT
@@ -97,20 +96,32 @@ TYPE_IDENT      "int"|"float"|"bool"|"str"|"void"
 "and"                   { yylval->emplace<Token>() = make_token(T::AND);
                           return token::AND; } 
 
-"or"                   { yylval->emplace<Token>() = make_token(T::OR);
+"or"                    { yylval->emplace<Token>() = make_token(T::OR);
                           return token::OR; }
 
-"xor"                  { yylval->emplace<Token>() = make_token(T::XOR); 
+"xor"                   { yylval->emplace<Token>() = make_token(T::XOR); 
                           return token::XOR; }
 
-"not"                  { yylval->emplace<Token>() = make_token(T::NOT);
+"not"                   { yylval->emplace<Token>() = make_token(T::NOT);
                           return token::NOT; }
 
 "match"                 {yylval->emplace<Token>() = make_token(T::MATCH);
                           return token::MATCH; }
 
-{TYPE_IDENT}            { yylval->emplace<Token>() = make_token(T::TYPE_LITERAL);
-                          return token::TYPE_LITERAL;} 
+"int"                   { yylval->emplace<Token>() = make_token(T::INT);
+                          return token::INT; }
+
+"float"                 { yylval->emplace<Token>() = make_token(T::FLOAT);
+                          return token::FLOAT; }
+
+"bool"                  { yylval->emplace<Token>() = make_token(T::BOOL);
+                          return token::BOOL; }
+
+"str"                   { yylval->emplace<Token>() = make_token(T::STR);
+                          return token::STR; }
+
+"void"                  { yylval->emplace<Token>() = make_token(T::VOID);
+                          return token::VOID; }
 
 [0-9]+"."[0-9]+{EXP}?   { yylval->emplace<Token>() = make_token(T::FLOAT_LITERAL);
                           return token::FLOAT_LITERAL;} 
