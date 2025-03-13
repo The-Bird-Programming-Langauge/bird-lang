@@ -45,8 +45,9 @@ CONST "const"
 IDENTIFIER _("identifier")
 INT_LITERAL _("int literal")
 FLOAT_LITERAL _("float literal")
-BOOL_LITERAL _("bool literal")
 STR_LITERAL _("string literal")
+TRUE "true"
+FALSE "false"
 INT "int"
 FLOAT "float"
 BOOL "bool"
@@ -584,7 +585,8 @@ primary:
    IDENTIFIER 
    | INT_LITERAL 
    | FLOAT_LITERAL
-   | BOOL_LITERAL
+   | TRUE
+   | FALSE
    | STR_LITERAL
 
 grouping: 

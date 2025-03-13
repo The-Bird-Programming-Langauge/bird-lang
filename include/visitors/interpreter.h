@@ -354,9 +354,11 @@ public:
     case Token::Type::FLOAT_LITERAL:
       this->stack.push(Value(variant(std::stod(primary->value.lexeme))));
       break;
-    case Token::Type::BOOL_LITERAL:
-      this->stack.push(
-          Value(variant(primary->value.lexeme == "true" ? true : false)));
+    case Token::Type::TRUE:
+      this->stack.push(Value(variant(true)));
+      break;
+    case Token::Type::FALSE:
+      this->stack.push(Value(variant(false)));
       break;
     case Token::Type::STR_LITERAL:
       this->stack.push(Value(variant(primary->value.lexeme)));

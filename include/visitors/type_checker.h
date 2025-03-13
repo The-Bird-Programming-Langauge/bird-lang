@@ -421,7 +421,8 @@ public:
       this->stack.push(std::make_shared<IntType>());
       break;
     }
-    case Token::Type::BOOL_LITERAL: {
+    case Token::Type::TRUE:
+    case Token::Type::FALSE: {
       this->stack.push(std::make_shared<BoolType>());
       break;
     }

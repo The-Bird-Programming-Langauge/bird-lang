@@ -704,17 +704,17 @@ TEST(ParserTest, ParserBooleanOp) {
 
     Primary *left = dynamic_cast<Primary *>(or_expr->left.get());
     ASSERT_NE(left, nullptr);
-    ASSERT_EQ(left->value.token_type, Token::Type::BOOL_LITERAL);
+    ASSERT_EQ(left->value.token_type, Token::Type::FALSE);
     ASSERT_EQ(left->value.lexeme, "false");
 
     Primary *middle = dynamic_cast<Primary *>(and_expr->left.get());
     ASSERT_NE(middle, nullptr);
-    ASSERT_EQ(middle->value.token_type, Token::Type::BOOL_LITERAL);
+    ASSERT_EQ(middle->value.token_type, Token::Type::TRUE);
     ASSERT_EQ(middle->value.lexeme, "true");
 
     Primary *right = dynamic_cast<Primary *>(and_expr->right.get());
     ASSERT_NE(right, nullptr);
-    ASSERT_EQ(right->value.token_type, Token::Type::BOOL_LITERAL);
+    ASSERT_EQ(right->value.token_type, Token::Type::FALSE);
     ASSERT_EQ(right->value.lexeme, "false");
   };
 
