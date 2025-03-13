@@ -67,7 +67,8 @@ public:
     STAR_EQUAL,
 
     // values
-    BOOL_LITERAL,
+    TRUE,
+    FALSE,
     FLOAT_LITERAL,
     IDENTIFIER,
     INT_LITERAL,

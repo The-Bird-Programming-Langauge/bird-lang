@@ -46,8 +46,9 @@ IDENTIFIER _("identifier")
 TYPE_LITERAL _("type literal")
 INT_LITERAL _("int literal")
 FLOAT_LITERAL _("float literal")
-BOOL_LITERAL _("bool literal")
 STR_LITERAL _("string literal")
+TRUE "true"
+FALSE "false"
 IF "if"
 ELSE "else"
 WHILE "while"
@@ -580,7 +581,8 @@ primary:
    IDENTIFIER 
    | INT_LITERAL 
    | FLOAT_LITERAL
-   | BOOL_LITERAL
+   | TRUE
+   | FALSE
    | STR_LITERAL
 
 grouping: 
