@@ -9,6 +9,7 @@
 class Stmt;
 class Expr;
 class Interpreter;
+class Value;
 
 class Callable {
 public:
@@ -27,12 +28,9 @@ public:
       : param_list(other.param_list), block(std::move(other.block)),
         return_type(other.return_type) {}
 
-  void call(Interpreter *Interpreter, std::vector<std::shared_ptr<Expr>> args);
+  void call(Interpreter *Interpreter, std::vector<Value> args);
 };
 
 struct SemanticCallable {
-  int param_count;
-
-  SemanticCallable(int param_count) : param_count(param_count) {}
   SemanticCallable() = default;
 };

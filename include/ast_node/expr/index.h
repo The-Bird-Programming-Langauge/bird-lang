@@ -10,6 +10,7 @@
 #include "index_assign.h"
 #include "match_expr.h"
 #include "member_assign.h"
+#include "method_call.h"
 #include "primary.h"
 #include "struct_initialization.h"
 #include "subscript.h"

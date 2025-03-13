@@ -8,9 +8,12 @@
 #include "binaryen-c.h"
 #include "visitor.h"
 #include <map>
+#include <memory>
 
+Token::Type assign_expr_binary_equivalent(Token::Type token_type);
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
+const char *get_mem_get_for_type(const TypeTag type);
 const char *get_mem_set_for_type(const TypeTag type);
 bool type_is_on_heap(const TypeTag type);
 
@@ -189,8 +192,12 @@ class CodeGen : public Visitor {
   void visit_while_stmt(WhileStmt *while_stmt);
   void visit_for_stmt(ForStmt *for_stmt);
   void visit_binary(Binary *binary);
-  void visit_binary_short_circuit(Binary *binary);
-  void visit_binary_normal(Binary *binary);
+  void visit_binary_short_circuit(Token::Type op, std::unique_ptr<Expr> &left,
+                                  std::unique_ptr<Expr> &right);
+  void visit_binary_normal(Token::Type op, TaggedExpression left,
+                           TaggedExpression right);
+  void create_binary(Token::Type op, std::unique_ptr<Expr> &left,
+                     std::unique_ptr<Expr> &right);
   void handle_binary_string_operations(Token::Type op, TaggedExpression left,
                                        TaggedExpression right);
   void visit_unary(Unary *unary);
@@ -199,6 +206,7 @@ class CodeGen : public Visitor {
   void visit_ternary(Ternary *ternary);
   void visit_const_stmt(ConstStmt *const_stmt);
   void visit_func(Func *func);
+  void add_func_with_name(Func *func, std::string func_name);
   void visit_if_stmt(IfStmt *if_stmt);
   void visit_call(Call *call);
   void visit_return_stmt(ReturnStmt *return_stmt);
@@ -220,9 +228,9 @@ class CodeGen : public Visitor {
   void visit_member_assign(MemberAssign *member_assign);
   void visit_as_cast(AsCast *as_cast);
 
-  BinaryenExpressionRef binaryen_set(std::string identifier,
-                                     BinaryenExpressionRef value);
-  BinaryenExpressionRef binaryen_get(std::string identifier);
+  TaggedExpression binaryen_set(std::string identifier,
+                                BinaryenExpressionRef value);
+  TaggedExpression binaryen_get(std::string identifier);
 
   void visit_array_init(ArrayInit *array_init);
   void visit_index_assign(IndexAssign *index_assign);
@@ -231,6 +239,10 @@ class CodeGen : public Visitor {
   TaggedExpression match_helper(TaggedExpression expr, MatchExpr *match_expr,
                                 int index);
 
+  void visit_method(Method *method);
+  void visit_method_call(MethodCall *method_call);
+  TaggedExpression create_call_with(std::string function_name,
+                                    std::vector<BinaryenExpressionRef> args);
   void generate_array_length_fn();
   void create_struct_constructor(std::shared_ptr<StructType> type);
   void init_array_constructor();

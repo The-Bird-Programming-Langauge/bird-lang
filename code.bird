@@ -1,0 +1,17 @@
+fn print_int(x: int) {
+    print x;
+}
+
+var x = 0;
+
+x.print_int();
+
+
+struct Foo {
+    x: int;
+};
+fn print_foo(foo: Foo) {
+    print foo.x;
+}
+var foo = Foo {x = 1};
+foo.print_foo();

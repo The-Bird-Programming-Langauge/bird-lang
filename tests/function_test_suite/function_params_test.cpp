@@ -35,7 +35,7 @@ TEST(FunctionParamsTest, ParamMutability) {
 
 TEST(FunctionParamsTest, StructReference) {
   BirdTest::TestOptions options;
-  options.code = "struct Person {name: str};"
+  options.code = "struct Person {name: str;};"
                  "fn function(p: Person) {"
                  "  p.name = \"different\";"
                  "}"
@@ -47,16 +47,10 @@ TEST(FunctionParamsTest, StructReference) {
     ASSERT_TRUE(interpreter.call_table.contains("function"));
     ASSERT_TRUE(interpreter.env.contains("input"));
     auto result = interpreter.env.get("input");
-    auto type_is_map =
-        is_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-            result);
+    auto type_is_map = is_type<Struct>(result);
     ASSERT_TRUE(type_is_map);
-    EXPECT_EQ(
-        as_type<std::string>(
-            as_type<std::shared_ptr<std::unordered_map<std::string, Value>>>(
-                result)
-                ->at("name")),
-        "different");
+    EXPECT_EQ(as_type<std::string>(as_type<Struct>(result).fields->at("name")),
+              "different");
   };
 
   options.after_compile = [&](std::string &output, CodeGen &codegen) {

@@ -1,26 +1,23 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
 #include <set>
+#include <string>
+#include <unordered_map>
 #include <vector>
-
-#include "../ast_node/index.h"
 
 #include "../bird_type.h"
 #include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
-#include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
 #include "../stack.h"
 #include "../sym_table.h"
-#include "../type.h"
 #include "../type_converter.h"
+#include "ast_node/expr/method_call.h"
 #include "hoist_visitor.h"
-#include "visitor_adapter.h"
 
 /*
  * Visitor that checks types of the AST
@@ -35,11 +32,17 @@ public:
   Environment<std::shared_ptr<BirdType>> type_table;
 
   std::set<std::string> struct_names;
+  bool found_return = false;
 
   Stack<std::shared_ptr<BirdType>> stack;
   std::optional<std::shared_ptr<BirdType>> return_type;
   UserErrorTracker &user_error_tracker;
   TypeConverter type_converter;
+
+  std::unordered_map<
+      std::string,
+      std::unordered_map<std::string, std::shared_ptr<BirdFunction>>>
+      v_table;
 
   TypeChecker(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker),
@@ -427,6 +430,10 @@ public:
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
     }
+    case Token::Type::SELF: {
+      this->stack.push(this->env.get("self"));
+      break;
+    }
     default: {
       throw BirdException("undefined primary value");
     }
@@ -484,7 +491,8 @@ public:
       return std::make_shared<ErrorType>();
     }
   }
-  void visit_func(Func *func) {
+
+  std::shared_ptr<BirdFunction> create_func(Func *func) {
     std::vector<std::shared_ptr<BirdType>> params;
 
     std::transform(func->param_list.begin(), func->param_list.end(),
@@ -496,11 +504,16 @@ public:
         func->return_type.has_value()
             ? this->type_converter.convert(func->return_type.value())
             : std::shared_ptr<BirdType>(new VoidType());
-    auto previous_return_type = this->return_type;
-    this->return_type = ret;
 
-    std::shared_ptr<BirdFunction> bird_function =
-        std::make_shared<BirdFunction>(params, ret);
+    return std::make_shared<BirdFunction>(params, ret);
+  }
+
+  void visit_func_helper(Func *func,
+                         const std::shared_ptr<BirdFunction> bird_function) {
+    this->found_return = false;
+    auto previous_return_type = this->return_type;
+    this->return_type = bird_function->ret;
+
     this->call_table.declare(func->identifier.lexeme, bird_function);
     this->env.push_env();
 
@@ -515,8 +528,21 @@ public:
       stmt->accept(this);
     }
 
+    if (!this->found_return && func->return_type.has_value() &&
+        func->return_type.value()->get_token().lexeme != "void") {
+      this->user_error_tracker.type_error(
+          "Missing return in a non-void function '" + func->identifier.lexeme +
+              ".'",
+          func->identifier);
+    }
+
     this->return_type = previous_return_type;
     this->env.pop_env();
+  }
+
+  void visit_func(Func *func) {
+    const auto bird_function = create_func(func);
+    this->visit_func_helper(func, bird_function);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -535,16 +561,27 @@ public:
     }
   }
 
-  void visit_call(Call *call) {
-    auto function = core_call_table.table.contains(call->identifier.lexeme)
-                        ? core_call_table.table.get(call->identifier.lexeme)
-                        : this->call_table.get(call->identifier.lexeme);
+  bool correct_arity(std::vector<std::shared_ptr<BirdType>> params,
+                     std::vector<std::shared_ptr<Expr>> args) {
+    return params.size() == args.size();
+  }
 
-    for (int i = 0; i < function->params.size(); i++) {
-      call->args[i]->accept(this);
+  void compare_args_and_params(Token call_identifier,
+                               std::vector<std::shared_ptr<Expr>> args,
+                               std::vector<std::shared_ptr<BirdType>> params) {
+    if (!correct_arity(params, args)) {
+      this->user_error_tracker.type_error("Invalid number of arguments to " +
+                                              call_identifier.lexeme,
+                                          call_identifier);
+
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
+
+    for (int i = 0; i < params.size(); i++) {
+      args[i]->accept(this);
       auto arg = this->stack.pop();
-
-      auto param = function->params[i];
+      auto param = params[i];
 
       if (arg->get_tag() == TypeTag::PLACEHOLDER &&
           param->get_tag() == TypeTag::STRUCT) {
@@ -558,14 +595,19 @@ public:
 
       if (*arg != *param) {
         this->user_error_tracker.type_mismatch("in function call",
-                                               call->identifier);
+                                               call_identifier);
       }
     }
+  }
 
+  void visit_call(Call *call) {
+    auto function = this->call_table.get(call->identifier.lexeme);
+    compare_args_and_params(call->identifier, call->args, function->params);
     this->stack.push(function->ret);
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
+    this->found_return = true;
     if (return_stmt->expr.has_value()) {
       return_stmt->expr.value()->accept(this);
       auto result = this->stack.pop();
@@ -648,16 +690,26 @@ public:
     std::transform(
         struct_decl->fields.begin(), struct_decl->fields.end(),
         std::back_inserter(struct_fields),
-        [&](std::pair<std::string, std::shared_ptr<ParseType::Type>> field) {
-          return std::make_pair(field.first,
+        [&](std::pair<Token, std::shared_ptr<ParseType::Type>> &field) {
+          return std::make_pair(field.first.lexeme,
                                 this->type_converter.convert(field.second));
         });
 
     // TODO: check invalid field types
-
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
     this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
+
+    for (auto &method : struct_decl->fns) {
+      method->accept(this);
+    }
+
+    for (auto &method : struct_decl->fns) {
+      const auto &bird_function =
+          this->v_table.at(struct_decl->identifier.lexeme)
+              .at(method->identifier.lexeme);
+      this->visit_func_helper(method.get(), bird_function);
+    }
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
@@ -963,5 +1015,49 @@ public:
     }
 
     this->stack.push(else_arm_type);
+  }
+
+  void visit_method(Method *method) {
+    this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
+        create_func(method);
+  }
+
+  void visit_method_call(MethodCall *method_call) {
+    method_call->instance->accept(this);
+    const auto struct_temp = this->stack.pop();
+    if (struct_temp->get_tag() != TypeTag::STRUCT) {
+      this->stack.push(std::make_shared<ErrorType>());
+      this->user_error_tracker.type_error(
+          "method '" + method_call->identifier.lexeme +
+              "' does not exist on type " + struct_temp->to_string(),
+          method_call->identifier);
+      return;
+    }
+
+    const auto struct_type = std::dynamic_pointer_cast<StructType>(struct_temp);
+
+    if (this->v_table.count(struct_type->name) == 0 ||
+        this->v_table.at(struct_type->name)
+                .count(method_call->identifier.lexeme) == 0) {
+      this->user_error_tracker.type_error(
+          "method '" + method_call->identifier.lexeme +
+              "' does not exist on type " + struct_temp->to_string(),
+          method_call->identifier);
+      return;
+    }
+
+    const auto method =
+        this->v_table.at(struct_type->name).at(method_call->identifier.lexeme);
+
+    std::vector<std::shared_ptr<BirdType>> new_params;
+
+    for (int i = 1; i < method->params.size(); i += 1) {
+      new_params.push_back(method->params[i]);
+    }
+
+    this->compare_args_and_params(method_call->identifier, method_call->args,
+                                  new_params);
+
+    this->stack.push(method->ret);
   }
 };

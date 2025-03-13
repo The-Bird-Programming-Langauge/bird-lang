@@ -37,6 +37,9 @@ public:
        std::unique_ptr<Stmt> block)
       : identifier(identifier), return_type(return_type),
         param_list(param_list), block(std::move(block)) {}
+  Func(Func *func)
+      : identifier(func->identifier), return_type(func->return_type),
+        param_list(func->param_list), block(func->block) {}
 
   void accept(Visitor *visitor) { visitor->visit_func(this); }
 };

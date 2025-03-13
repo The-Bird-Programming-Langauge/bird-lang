@@ -20,9 +20,17 @@ template <typename T> inline T as_type(const Value &value);
 
 template <typename T, typename U> inline T to_type(Value value);
 
-using variant = std::variant<
-    int, double, std::string, bool, std::shared_ptr<std::vector<Value>>,
-    std::shared_ptr<std::unordered_map<std::string, Value>>, std::nullptr_t>;
+struct Struct {
+  std::string name;
+  std::shared_ptr<std::unordered_map<std::string, Value>> fields;
+  Struct(std::string name,
+         std::shared_ptr<std::unordered_map<std::string, Value>> fields)
+      : name(name), fields(fields) {}
+};
+
+using variant =
+    std::variant<int, double, std::string, bool,
+                 std::shared_ptr<std::vector<Value>>, Struct, std::nullptr_t>;
 class Value {
 public:
   variant data;
@@ -338,10 +346,3 @@ template <typename T, typename U> inline T to_type(Value value) {
   return is_type<T>(value) ? as_type<T>(value)
                            : static_cast<T>(as_type<U>(value));
 }
-
-struct SemanticValue {
-  bool is_mutable;
-
-  SemanticValue(bool is_mutable) : is_mutable(is_mutable) {}
-  SemanticValue() = default;
-};

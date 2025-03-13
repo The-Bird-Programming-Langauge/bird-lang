@@ -1,5 +1,5 @@
 #include "../helpers/compile_helper.hpp"
-#define STRUCT_TYPE std::shared_ptr<std::unordered_map<std::string, Value>>
+#define STRUCT_TYPE Struct
 #define ARRAY_TYPE std::shared_ptr<std::vector<Value>>
 
 TEST(ArrayTestSuite, IntArraySubscript) {
@@ -92,8 +92,8 @@ TEST(ArrayTestSuite, StrArraySubscript) {
 TEST(ArrayTestSuite, StructArraySubscript) {
   BirdTest::TestOptions options;
   options.code = "struct Dog {"
-                 "    name: str,"
-                 "    age: int"
+                 "    name: str;"
+                 "    age: int;"
                  "};"
 
                  "var marci: Dog = Dog {"
@@ -121,25 +121,25 @@ TEST(ArrayTestSuite, StructArraySubscript) {
     ASSERT_EQ(as_type<std::string>(
                   as_type<STRUCT_TYPE>(
                       as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->at(0))
-                      ->at("name")),
+                      .fields->at("name")),
               "marci");
 
     ASSERT_EQ(as_type<int>(
                   as_type<STRUCT_TYPE>(
                       as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->at(0))
-                      ->at("age")),
+                      .fields->at("age")),
               5);
 
     ASSERT_EQ(as_type<std::string>(
                   as_type<STRUCT_TYPE>(
                       as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->at(1))
-                      ->at("name")),
+                      .fields->at("name")),
               "klaus");
 
     ASSERT_EQ(as_type<int>(
                   as_type<STRUCT_TYPE>(
                       as_type<ARRAY_TYPE>(interpreter.env.get("dogs"))->at(1))
-                      ->at("age")),
+                      .fields->at("age")),
               10);
   };
 
