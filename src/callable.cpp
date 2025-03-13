@@ -28,7 +28,6 @@ void Callable::call(Interpreter *interpreter, std::vector<Value> args) {
   }
 }
 
-void Length::call(Interpreter *interpreter,
-                  std::vector<std::shared_ptr<Expr>> args) {
+void Length::call(Interpreter *interpreter, std::vector<Value> args) {
   interpreter->run_core_call("length", args);
 };

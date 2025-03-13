@@ -31,12 +31,10 @@ public:
       : param_list(other.param_list), block(std::move(other.block)),
         return_type(other.return_type) {}
 
-  virtual void call(Interpreter *Interpreter,
-                    std::vector<std::shared_ptr<Expr>> args);
+  virtual void call(Interpreter *Interpreter, std::vector<Value> args);
 };
 
 class Length : Callable {
   Length() : Callable() {}
-  void call(Interpreter *interpreter,
-            std::vector<std::shared_ptr<Expr>> args) override;
+  void call(Interpreter *interpreter, std::vector<Value> args) override;
 };
