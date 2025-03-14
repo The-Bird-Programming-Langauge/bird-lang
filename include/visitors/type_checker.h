@@ -1038,9 +1038,10 @@ public:
     auto bird_type = stack.pop();
 
     if (bird_type->get_tag() != TypeTag::STRUCT) {
-      this->user_error_tracker.type_mismatch("expected struct, found " +
-                                                 bird_type->to_string(),
-                                             method_call->identifier);
+      this->user_error_tracker.type_error(
+          "method '" + method_call->identifier.lexeme +
+              "' does not exist on type " + bird_type->to_string(),
+          method_call->identifier);
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
@@ -1050,9 +1051,9 @@ public:
     if (this->v_table.count(struct_type->name) == 0 ||
         this->v_table.at(struct_type->name)
                 .count(method_call->identifier.lexeme) == 0) {
-      this->user_error_tracker.type_mismatch(
+      this->user_error_tracker.type_error(
           "method '" + method_call->identifier.lexeme +
-              "' does not exist on type " + struct_type->name,
+              "' does not exist on type " + struct_type->to_string(),
           method_call->identifier);
       this->stack.push(std::make_shared<ErrorType>());
       return;
