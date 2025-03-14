@@ -7,6 +7,7 @@ void CodeGen::visit_func(Func *func) {
 }
 
 void CodeGen::add_func_with_name(Func *func, std::string func_name) {
+
   if (func->return_type.has_value()) {
     auto bird_return_type =
         this->type_converter.convert(func->return_type.value());
@@ -69,15 +70,7 @@ void CodeGen::add_func_with_name(Func *func, std::string func_name) {
     }
   }
 
-  // perform garbage collection at the end of a function by popping the
-  // javascript calls off the stack in a block and executing the block
-
   this->environment.pop_env();
-
-  // this->garbage_collect();
-  // auto calls_block = this->stack.pop();
-  // current_function_body.push_back(calls_block.value);
-
   BinaryenExpressionRef body =
       BinaryenBlock(this->mod, nullptr, current_function_body.data(),
                     current_function_body.size(), BinaryenTypeNone());

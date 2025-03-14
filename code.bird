@@ -1,7 +1,3 @@
-
-
-
-
 struct Person {
     name: str;
     fn say_name(new_name: str) {
@@ -17,6 +13,11 @@ const p: Person = Person {
 p.say_name("brian");
 p.say_name("cole");
 
+fn say_name() {
+    print "hello";
+}
+
+say_name();
 
 
 /*

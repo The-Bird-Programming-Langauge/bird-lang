@@ -512,7 +512,6 @@ public:
     auto previous_return_type = this->return_type;
     this->return_type = bird_function->ret;
 
-    this->env.declare(func->identifier.lexeme, bird_function);
     this->env.push_env();
 
     for (auto &param : func->param_list) {
@@ -540,6 +539,7 @@ public:
 
   void visit_func(Func *func) {
     const auto bird_function = create_func(func);
+    this->env.declare(func->identifier.lexeme, bird_function);
     this->visit_func_helper(func, bird_function);
   }
 
@@ -570,7 +570,7 @@ public:
     if (!correct_arity(params, args)) {
       this->user_error_tracker.type_error(
           "Invalid number of arguments. Expected " +
-              std::to_string(params.size()) + ", found  " +
+              std::to_string(params.size()) + ", found " +
               std::to_string(args.size()),
           call_identifier);
 

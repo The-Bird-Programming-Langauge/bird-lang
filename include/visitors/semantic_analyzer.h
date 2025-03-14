@@ -173,9 +173,9 @@ public:
     ternary->false_expr->accept(this);
   }
 
-  void visit_func_helper(Func *func) {
+  void visit_func_with_name(std::string name, Func *func) {
     this->function_depth += 1;
-    this->env.declare(func->identifier.lexeme, SemanticValue());
+    this->env.declare(name, SemanticValue());
     this->env.push_env();
 
     for (auto &param : func->param_list) {
@@ -190,6 +190,10 @@ public:
     this->env.pop_env();
 
     this->function_depth -= 1;
+  }
+
+  void visit_func_helper(Func *func) {
+    visit_func_with_name(func->identifier.lexeme, func);
   }
 
   void visit_func(Func *func) {
@@ -316,9 +320,9 @@ public:
 
   void visit_method(Method *method) {
     this->in_method = true;
-    // TODO: method should not keep original name
-    // must hide it from the global namespace
-    this->visit_func_helper(method);
+    this->visit_func_with_name("0" + method->class_identifier.lexeme + "." +
+                                   method->identifier.lexeme,
+                               method);
     this->in_method = false;
   }
 

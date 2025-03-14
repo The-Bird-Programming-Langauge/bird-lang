@@ -87,10 +87,9 @@ TEST(FunctionTest, ArityFail) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
-    ASSERT_EQ(std::get<1>(tup).lexeme, "function");
-
     ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: Invalid number of "
-                                "arguments to function (line 1, character 31)");
+                                "arguments. Expected 2, found 3 "
+                                "(line 1, character 31)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

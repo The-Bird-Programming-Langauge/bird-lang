@@ -1,4 +1,6 @@
 #include "../../../include/visitors/code_gen.h"
+#include "bird_type.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_primary(Primary *primary) {
   switch (primary->value.token_type) {
@@ -53,6 +55,14 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 
   case Token::Type::IDENTIFIER: {
+    if (auto fun =
+            BinaryenGetFunction(this->mod, primary->value.lexeme.c_str())) {
+      this->stack.push(TaggedExpression(
+          (BinaryenExpressionRef)fun,
+          this->function_return_types[primary->value.lexeme.c_str()]
+              .type)); // reutrn type
+      return;
+    }
     this->stack.push(this->binaryen_get(primary->value.lexeme));
     break;
   }
