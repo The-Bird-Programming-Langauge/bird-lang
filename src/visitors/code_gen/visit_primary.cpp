@@ -63,7 +63,9 @@ void CodeGen::visit_primary(Primary *primary) {
               .type)); // reutrn type
       return;
     }
+    std::cout << "here for " << primary->value.lexeme << std::endl;
     this->stack.push(this->binaryen_get(primary->value.lexeme));
+    std::cout << "after" << std::endl;
     break;
   }
 

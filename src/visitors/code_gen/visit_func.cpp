@@ -7,7 +7,6 @@ void CodeGen::visit_func(Func *func) {
 }
 
 void CodeGen::add_func_with_name(Func *func, std::string func_name) {
-
   if (func->return_type.has_value()) {
     auto bird_return_type =
         this->type_converter.convert(func->return_type.value());
@@ -53,6 +52,10 @@ void CodeGen::add_func_with_name(Func *func, std::string func_name) {
         TaggedIndex(index++, this->type_converter.convert(param.second)));
   }
 
+  // to enable recursion
+  BinaryenAddFunction(this->mod, func_name.c_str(), BinaryenTypeNone(),
+                      BinaryenTypeNone(), nullptr, 0, nullptr);
+
   for (auto &stmt : dynamic_cast<Block *>(func->block.get())->stmts) {
     stmt->accept(this);
     auto result = this->stack.pop();
@@ -79,6 +82,8 @@ void CodeGen::add_func_with_name(Func *func, std::string func_name) {
       this->function_locals[func_name].begin() + param_types.size(),
       this->function_locals[func_name].end());
 
+  // to enable recursion, look above at previous add function
+  BinaryenRemoveFunction(this->mod, func_name.c_str());
   BinaryenAddFunction(this->mod, func_name.c_str(), params, result_type,
                       vars.data(), vars.size(), body);
 
