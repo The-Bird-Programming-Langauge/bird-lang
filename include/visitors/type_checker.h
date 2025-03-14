@@ -1062,12 +1062,13 @@ public:
         this->v_table.at(struct_type->name).at(method_call->identifier.lexeme);
 
     std::vector<std::shared_ptr<Expr>> args;
-    args.push_back(method_call->accessable);
     for (auto arg : method_call->args) {
       args.push_back(arg);
     }
 
-    compare_args_and_params(method_call->identifier, args, function->params);
+    compare_args_and_params(
+        method_call->identifier, args,
+        std::vector(function->params.begin() + 1, function->params.end()));
     this->stack.push(function->ret);
   }
 };

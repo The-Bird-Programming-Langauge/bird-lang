@@ -48,24 +48,24 @@ INSTANTIATE_TEST_SUITE_P(
     StructMethodParam, MethodParamTestFixture,
     ::testing::Values(
         (MethodParamTestFixtureParams){"1", true},
-        (MethodParamTestFixtureParams){
-            "1, 2", false,
-            ">>[ERROR] type error: Invalid number of arguments to "
-            "print_val (line 1, character 205)"},
-        (MethodParamTestFixtureParams){
-            "1, 2, 3", false,
-            ">>[ERROR] type error: Invalid number of arguments to "
-            "print_val (line 1, character 205)"},
+        (MethodParamTestFixtureParams){"1, 2", false,
+                                       ">>[ERROR] type error: Invalid number "
+                                       "of arguments. Expected 1, found 2 "
+                                       "(line 1, character 205)"},
+        (MethodParamTestFixtureParams){"1, 2, 3", false,
+                                       ">>[ERROR] type error: Invalid number "
+                                       "of arguments. Expected 1, found 3 "
+                                       "(line 1, character 205)"},
         (MethodParamTestFixtureParams){
             "1,2,3,3,4", false,
-            ">>[ERROR] type error: Invalid number of arguments to "
-            "print_val (line 1, character 205)"},
+            ">>[ERROR] type error: Invalid number of arguments. Expected 1, "
+            "found 5 (line 1, character 205)"},
         (MethodParamTestFixtureParams){
             "", false,
-            ">>[ERROR] type error: Invalid number of arguments to "
-            "print_val (line 1, character 205)"},
+            ">>[ERROR] type error: Invalid number of arguments. Expected 1, "
+            "found 0 (line 1, character 205)"},
         (MethodParamTestFixtureParams){"42", true, ""},
         (MethodParamTestFixtureParams){
             "true", false,
-            ">>[ERROR] type mismatch: in function call (line 1, "
+            ">>[ERROR] type mismatch: expected int, found bool (line 1, "
             "character 205)"}));
