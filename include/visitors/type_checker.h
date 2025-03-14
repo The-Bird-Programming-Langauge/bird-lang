@@ -16,7 +16,6 @@
 #include "../stack.h"
 #include "../sym_table.h"
 #include "../type_converter.h"
-#include "ast_node/expr/method_call.h"
 #include "hoist_visitor.h"
 
 /*
@@ -569,9 +568,11 @@ public:
                                std::vector<std::shared_ptr<Expr>> args,
                                std::vector<std::shared_ptr<BirdType>> params) {
     if (!correct_arity(params, args)) {
-      this->user_error_tracker.type_error("Invalid number of arguments to " +
-                                              call_identifier.lexeme,
-                                          call_identifier);
+      this->user_error_tracker.type_error(
+          "Invalid number of arguments. Expected " +
+              std::to_string(params.size()) + ", found  " +
+              std::to_string(args.size()),
+          call_identifier);
 
       this->stack.push(std::make_shared<ErrorType>());
       return;
@@ -601,7 +602,6 @@ public:
   }
 
   void visit_call(Call *call) {
-    // auto function = this->env.get(call->identifier.lexeme);
     call->callable->accept(this);
     auto value = stack.pop();
     if (value->get_tag() != TypeTag::FUNCTION) {
@@ -1034,43 +1034,40 @@ public:
   }
 
   void visit_method_call(MethodCall *method_call) {
-    // method_call->instance->accept(this);
-    // const auto struct_temp = this->stack.pop();
-    // if (struct_temp->get_tag() != TypeTag::STRUCT) {
-    //   this->stack.push(std::make_shared<ErrorType>());
-    //   this->user_error_tracker.type_error(
-    //       "method '" + method_call->identifier.lexeme +
-    //           "' does not exist on type " + struct_temp->to_string(),
-    //       method_call->identifier);
-    //   return;
-    // }
+    method_call->accessable->accept(this);
+    auto bird_type = stack.pop();
 
-    // const auto struct_type =
-    // std::dynamic_pointer_cast<StructType>(struct_temp);
+    if (bird_type->get_tag() != TypeTag::STRUCT) {
+      this->user_error_tracker.type_mismatch("expected struct, found " +
+                                                 bird_type->to_string(),
+                                             method_call->identifier);
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
 
-    // if (this->v_table.count(struct_type->name) == 0 ||
-    //     this->v_table.at(struct_type->name)
-    //             .count(method_call->identifier.lexeme) == 0) {
-    //   this->user_error_tracker.type_error(
-    //       "method '" + method_call->identifier.lexeme +
-    //           "' does not exist on type " + struct_temp->to_string(),
-    //       method_call->identifier);
-    //   return;
-    // }
+    auto struct_type = std::dynamic_pointer_cast<StructType>(bird_type);
 
-    // const auto method =
-    //     this->v_table.at(struct_type->name).at(method_call->identifier.lexeme);
+    if (this->v_table.count(struct_type->name) == 0 ||
+        this->v_table.at(struct_type->name)
+                .count(method_call->identifier.lexeme) == 0) {
+      this->user_error_tracker.type_mismatch(
+          "method '" + method_call->identifier.lexeme +
+              "' does not exist on type " + struct_type->name,
+          method_call->identifier);
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
 
-    // std::vector<std::shared_ptr<BirdType>> new_params;
+    auto function =
+        this->v_table.at(struct_type->name).at(method_call->identifier.lexeme);
 
-    // for (int i = 1; i < method->params.size(); i += 1) {
-    //   new_params.push_back(method->params[i]);
-    // }
+    std::vector<std::shared_ptr<Expr>> args;
+    args.push_back(method_call->accessable);
+    for (auto arg : method_call->args) {
+      args.push_back(arg);
+    }
 
-    // this->compare_args_and_params(method_call->identifier, method_call->args,
-    //                               new_params);
-
-    // this->stack.push(method->ret);
-    this->visit_call(method_call);
+    compare_args_and_params(method_call->identifier, args, function->params);
+    this->stack.push(function->ret);
   }
 };

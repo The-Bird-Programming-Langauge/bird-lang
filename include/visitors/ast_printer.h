@@ -297,6 +297,11 @@ public:
   void visit_method(Method *method) { this->visit_func(method); }
 
   void visit_method_call(MethodCall *method_call) {
-    this->visit_call(method_call);
+    this->visit_direct_member_access(method_call);
+    std::cout << "(";
+    for (auto arg : method_call->args) {
+      arg->accept(this);
+    }
+    std::cout << ")";
   }
 };

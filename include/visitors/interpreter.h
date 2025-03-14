@@ -620,18 +620,20 @@ public:
 
   void visit_method(Method *method) {
     // register the function with the class
-    // this->v_table[method->class_identifier.lexeme][method->identifier.lexeme]
-    // =
-    //     create_callable(method);
+    this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
+        create_callable(method);
     this->env.declare("0" + method->class_identifier.lexeme +
                           method->identifier.lexeme,
                       Value(create_callable(method)));
   }
 
   void visit_method_call(MethodCall *method_call) {
-    method_call->instance->accept(this);
+    method_call->accessable->accept(this);
     const auto value = stack.pop();
-    const auto struct_val = as_type<Struct>(value);
+    const auto struct_name = as_type<Struct>(value).name;
+
+    auto method =
+        this->v_table.at(struct_name).at(method_call->identifier.lexeme);
 
     std::vector<Value> args = {value};
     for (auto arg : method_call->args) {
@@ -639,8 +641,6 @@ public:
       args.push_back(stack.pop());
     }
 
-    method_call->callable->accept(this);
-    const auto callable = stack.pop();
-    // as_type<Callable>(callable).call(this, args);
+    method.call(this, args);
   }
 };

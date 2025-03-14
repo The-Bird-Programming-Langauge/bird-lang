@@ -19,7 +19,7 @@ class Expr;
 class Call : public Expr {
 public:
   Token call_token;
-  std::unique_ptr<Expr> callable;
+  std::shared_ptr<Expr> callable;
   std::vector<std::shared_ptr<Expr>> args;
 
   Call(Token call_token, std::unique_ptr<Expr> callable,

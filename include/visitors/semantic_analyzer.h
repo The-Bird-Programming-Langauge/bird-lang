@@ -323,7 +323,7 @@ public:
   }
 
   void visit_method_call(MethodCall *method_call) {
-    method_call->instance->accept(this);
+    method_call->accessable->accept(this);
     for (auto &arg : method_call->args) {
       arg->accept(this);
     }

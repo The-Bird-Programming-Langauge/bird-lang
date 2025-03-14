@@ -4,8 +4,9 @@
 
 struct Person {
     name: str;
-    fn say_name() {
+    fn say_name(new_name: str) {
         print self.name;
+        self.name = new_name;
     }
 };
 
@@ -13,7 +14,20 @@ const p: Person = Person {
     name = "cole"
 };
 
-p.say_name();
+p.say_name("brian");
+p.say_name("cole");
 
 
 
+/*
+fn call_fn(function: fn(void)void) {
+    function();
+}
+
+
+fn foobar() {
+    print "hello there";
+}
+
+call_fn(foobar);
+*/
