@@ -49,10 +49,8 @@ TEST(FunctionTest, CallWithIncorrectTypes) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
-    ASSERT_EQ(std::get<1>(tup).lexeme, "function");
-    ASSERT_EQ(
-        std::get<0>(tup),
-        ">>[ERROR] type mismatch: in function call (line 1, character 31)");
+    ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type mismatch: expected string, "
+                                "found int (line 1, character 39)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));
@@ -89,7 +87,7 @@ TEST(FunctionTest, ArityFail) {
 
     ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: Invalid number of "
                                 "arguments. Expected 2, found 3 "
-                                "(line 1, character 31)");
+                                "(line 1, character 39)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));
