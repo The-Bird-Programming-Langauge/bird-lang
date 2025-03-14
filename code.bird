@@ -1,0 +1,19 @@
+
+
+
+
+struct Person {
+    name: str;
+    fn say_name() {
+        print self.name;
+    }
+};
+
+const p: Person = Person {
+    name = "cole"
+};
+
+p.say_name();
+
+
+
