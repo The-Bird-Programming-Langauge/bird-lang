@@ -1,14 +1,11 @@
-struct Node { val: int; left: Node; right: Node; };
-const tree : Node = Node{val = 1,
-                    left = Node{val = 2,
-                                    left = Node{val = 3},
-                                    right = Node{val = 4}
-                                },
-                    right = Node{val = 5,
-                                    left = Node{val = 6},
-                                    right = Node{val = 7}
-                            }
-                    };
-fn preorder(tree: Node) -> void { if (tree?) { print 
-tree.val; preorder(tree.left); preorder(tree.right); } }
-preorder(tree);
+
+
+
+fn foobar(inner: ()int) -> int {
+        return inner();
+}
+
+
+
+
+

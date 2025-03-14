@@ -597,6 +597,8 @@ public:
         this->user_error_tracker.type_mismatch(
             "expected " + param->to_string() + ", found " + arg->to_string(),
             call_identifier);
+        this->stack.push(std::make_shared<ErrorType>());
+        return;
       }
     }
   }

@@ -174,13 +174,17 @@ struct BirdFunction : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::FUNCTION; }
   std::string to_string() const {
-    std::string result = ret->to_string() + "(";
-    std::for_each_n(params.begin(), params.size() - 1, [&](const auto &param) {
-      result += param->to_string() + ", ";
-    });
+    std::string result = "(";
+    for (int i = 0; i < (int)params.size() - 1; i++) {
+      result += params[i]->to_string() + ", ";
+    }
 
-    result += params.back()->to_string();
+    if (params.size()) {
+      result += params.back()->to_string();
+    }
+
     result += ")";
+    result += ret->to_string();
     return result;
   }
 };

@@ -21,7 +21,7 @@ TEST(FirstClassFunctionReferenceTest, NoParams) {
 TEST(FirstClassFunctionReferenceTest, VoidReturn) {
   BirdTest::TestOptions options;
   options.code = "fn foo() -> void {}"
-                 "const x: fn()void = foo;"
+                 "const x: ()void = foo;"
                  "x();";
 
   ASSERT_TRUE(BirdTest::compile(options));
@@ -30,7 +30,7 @@ TEST(FirstClassFunctionReferenceTest, VoidReturn) {
 TEST(FirstClassFunctionReferenceTest, ReturnInt) {
   BirdTest::TestOptions options;
   options.code = "fn foo(x: int) -> int {return x}"
-                 "const x: fn(int)int = foo;"
+                 "const x: (int)int = foo;"
                  "var y = x(3);"
                  "print y;";
 
@@ -40,7 +40,7 @@ TEST(FirstClassFunctionReferenceTest, ReturnInt) {
 TEST(FirstClassFunctionReferenceTest, ParamTypeMismtach) {
   BirdTest::TestOptions options;
   options.code = "fn foo(x: float) -> float {return x;}"
-                 "const x: fn(float)float = foo;"
+                 "const x: (float)float = foo;"
                  "var y = x(\"hello\");"
                  "print y;";
 
@@ -50,7 +50,7 @@ TEST(FirstClassFunctionReferenceTest, ParamTypeMismtach) {
 TEST(FirstClassFunctionReferenceTest, ReturnIntTypeMistmatch) {
   BirdTest::TestOptions options;
   options.code = "fn foo(x: str) -> str { return x; }"
-                 "const x: fn(str)str = foo;"
+                 "const x: (str)str = foo;"
                  "var y: int = x(\"hello\");"
                  "print y;";
 
