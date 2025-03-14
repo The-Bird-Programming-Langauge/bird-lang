@@ -1074,4 +1074,6 @@ public:
         std::vector(function->params.begin() + 1, function->params.end()));
     this->stack.push(function->ret);
   }
+
+  void visit_lambda(Lambda *) {}
 };

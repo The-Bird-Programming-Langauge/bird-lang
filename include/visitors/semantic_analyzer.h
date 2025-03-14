@@ -332,4 +332,6 @@ public:
       arg->accept(this);
     }
   }
+
+  void visit_lambda(Lambda *lambda) {}
 };

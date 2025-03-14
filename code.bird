@@ -6,6 +6,9 @@ fn foobar(inner: ()int) -> int {
 }
 
 
+print foobar(fn() -> int {
+        return 3;
+});
 
 
 

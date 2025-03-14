@@ -145,6 +145,7 @@ and_expr
 xor_expr
 or_expr
 match_else_arm
+lambda
 
 %type <std::unique_ptr<Subscript>>
 subscript_expr
@@ -456,6 +457,7 @@ expr:
    | subscript_expr { $$ = std::move($1); }
    | index_assign { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
+   | lambda { $$ = std::move($1); }
    | struct_initialization { $$ = std::move($1); }
    | array_initialization { $$ = std::move($1); }
    | match { $$ = std::move($1); }
@@ -533,6 +535,11 @@ maybe_struct_initialization_list:
    %empty { $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>(); }
    | struct_initialization_list { $$ = std::move($1); }
    | struct_initialization_list COMMA { $$ = std::move($1); }
+
+lambda:
+   FN LPAREN maybe_param_list RPAREN ARROW type_identifier block {
+      $$ = std::make_unique<Lambda>($1, std::move($3), std::move($6), std::move($7));
+   }
 
 struct_initialization_list:
    IDENTIFIER EQUAL expr 

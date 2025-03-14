@@ -643,4 +643,6 @@ public:
 
     method.call(this, args);
   }
+
+  void visit_lambda(Lambda *) {}
 };

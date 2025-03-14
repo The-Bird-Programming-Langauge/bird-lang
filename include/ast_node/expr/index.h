@@ -8,6 +8,7 @@
 #include "direct_member_access.h"
 #include "expr.h"
 #include "index_assign.h"
+#include "lambda.h"
 #include "match_expr.h"
 #include "member_assign.h"
 #include "method_call.h"

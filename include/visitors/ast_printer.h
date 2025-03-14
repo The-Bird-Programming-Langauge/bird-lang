@@ -304,4 +304,6 @@ public:
     }
     std::cout << ")";
   }
+
+  void visit_lambda(Lambda *lambda) {}
 };
