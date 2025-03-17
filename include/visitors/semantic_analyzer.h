@@ -333,5 +333,5 @@ public:
     }
   }
 
-  void visit_lambda(Lambda *lambda) {}
+  void visit_lambda(Lambda *lambda) { lambda->block->accept(this); }
 };
