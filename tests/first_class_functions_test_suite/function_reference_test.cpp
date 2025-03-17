@@ -2,8 +2,7 @@
 
 TEST(FirstClassFunctionReferenceTest, WithParams) {
   BirdTest::TestOptions options;
-  options.code = "fn foo(x: int) {}"
-                 "const x: fn(int)void = foo;"
+  options.code = "const x: (int)void = fn(x: int) -> void {};"
                  "x(3);";
 
   ASSERT_TRUE(BirdTest::compile(options));
@@ -11,8 +10,7 @@ TEST(FirstClassFunctionReferenceTest, WithParams) {
 
 TEST(FirstClassFunctionReferenceTest, NoParams) {
   BirdTest::TestOptions options;
-  options.code = "fn foo() {}"
-                 "const x = foo;"
+  options.code = "const x = fn() -> void {};"
                  "x();";
 
   ASSERT_TRUE(BirdTest::compile(options));
