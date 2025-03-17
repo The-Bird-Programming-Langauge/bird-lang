@@ -38,6 +38,7 @@ public:
   Interpreter() : type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
     this->type_table.push_env();
+    this->env.declare("length", Value(Length()));
   }
 
   void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts) {
@@ -386,11 +387,16 @@ public:
 
   void visit_func(Func *func) {
     this->env.declare(func->identifier.lexeme,
-                      Value(this->create_callable(func)));
+                      Value(this->create_callable(func->param_list, func->block,
+                                                  func->return_type)));
   }
 
-  Callable create_callable(Func *func) {
-    return Callable(func->param_list, func->block, func->return_type);
+  Callable create_callable(
+      std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>
+          param_list,
+      std::shared_ptr<Stmt> block,
+      std::optional<std::shared_ptr<ParseType::Type>> return_type) {
+    return Callable(param_list, block, return_type);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -620,11 +626,13 @@ public:
 
   void visit_method(Method *method) {
     // register the function with the class
+    const auto callable =
+        create_callable(method->param_list, method->block, method->return_type);
     this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
-        create_callable(method);
+        callable;
     this->env.declare("0" + method->class_identifier.lexeme +
                           method->identifier.lexeme,
-                      Value(create_callable(method)));
+                      Value(callable));
   }
 
   void visit_method_call(MethodCall *method_call) {
@@ -644,5 +652,9 @@ public:
     method.call(this, args);
   }
 
-  void visit_lambda(Lambda *) {}
+  void visit_lambda(Lambda *lambda) {
+
+    this->stack.push(Value(this->create_callable(
+        lambda->param_list, lambda->block, lambda->return_type)));
+  }
 };

@@ -1093,6 +1093,7 @@ public:
           return type_converter.convert(param.second);
         });
 
+    this->env.push_env();
     for (auto &param : lambda->param_list) {
       this->env.declare(param.first.lexeme,
                         this->type_converter.convert(param.second));
@@ -1103,6 +1104,7 @@ public:
     {
       stmt->accept(this);
     }
+    this->env.pop_env();
 
     if (!this->found_return && ret_type->get_tag() != TypeTag::VOID) {
       this->user_error_tracker.type_error(

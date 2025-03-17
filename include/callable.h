@@ -34,7 +34,8 @@ public:
   virtual void call(Interpreter *Interpreter, std::vector<Value> args);
 };
 
-class Length : Callable {
+class Length : public Callable {
+public:
   Length() : Callable() {}
   void call(Interpreter *interpreter, std::vector<Value> args) override;
 };

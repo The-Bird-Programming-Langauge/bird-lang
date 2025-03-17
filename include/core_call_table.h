@@ -11,7 +11,7 @@ public:
   CoreCallTable() {
     table["length"] = std::make_shared<BirdFunction>(
         std::vector<std::shared_ptr<BirdType>>{
-            std::make_shared<ArrayType>(std::make_shared<VoidType>())},
+            std::make_shared<ArrayType>(std::make_shared<IntType>())},
         std::make_shared<IntType>());
   }
 };

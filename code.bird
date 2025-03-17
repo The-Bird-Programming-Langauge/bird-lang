@@ -1,12 +1,24 @@
-
-
-
 fn foobar(inner: (int)int) -> int {
         return inner(3);
 }
 
-
 print foobar(fn(x: int) -> int { return x; });
 
+const array: int[] = [1,2,3,4];
+
+fn map(x: int[], function: (int)int) -> void {
+        for var i = 0; i < 4; i += 1 {
+                x[i] = function(x[i]);
+        }
+}
+
+fn print_array(x: int[]) {
+        for var i = 0; i < 4; i += 1 {
+                print x[i];
+        }
+}
 
 
+print_array(array);
+map(array, fn(el: int) -> int {return el * 2;});
+print_array(array);

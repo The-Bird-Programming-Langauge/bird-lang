@@ -7,7 +7,6 @@
 #include "../ast_node/index.h"
 
 #include "../callable.h"
-#include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
 #include "../exceptions/break_exception.h"
 #include "../exceptions/continue_exception.h"
@@ -24,8 +23,6 @@
 class SemanticAnalyzer : public Visitor {
 
 public:
-  CoreCallTable core_call_table;
-
   Environment<SemanticValue> env;
   Environment<SemanticType> type_table;
   UserErrorTracker &user_error_tracker;
@@ -36,6 +33,7 @@ public:
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
     this->env.push_env();
+    this->env.declare("length", SemanticValue());
     this->type_table.push_env();
     this->loop_depth = 0;
     this->function_depth = 0;
