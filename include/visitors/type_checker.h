@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <optional>
@@ -1075,5 +1076,18 @@ public:
     this->stack.push(function->ret);
   }
 
-  void visit_lambda(Lambda *) {}
+  void visit_lambda(Lambda *lambda) {
+    std::vector<std::shared_ptr<BirdType>> params{};
+    std::transform(
+        lambda->param_list.begin(), lambda->param_list.end(),
+        std::back_inserter(params),
+        [&](std::pair<Token, std::shared_ptr<ParseType::Type>> param) {
+          return type_converter.convert(param.second);
+        });
+
+    this->stack.push(std::make_shared<BirdFunction>(
+        params, lambda->return_type.has_value()
+                    ? type_converter.convert(lambda->return_type.value())
+                    : std::make_shared<VoidType>()));
+  }
 };
