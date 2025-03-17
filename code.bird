@@ -1,14 +1,12 @@
 
 
 
-fn foobar(inner: ()int) -> int {
-        return inner();
+fn foobar(inner: (int)int) -> int {
+        return inner(3);
 }
 
 
-print foobar(fn() -> int {
-        return 3;
-});
+print foobar(fn(x: int) -> int { return x; });
 
 
 

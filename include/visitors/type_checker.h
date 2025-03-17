@@ -1077,6 +1077,14 @@ public:
   }
 
   void visit_lambda(Lambda *lambda) {
+    this->found_return = false;
+    auto previous_return_type = this->return_type;
+    auto ret_type = lambda->return_type.has_value()
+                        ? type_converter.convert(lambda->return_type.value())
+                        : std::make_shared<VoidType>();
+
+    this->return_type = ret_type;
+
     std::vector<std::shared_ptr<BirdType>> params{};
     std::transform(
         lambda->param_list.begin(), lambda->param_list.end(),
@@ -1085,9 +1093,24 @@ public:
           return type_converter.convert(param.second);
         });
 
-    this->stack.push(std::make_shared<BirdFunction>(
-        params, lambda->return_type.has_value()
-                    ? type_converter.convert(lambda->return_type.value())
-                    : std::make_shared<VoidType>()));
+    for (auto &param : lambda->param_list) {
+      this->env.declare(param.first.lexeme,
+                        this->type_converter.convert(param.second));
+    }
+
+    for (auto &stmt : dynamic_cast<Block *>(lambda->block.get())
+                          ->stmts) // TODO: figure out how not to dynamic cast
+    {
+      stmt->accept(this);
+    }
+
+    if (!this->found_return && ret_type->get_tag() != TypeTag::VOID) {
+      this->user_error_tracker.type_error(
+          "Missing return in a non-void lambda.", lambda->fn_token);
+    }
+
+    this->return_type = previous_return_type;
+
+    this->stack.push(std::make_shared<BirdFunction>(params, ret_type));
   }
 };
