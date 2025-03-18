@@ -1,11 +1,13 @@
-fn foobar(bar: (int)void) -> (int)void {
-        return bar;
-}
 
-fn shoebar(x: int) -> void {
+
+fn foobar<T>(x: T) {
         print x;
 }
 
 
-var x: (int)void = shoebar;
-x(3);
+foobar<int>(3);
+foobar<str>("hello");
+foobar<bool>(true);
+
+
+

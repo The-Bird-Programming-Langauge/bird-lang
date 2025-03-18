@@ -29,11 +29,13 @@ class Expr;
 class MethodCall : public DirectMemberAccess {
 public:
   std::vector<std::shared_ptr<Expr>> args;
+  std::vector<std::shared_ptr<ParseType::Type>> type_args;
   MethodCall(DirectMemberAccess *direct_member_access,
-             std::vector<std::shared_ptr<Expr>> args)
+             std::vector<std::shared_ptr<Expr>> args,
+             std::vector<std::shared_ptr<ParseType::Type>> type_args = {})
       : DirectMemberAccess(direct_member_access->accessable,
                            direct_member_access->identifier),
-        args(args) {};
+        args(args), type_args(std::move(type_args)) {};
 
   void accept(Visitor *visitor) { visitor->visit_method_call(this); }
 };

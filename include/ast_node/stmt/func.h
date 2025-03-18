@@ -29,14 +29,16 @@ public:
   std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>
       param_list; // TODO: make this an actual type
   std::shared_ptr<Stmt> block;
+  std::vector<Token> generic_identifiers;
 
   Func(Token identifier,
        std::optional<std::shared_ptr<ParseType::Type>> return_type,
        std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>
            param_list,
-       std::unique_ptr<Stmt> block)
+       std::unique_ptr<Stmt> block, std::vector<Token> generic_identifiers = {})
       : identifier(identifier), return_type(return_type),
-        param_list(param_list), block(std::move(block)) {}
+        param_list(param_list), block(std::move(block)),
+        generic_identifiers(generic_identifiers) {}
   Func(Func *func)
       : identifier(func->identifier), return_type(func->return_type),
         param_list(func->param_list), block(func->block) {}

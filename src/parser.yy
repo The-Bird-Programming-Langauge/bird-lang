@@ -209,6 +209,9 @@ type_identifier
 maybe_type_identifier_list
 type_identifier_list
 
+%type <std::vector<Token>>
+identifier_list
+
 %right ASSIGN
    EQUAL
    PLUS_EQUAL
@@ -380,6 +383,8 @@ stmts:
 func: 
    FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
       { $$ = std::make_unique<Func>($2, $6, $4, std::move($7)); }
+   | FN IDENTIFIER LESS identifier_list GREATER LPAREN maybe_param_list RPAREN return_type block
+      { $$ = std::make_unique<Func>($2, $9, $7, std::move($10), $4); }
 
 maybe_stmt: 
    SEMICOLON { $$ = std::nullopt; }
@@ -526,6 +531,10 @@ call_expr:
    { $$ = std::make_unique<MethodCall>(dynamic_cast<DirectMemberAccess*>($1.get()), std::move($3)); }
    | expr LPAREN maybe_arg_list RPAREN %prec CALL 
       { $$ = std::make_unique<Call>($2, std::move($1), std::move($3)); }
+   | direct_member_access LESS type_identifier_list GREATER LPAREN maybe_arg_list RPAREN %prec CALL 
+   { $$ = std::make_unique<MethodCall>(dynamic_cast<DirectMemberAccess*>($1.get()), std::move($6), std::move($3)); }
+   | expr LESS type_identifier_list GREATER LPAREN maybe_arg_list RPAREN %prec CALL 
+      { $$ = std::make_unique<Call>($2, std::move($1), std::move($6), std::move($3)); }
 
 struct_initialization:
    IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
@@ -647,6 +656,10 @@ maybe_type_identifier_list:
 type_identifier_list:
    type_identifier { $$ = std::vector<std::shared_ptr<ParseType::Type>>({std::move($1)}); }
    | type_identifier_list COMMA type_identifier { $$ = $1; $$.push_back(std::move($3)); }
+
+identifier_list:
+   IDENTIFIER  { $$ = std::vector<Token>{$1}; }
+   | identifier_list IDENTIFIER { $$.push_back($2); }
 
 %%
 

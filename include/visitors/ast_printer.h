@@ -96,6 +96,13 @@ public:
   void visit_func(Func *func) {
     std::cout << "fn ";
     std::cout << func->identifier.lexeme;
+    if (func->generic_identifiers.size()) {
+      std::cout << "<";
+      for (auto identifier : func->generic_identifiers) {
+        std::cout << identifier.lexeme;
+      }
+      std::cout << ">";
+    }
     std::cout << "(";
 
     for (int i = 0; i < func->param_list.size(); ++i) {
@@ -164,6 +171,15 @@ public:
 
   void visit_call(Call *call) {
     call->callable->accept(this);
+
+    if (call->type_args.size()) {
+      std::cout << "<";
+      for (auto arg : call->type_args) {
+        print_parse_type(arg);
+      }
+      std::cout << ">";
+    }
+
     std::cout << "(";
 
     for (auto &arg : call->args) {
