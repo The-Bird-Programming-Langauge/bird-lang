@@ -659,7 +659,7 @@ type_identifier_list:
 
 identifier_list:
    IDENTIFIER  { $$ = std::vector<Token>{$1}; }
-   | identifier_list IDENTIFIER { $$.push_back($2); }
+   | identifier_list COMMA IDENTIFIER { $$ = $1; $$.push_back($3); }
 
 %%
 

@@ -42,6 +42,14 @@ public:
   Func(Func *func)
       : identifier(func->identifier), return_type(func->return_type),
         param_list(func->param_list), block(func->block) {}
+  Func(Token identifier,
+       std::optional<std::shared_ptr<ParseType::Type>> return_type,
+       std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>
+           param_list,
+       std::shared_ptr<Stmt> block, std::vector<Token> generic_identifiers = {})
+      : identifier(identifier), return_type(return_type),
+        param_list(param_list), block(block),
+        generic_identifiers(generic_identifiers) {}
 
   void accept(Visitor *visitor) { visitor->visit_func(this); }
 };

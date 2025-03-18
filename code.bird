@@ -1,13 +1,17 @@
-
-
-fn foobar<T>(x: T) {
+fn foobar<T, U>(x: T, y: U) -> T {
         print x;
+        print y;
+        return x;
 }
 
+foobar<int, int>(3, 4);
+foobar<str, str>("hello", "there");
+foobar<bool, bool>(true, false);
 
-foobar<int>(3);
-foobar<str>("hello");
-foobar<bool>(true);
+fn add<T>(first: T, second: T) -> T {
+        return first + second;
+}
 
-
-
+print add<int>(69, 420);
+print add<float>(1.2, 3.4);
+print add<str>("foo", "bar");
