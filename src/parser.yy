@@ -206,10 +206,10 @@ param_list
 type_identifier
 
 %type <std::vector<std::vector<Token>>>
-import_item_list
+import_path_list
 
 %type <std::vector<Token>>
-import_item
+import_path
 
 %right ASSIGN
    EQUAL
@@ -416,9 +416,9 @@ type_stmt:
       { $$ = std::make_unique<TypeStmt>($2, $4); }
 
 import_stmt: 
-   IMPORT import_item_list
+   IMPORT import_path_list
       { $$ = std::make_unique<ImportStmt>($1, $2); }
-   | IMPORT import_item_list FROM import_item
+   | IMPORT import_path_list FROM import_path
       {
          for (auto& i : $2)
          {
@@ -427,16 +427,16 @@ import_stmt:
          $$ = std::make_unique<ImportStmt>($1, $2);
       }
 
-import_item_list:
-   import_item
+import_path_list:
+   import_path
       { $$ = std::vector<std::vector<Token>>{$1}; }
-   | import_item_list COMMA import_item
+   | import_path_list COMMA import_path
       { $1.push_back($3); $$ = $1; }
 
-import_item:
+import_path:
    IDENTIFIER
       { $$ = std::vector<Token>{$1}; }
-   | import_item COLON_COLON IDENTIFIER
+   | import_path COLON_COLON IDENTIFIER
       { $1.push_back($3); $$ = $1; }
 
 maybe_arg_list: 

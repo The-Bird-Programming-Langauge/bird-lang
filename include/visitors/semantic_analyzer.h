@@ -13,6 +13,7 @@
 #include "../exceptions/continue_exception.h"
 #include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
+#include "../import_environment.h"
 #include "../sym_table.h"
 #include "../type.h"
 #include "../value.h"
@@ -23,6 +24,7 @@
 class SemanticAnalyzer : public Visitor {
 
 public:
+  ImportEnvironment standard_library;
   Environment<SemanticValue> env;
   Environment<SemanticCallable> call_table;
   Environment<SemanticType> type_table;
@@ -33,11 +35,22 @@ public:
 
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
+    this->init_standard_library();
     this->env.push_env();
     this->call_table.push_env();
     this->type_table.push_env();
     this->loop_depth = 0;
     this->function_depth = 0;
+  }
+
+  // probably better to initialize standard library in global visitor. semantic analyzer, interpreter, and codegen will reference it for information required for importing.
+  void init_standard_library()
+  {
+    this->standard_library.add_item("Print::print_i32", IMPORT_FUNCTION);
+    this->standard_library.add_item("Print::print_f64", IMPORT_FUNCTION);
+    this->standard_library.add_item("Print::print_bool", IMPORT_FUNCTION);
+    this->standard_library.add_item("Print::print_str", IMPORT_FUNCTION);
+    this->standard_library.add_item("Print::print_endline", IMPORT_FUNCTION);
   }
 
   void analyze_semantics(std::vector<std::unique_ptr<Stmt>> *stmts) {
@@ -335,5 +348,19 @@ public:
     match_expr->else_arm->accept(this);
   }
 
-  void visit_import_stmt(ImportStmt *import_stmt) {};
+  void visit_import_stmt(ImportStmt *import_stmt)
+  {
+    for (int i = 0; i < import_stmt->import_paths.size(); i += 1)
+    {
+      if (!this->standard_library.contains_item(import_stmt->import_paths[i]))
+      {
+        this->user_error_tracker.semantic_error("Item does not exist in the standard library.", import_stmt->import_paths[i].back());
+        continue;
+      }
+
+      // error if import item already exists in global namespace
+
+      // add import item to global namespace
+    }
+  }
 };

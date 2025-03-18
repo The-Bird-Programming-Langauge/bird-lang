@@ -232,7 +232,6 @@ class CodeGen : public Visitor {
                                 int index);
 
   void visit_import_stmt(ImportStmt *import_stmt);
-  void import_function(std::string import_item);
 
 public:
   ~CodeGen();

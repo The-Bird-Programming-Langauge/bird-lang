@@ -24,4 +24,6 @@ void reorder_ast(std::vector<std::unique_ptr<Stmt>> &stmts) {
       }
     }
   }
+
+  // add import hoisting
 }

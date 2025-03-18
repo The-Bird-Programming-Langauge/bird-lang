@@ -293,16 +293,16 @@ public:
   void visit_import_stmt(ImportStmt *import_stmt) {
     std::cout << "import ";
 
-    for (int i = 0; i < import_stmt->import_items.size(); i += 1) {
-      for (int j = 0; j < import_stmt->import_items[i].size(); j += 1) {
-        std::cout << import_stmt->import_items[i][j].lexeme;
+    for (int i = 0; i < import_stmt->import_paths.size(); i += 1) {
+      for (int j = 0; j < import_stmt->import_paths[i].size(); j += 1) {
+        std::cout << import_stmt->import_paths[i][j].lexeme;
         
-        if (j < import_stmt->import_items[i].size() - 1) {
+        if (j < import_stmt->import_paths[i].size() - 1) {
           std::cout << "::";
         }
       }
       
-      if (i < import_stmt->import_items.size() - 1) {
+      if (i < import_stmt->import_paths.size() - 1) {
         std::cout << ", ";
       }
     }

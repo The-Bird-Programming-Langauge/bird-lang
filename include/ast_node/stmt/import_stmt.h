@@ -17,13 +17,14 @@
 class ImportStmt : public Stmt {
 public:
   Token import_token;
-  std::vector<std::vector<Token>> import_items;
+  std::vector<std::vector<Token>> import_paths;
+  // maybe add an attribute that contains a list of non-namespace import items referenced from the standard library, initialized in the semantic analyzer as precalculation for the interpreter/codegen
 
   ImportStmt(
     Token import_token,
-    std::vector<std::vector<Token>> import_items)
+    std::vector<std::vector<Token>> import_paths)
     : import_token(import_token),
-      import_items(import_items) {}
+      import_paths(import_paths) {}
 
   void accept(Visitor *visitor) { visitor->visit_import_stmt(this); }
 };
