@@ -19,7 +19,7 @@ TEST(FirstClassFunctionReturnTest, UseReturnedFunction) {
 
 TEST(FirstClassFunctionReturnTest, ReturnMismatchFunction) {
   BirdTest::TestOptions options;
-  options.code = "fn foo(bar: (int)void) -> (int)void { return bar; }";
+  options.code = "fn foo(bar: (int)void) -> (void)int { return bar; }";
 
   ASSERT_FALSE(BirdTest::compile(options));
 }

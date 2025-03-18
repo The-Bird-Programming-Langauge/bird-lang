@@ -1,4 +1,5 @@
 #pragma once
+#include "ast_node/expr/lambda.h"
 #include "bird_type.h"
 #include "parse_type.h"
 #include "sym_table.h"
@@ -61,7 +62,7 @@ public:
       }
 
       auto ret = this->convert(function_type->ret);
-      return std::make_shared<BirdFunction>(params, ret);
+      return std::make_shared<LambdaFunction>(params, ret);
     }
 
     return std::make_shared<ErrorType>();

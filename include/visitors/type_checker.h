@@ -607,7 +607,8 @@ public:
   void visit_call(Call *call) {
     call->callable->accept(this);
     auto value = stack.pop();
-    if (value->get_tag() != TypeTag::FUNCTION) {
+    if (value->get_tag() != TypeTag::FUNCTION &&
+        value->get_tag() != TypeTag::LAMBDA) {
       this->user_error_tracker.type_mismatch(
           "expected function, found " + value->to_string(), call->call_token);
       this->stack.push(std::make_shared<ErrorType>());
@@ -628,8 +629,11 @@ public:
 
       if (this->return_type.has_value()) {
         if (*result != *this->return_type.value()) {
-          this->user_error_tracker.type_mismatch("in return statement",
-                                                 return_stmt->return_token);
+          this->user_error_tracker.type_mismatch(
+              "in return statement. Expected " +
+                  this->return_type.value()->to_string() + ", found " +
+                  result->to_string(),
+              return_stmt->return_token);
         }
       } else {
         this->user_error_tracker.type_error(
@@ -1113,6 +1117,6 @@ public:
 
     this->return_type = previous_return_type;
 
-    this->stack.push(std::make_shared<BirdFunction>(params, ret_type));
+    this->stack.push(std::make_shared<LambdaFunction>(params, ret_type));
   }
 };

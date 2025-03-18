@@ -1,24 +1,12 @@
-fn foobar(inner: (int)int) -> int {
-        return inner(3);
+fn foobar(bar: (int)void) -> (int)void {
+        return bar;
 }
+var x = foobar(fn(x: int) -> void { print x; });
+x(3);
 
-print foobar(fn(x: int) -> int { return x; });
+struct Foo {
+        val: int;         
+        fn foo() -> void { return self; }
+};         
 
-const array: int[] = [1,2,3,4];
-
-fn map(x: int[], function: (int)int) -> void {
-        for var i = 0; i < 4; i += 1 {
-                x[i] = function(x[i]);
-        }
-}
-
-fn print_array(x: int[]) {
-        for var i = 0; i < 4; i += 1 {
-                print x[i];
-        }
-}
-
-
-print_array(array);
-map(array, fn(el: int) -> int {return el * 2;});
-print_array(array);
+const bar: Foo = Foo {};bar.foo();

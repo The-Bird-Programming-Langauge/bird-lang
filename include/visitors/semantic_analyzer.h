@@ -331,5 +331,14 @@ public:
     }
   }
 
-  void visit_lambda(Lambda *lambda) { lambda->block->accept(this); }
+  void visit_lambda(Lambda *lambda) {
+    this->function_depth += 1;
+    this->env.push_env();
+    for (auto &param : lambda->param_list) {
+      this->env.declare(param.first.lexeme, SemanticValue(true));
+    }
+    lambda->block->accept(this);
+    this->env.pop_env();
+    this->function_depth -= 1;
+  }
 };

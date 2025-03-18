@@ -55,9 +55,9 @@ TEST(FunctionTest, FunctionWrongReturnType) {
     auto tup = error_tracker.get_errors()[0];
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "return");
-    ASSERT_EQ(
-        std::get<0>(tup),
-        ">>[ERROR] type mismatch: in return statement (line 1, character 36)");
+    ASSERT_EQ(std::get<0>(tup),
+              ">>[ERROR] type mismatch: in return statement. Expected int, "
+              "found string (line 1, character 36)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));
@@ -76,9 +76,9 @@ TEST(FunctionTest, FunctionNoReturnType) {
     auto tup = error_tracker.get_errors()[0];
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "return");
-    ASSERT_EQ(
-        std::get<0>(tup),
-        ">>[ERROR] type mismatch: in return statement (line 1, character 15)");
+    ASSERT_EQ(std::get<0>(tup),
+              ">>[ERROR] type mismatch: in return statement. Expected void, "
+              "found int (line 1, character 15)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

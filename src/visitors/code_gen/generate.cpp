@@ -1,11 +1,13 @@
 #include "../../../include/visitors/code_gen.h"
 #include "../../../include/visitors/hoist_visitor.h"
 #include "../../../include/visitors/static_visitor.h"
+#include <binaryen-c.h>
 #include <fstream>
 
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   this->init_std_lib();
   this->init_array_constructor();
+  this->init_lambda_table();
 
   HoistVisitor hoist_visitor(this->struct_names);
   hoist_visitor.hoist(stmts);

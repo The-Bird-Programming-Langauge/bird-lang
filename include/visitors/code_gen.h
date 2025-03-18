@@ -9,6 +9,7 @@
 #include "visitor.h"
 #include <map>
 #include <memory>
+#include <unordered_map>
 
 Token::Type assign_expr_binary_equivalent(Token::Type token_type);
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
@@ -163,6 +164,7 @@ class CodeGen : public Visitor {
   std::unordered_map<std::string, int> struct_name_to_num_pointers;
 
   bool must_garbage_collect = false;
+  int lambda_count = 0;
 
   std::unordered_map<std::string, uint32_t> str_offsets;
 
@@ -207,6 +209,11 @@ class CodeGen : public Visitor {
   void visit_const_stmt(ConstStmt *const_stmt);
   void visit_func(Func *func);
   void add_func_with_name(Func *func, std::string func_name);
+  void add_func(std::string func_name,
+                std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>
+                    param_list,
+                std::shared_ptr<Stmt> block,
+                std::optional<std::shared_ptr<ParseType::Type>> return_type);
   void visit_if_stmt(IfStmt *if_stmt);
   void visit_call(Call *call);
   void visit_return_stmt(ReturnStmt *return_stmt);
@@ -253,6 +260,7 @@ class CodeGen : public Visitor {
                        Tagged<BinaryenExpressionRef> &index,
                        std::shared_ptr<BirdType> type);
   void visit_lambda(Lambda *lambda);
+  void init_lambda_table();
 
 public:
   ~CodeGen();

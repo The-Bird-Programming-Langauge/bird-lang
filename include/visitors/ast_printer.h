@@ -250,6 +250,17 @@ public:
 
       std::cout << primitive->type.lexeme;
       return;
+    } else if (type->tag == ParseType::FUNCTION) {
+      auto function =
+          safe_dynamic_pointer_cast<ParseType::Function, ParseType::Type>(type);
+      std::cout << "(";
+      for (auto param : function->params) {
+        this->print_parse_type(param);
+      }
+
+      std::cout << ")";
+      std::cout << function->ret;
+      return;
     }
 
     throw BirdException("unknown parse type");

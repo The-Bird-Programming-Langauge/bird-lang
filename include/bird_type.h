@@ -20,7 +20,8 @@ enum class TypeTag {
   STRUCT,
   ARRAY,
   FUNCTION,
-  PLACEHOLDER
+  PLACEHOLDER,
+  LAMBDA
 };
 
 struct BirdType {
@@ -175,6 +176,51 @@ struct BirdFunction : BirdType {
   TypeTag get_tag() const { return TypeTag::FUNCTION; }
   std::string to_string() const {
     std::string result = "(";
+    for (int i = 0; i < (int)params.size() - 1; i++) {
+      result += params[i]->to_string() + ", ";
+    }
+
+    if (params.size()) {
+      result += params.back()->to_string();
+    }
+
+    result += ")";
+    result += ret->to_string();
+    return result;
+  }
+};
+
+struct LambdaFunction : BirdFunction {
+  LambdaFunction(std::vector<std::shared_ptr<BirdType>> params,
+                 std::shared_ptr<BirdType> ret)
+      : BirdFunction(params, ret) {}
+
+  bool operator==(BirdType &other) const {
+    if (other.get_tag() != TypeTag::LAMBDA) {
+      return false;
+    }
+    auto fn = dynamic_cast<BirdFunction *>(&other);
+
+    if (*fn->ret != *this->ret) {
+      return false;
+    }
+
+    if (fn->params.size() != this->params.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < this->params.size(); i++) {
+      if (*this->params[i] != *fn->params[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  TypeTag get_tag() const { return TypeTag::LAMBDA; }
+  std::string to_string() const {
+    std::string result = "(lambda)(";
     for (int i = 0; i < (int)params.size() - 1; i++) {
       result += params[i]->to_string() + ", ";
     }
