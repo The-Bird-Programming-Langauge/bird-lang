@@ -170,7 +170,8 @@ TEST(TypeStmtTest, DeclTypeMismatch) {
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "x");
     ASSERT_EQ(std::get<0>(tup),
-              ">>[ERROR] type mismatch: in declaration (line 1, character 21)");
+              ">>[ERROR] type mismatch: in declaration. Expected int, found "
+              "bool (line 1, character 21)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

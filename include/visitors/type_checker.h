@@ -174,7 +174,9 @@ public:
           this->type_converter.convert(decl_stmt->type.value());
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
-            "in declaration", decl_stmt->type.value()->get_token());
+            "in declaration. Expected " + type->to_string() + ", found " +
+                result->to_string(),
+            decl_stmt->type.value()->get_token());
 
         this->env.declare(decl_stmt->identifier.lexeme,
                           std::make_unique<ErrorType>());
@@ -290,7 +292,9 @@ public:
 
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
-            "in declaration", const_stmt->type.value()->get_token());
+            "in declaration. Expected " + type->to_string() + ", found " +
+                result->to_string(),
+            const_stmt->type.value()->get_token());
         this->env.declare(const_stmt->identifier.lexeme,
                           std::make_shared<ErrorType>());
         return;

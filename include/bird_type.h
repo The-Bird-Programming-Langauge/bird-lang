@@ -220,7 +220,7 @@ struct LambdaFunction : BirdFunction {
 
   TypeTag get_tag() const { return TypeTag::LAMBDA; }
   std::string to_string() const {
-    std::string result = "(lambda)(";
+    std::string result = "lambda(";
     for (int i = 0; i < (int)params.size() - 1; i++) {
       result += params[i]->to_string() + ", ";
     }

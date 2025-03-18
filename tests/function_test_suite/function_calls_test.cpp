@@ -70,7 +70,8 @@ TEST(FunctionTest, StoreReturnWithIncorrectVarType) {
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "str");
     ASSERT_EQ(std::get<0>(tup),
-              ">>[ERROR] type mismatch: in declaration (line 1, character 46)");
+              ">>[ERROR] type mismatch: in declaration. Expected string, found "
+              "int (line 1, character 46)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));

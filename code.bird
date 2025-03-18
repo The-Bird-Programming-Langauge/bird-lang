@@ -1,12 +1,11 @@
 fn foobar(bar: (int)void) -> (int)void {
         return bar;
 }
-var x = foobar(fn(x: int) -> void { print x; });
+
+fn shoebar(x: int) -> void {
+        print x;
+}
+
+
+var x: (int)void = shoebar;
 x(3);
-
-struct Foo {
-        val: int;         
-        fn foo() -> void { return self; }
-};         
-
-const bar: Foo = Foo {};bar.foo();
