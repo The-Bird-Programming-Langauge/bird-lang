@@ -647,7 +647,8 @@ type_identifier:
    | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
-   | LPAREN maybe_type_identifier_list RPAREN type_identifier { $$ = std::make_shared<ParseType::Function>( $1, $2, $4);}
+   | FN LPAREN maybe_type_identifier_list RPAREN ARROW type_identifier { $$ = std::make_shared<ParseType::Function>( $1, $3, $6);}
+   | LPAREN type_identifier RPAREN { $$ = $2; }
 
 maybe_type_identifier_list:
    %empty { $$ = std::vector<std::shared_ptr<ParseType::Type>>{}; }
