@@ -14,7 +14,6 @@
 #include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
 #include "../exceptions/user_error_tracker.h"
-#include "../stack.h"
 #include "../sym_table.h"
 #include "../type_converter.h"
 #include "hoist_visitor.h"
@@ -31,7 +30,6 @@ public:
   std::set<std::string> struct_names;
   bool found_return = false;
 
-  Stack<std::shared_ptr<BirdType>> stack;
   std::optional<std::shared_ptr<BirdType>> return_type;
   UserErrorTracker &user_error_tracker;
   TypeConverter type_converter;
@@ -141,10 +139,6 @@ public:
     for (auto &stmt : *stmts) {
       stmt->accept(this);
     }
-
-    while (!this->stack.empty()) {
-      this->stack.pop();
-    }
   }
 
   void visit_block(Block *block) {
@@ -161,7 +155,6 @@ public:
   void visit_decl_stmt(DeclStmt *decl_stmt) {
     decl_stmt->value->accept(this);
     auto result = decl_stmt->value->get_type();
-    // this->stack.pop();
 
     if (result->get_tag() == TypeTag::VOID) {
       this->user_error_tracker.type_error("cannot declare void type",
@@ -202,7 +195,6 @@ public:
 
     assign_expr->value->accept(this);
     auto result = assign_expr->value->get_type();
-    // this->stack.pop();
 
     auto previous = this->env.get(assign_expr->identifier.lexeme);
 
@@ -212,14 +204,10 @@ public:
                                                assign_expr->assign_operator);
         this->env.set(assign_expr->identifier.lexeme,
                       std::make_shared<ErrorType>());
-
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
 
       this->env.set(assign_expr->identifier.lexeme, result);
-
-      this->stack.push(result);
       return;
     }
 
@@ -233,8 +221,6 @@ public:
                                              assign_expr->assign_operator);
       this->env.set(assign_expr->identifier.lexeme,
                     std::make_shared<ErrorType>());
-
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
@@ -242,8 +228,6 @@ public:
 
     auto new_type_bird_type = bird_type_type_to_bird_type(new_type);
     this->env.set(assign_expr->identifier.lexeme, new_type_bird_type);
-
-    this->stack.push(new_type_bird_type);
 
     assign_expr->set_type(new_type_bird_type);
   }
@@ -257,7 +241,6 @@ public:
     for (auto &arg : print_stmt->args) {
       arg->accept(this);
       auto result = arg->get_type();
-      // this->stack.pop();
 
       if (result->get_tag() == TypeTag::VOID) {
         this->user_error_tracker.type_error("cannot print void type",
@@ -290,7 +273,6 @@ public:
   void visit_const_stmt(ConstStmt *const_stmt) {
     const_stmt->value->accept(this);
     auto result = const_stmt->value->get_type();
-    // this->stack.pop();
 
     if (result->get_tag() == TypeTag::VOID) {
       this->user_error_tracker.type_error("cannot declare void type",
@@ -322,7 +304,6 @@ public:
   void visit_while_stmt(WhileStmt *while_stmt) {
     while_stmt->condition->accept(this);
     auto condition_result = while_stmt->condition->get_type();
-    // this->stack.pop();
 
     if (condition_result->get_tag() != TypeTag::BOOL) {
       this->user_error_tracker.type_error(
@@ -344,7 +325,6 @@ public:
     if (for_stmt->condition.has_value()) {
       for_stmt->condition.value()->accept(this);
       auto condition_result = for_stmt->condition.value()->get_type();
-      // this->stack.pop();
 
       if (condition_result->get_tag() != TypeTag::BOOL) {
         this->user_error_tracker.type_error(
@@ -365,71 +345,58 @@ public:
     binary->right->accept(this);
 
     auto right = binary->right->get_type();
-    // this->stack.pop();
     auto left = binary->left->get_type();
-    // this->stack.pop();
 
     auto operator_options = this->binary_operations.at(binary->op.token_type);
     if (operator_options.find({left->get_tag(), right->get_tag()}) ==
         operator_options.end()) {
       this->user_error_tracker.type_mismatch("in binary operation", binary->op);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     auto result = bird_type_type_to_bird_type(
         operator_options.at({left->get_tag(), right->get_tag()}));
-    this->stack.push(result);
     binary->set_type(result);
   }
 
   void visit_unary(Unary *unary) {
     unary->expr->accept(this);
     auto result = unary->expr->get_type();
-    // this->stack.pop();
     switch (unary->op.token_type) {
     case Token::Type::MINUS: {
       if (result->get_tag() == TypeTag::FLOAT) {
-        this->stack.push(std::make_shared<FloatType>());
         unary->set_type(std::make_shared<FloatType>());
       } else if (result->get_tag() == TypeTag::INT) {
-        this->stack.push(std::make_shared<IntType>());
         unary->set_type(std::make_shared<IntType>());
       } else {
         this->user_error_tracker.type_error(
             "expected int or float in unary operation, found: " +
                 bird_type_to_string(result),
             unary->op);
-        this->stack.push(std::make_shared<ErrorType>());
       }
       break;
     }
     case Token::Type::NOT: {
       if (result->get_tag() == TypeTag::BOOL) {
-        this->stack.push(std::make_shared<BoolType>());
         unary->set_type(std::make_shared<BoolType>());
       } else {
         this->user_error_tracker.type_error(
             "expected bool int unary operation, found: " +
                 bird_type_to_string(result),
             unary->op);
-        this->stack.push(std::make_shared<ErrorType>());
       }
       break;
     }
     case Token::Type::QUESTION: {
       if (result->get_tag() == TypeTag::STRUCT) {
-        this->stack.push(std::make_shared<BoolType>());
         unary->set_type(std::make_shared<BoolType>());
       } else if (result->get_tag() == TypeTag::PLACEHOLDER) {
-        this->stack.push(std::make_shared<BoolType>());
         unary->set_type(std::make_shared<BoolType>());
       } else {
         this->user_error_tracker.type_error(
             "expected struct in unary operation, found: " +
                 bird_type_to_string(result),
             unary->op);
-        this->stack.push(std::make_shared<ErrorType>());
       }
       break;
     }
@@ -442,35 +409,29 @@ public:
   void visit_primary(Primary *primary) {
     switch (primary->value.token_type) {
     case Token::Type::FLOAT_LITERAL: {
-      this->stack.push(std::make_shared<FloatType>());
       primary->set_type(std::make_shared<FloatType>());
       break;
     }
     case Token::Type::INT_LITERAL: {
-      this->stack.push(std::make_shared<IntType>());
       primary->set_type(std::make_shared<IntType>());
       break;
     }
     case Token::Type::TRUE:
     case Token::Type::FALSE: {
-      this->stack.push(std::make_shared<BoolType>());
       primary->set_type(std::make_shared<BoolType>());
       break;
     }
     case Token::Type::STR_LITERAL: {
-      this->stack.push(std::make_shared<StringType>());
       primary->set_type(std::make_shared<StringType>());
       break;
     }
     case Token::Type::IDENTIFIER: {
       auto result = this->env.get(primary->value.lexeme);
-      this->stack.push(result);
       primary->set_type(result);
       break;
     }
     case Token::Type::SELF: {
       auto result = this->env.get("self");
-      this->stack.push(result);
       primary->set_type(result);
       break;
     }
@@ -483,15 +444,12 @@ public:
   void visit_ternary(Ternary *ternary) {
     ternary->condition->accept(this);
     auto condition = ternary->condition->get_type();
-    // this->stack.pop();
 
     ternary->true_expr->accept(this);
     auto true_expr = ternary->true_expr->get_type();
-    // this->stack.pop();
 
     ternary->false_expr->accept(this);
     auto false_expr = ternary->false_expr->get_type();
-    // this->stack.pop();
 
     if (*true_expr != *false_expr) {
       this->user_error_tracker.type_mismatch("in ternary operation",
@@ -502,9 +460,7 @@ public:
     if (condition->get_tag() != TypeTag::BOOL) {
       this->user_error_tracker.type_error("expected bool in ternary condition",
                                           ternary->ternary_token);
-      this->stack.push(std::make_shared<ErrorType>());
     } else {
-      this->stack.push(true_expr);
       ternary->set_type(true_expr);
     }
   }
@@ -593,7 +549,6 @@ public:
   void visit_if_stmt(IfStmt *if_stmt) {
     if_stmt->condition->accept(this);
     auto condition = if_stmt->condition->get_type();
-    // this->stack.pop();
 
     if (condition->get_tag() != TypeTag::BOOL) {
       this->user_error_tracker.type_error(
@@ -624,14 +579,12 @@ public:
               std::to_string(args.size()),
           call_identifier);
 
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     for (int i = 0; i < params.size(); i++) {
       args[i]->accept(this);
       auto arg = args[i]->get_type();
-      // this->stack.pop();
       auto param = params[i];
 
       if (arg->get_tag() == TypeTag::PLACEHOLDER &&
@@ -648,7 +601,6 @@ public:
         this->user_error_tracker.type_mismatch(
             "expected " + param->to_string() + ", found " + arg->to_string(),
             call_identifier);
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
     }
@@ -657,19 +609,16 @@ public:
   void visit_call(Call *call) {
     call->callable->accept(this);
     auto value = call->callable->get_type();
-    // stack.pop();
     if (value->get_tag() != TypeTag::FUNCTION &&
         value->get_tag() != TypeTag::LAMBDA) {
       this->user_error_tracker.type_mismatch(
           "expected function, found " + value->to_string(), call->call_token);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     auto function = std::dynamic_pointer_cast<BirdFunction>(value);
 
     compare_args_and_params(call->call_token, call->args, function->params);
-    this->stack.push(function->ret);
     call->set_type(function->ret);
   }
 
@@ -678,7 +627,6 @@ public:
     if (return_stmt->expr.has_value()) {
       return_stmt->expr.value()->accept(this);
       auto result = return_stmt->expr.value()->get_type();
-      // this->stack.pop();
 
       if (this->return_type.has_value()) {
         if (*result != *this->return_type.value()) {
@@ -732,36 +680,30 @@ public:
   void visit_subscript(Subscript *subscript) {
     subscript->subscriptable->accept(this);
     auto subscriptable = subscript->subscriptable->get_type();
-    // this->stack.pop();
 
     subscript->index->accept(this);
     auto index = subscript->index->get_type();
-    // this->stack.pop();
 
     if (subscriptable->get_tag() != TypeTag::STRING &&
         subscriptable->get_tag() != TypeTag::ARRAY) {
       this->user_error_tracker.type_error("expected string in subscriptable",
                                           subscript->subscript_token);
 
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     if (index->get_tag() != TypeTag::INT) {
       this->user_error_tracker.type_error("expected int in subscript index",
                                           subscript->subscript_token);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     if (subscriptable->get_tag() == TypeTag::STRING) {
-      this->stack.push(std::make_shared<StringType>());
       subscript->set_type(std::make_shared<StringType>());
       return;
     }
 
     auto array_type = safe_dynamic_pointer_cast<ArrayType>(subscriptable);
-    this->stack.push(array_type->element_type);
     subscript->set_type(array_type->element_type);
   }
 
@@ -798,10 +740,8 @@ public:
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
     direct_member_access->accessable->accept(this);
     auto accessable = direct_member_access->accessable->get_type();
-    // this->stack.pop();
 
     if (accessable->get_tag() == TypeTag::ERROR) {
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
     if (accessable->get_tag() == TypeTag::PLACEHOLDER) {
@@ -809,7 +749,6 @@ public:
       if (this->struct_names.find(placeholder->name) ==
           this->struct_names.end()) {
         this->user_error_tracker.type_error("struct not declared", Token());
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
 
@@ -821,7 +760,6 @@ public:
           "expected struct in direct member access, found: " +
               bird_type_to_string(accessable),
           direct_member_access->identifier);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
@@ -829,7 +767,6 @@ public:
 
     for (auto &f : struct_type->fields) {
       if (f.first == direct_member_access->identifier.lexeme) {
-        this->stack.push(f.second);
         direct_member_access->set_type(f.second);
         return;
       }
@@ -837,7 +774,6 @@ public:
 
     this->user_error_tracker.type_error("field does not exist on struct",
                                         direct_member_access->identifier);
-    this->stack.push(std::make_shared<ErrorType>());
     return;
   }
 
@@ -846,7 +782,6 @@ public:
     if (!this->type_table.contains(struct_initialization->identifier.lexeme)) {
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
@@ -869,7 +804,6 @@ public:
                 "\" does not exist in struct " +
                 struct_initialization->identifier.lexeme,
             struct_initialization->identifier);
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
     }
@@ -878,11 +812,9 @@ public:
       for (auto &field_assignment : struct_initialization->field_assignments) {
         field_assignment.second->accept(this);
         auto field_type = field_assignment.second->get_type();
-        // this->stack.pop();
 
         if (field.first == field_assignment.first) {
           if (field_type->get_tag() == TypeTag::ERROR) {
-            this->stack.push(std::make_shared<ErrorType>());
             return;
           }
 
@@ -893,7 +825,6 @@ public:
                 this->struct_names.end()) {
               this->user_error_tracker.type_error("struct not declared",
                                                   Token());
-              this->stack.push(std::make_shared<ErrorType>());
               return;
             }
 
@@ -907,7 +838,6 @@ public:
                 this->struct_names.end()) {
               this->user_error_tracker.type_error("struct not declared",
                                                   Token());
-              this->stack.push(std::make_shared<ErrorType>());
               return;
             }
 
@@ -917,7 +847,6 @@ public:
           if (*field.second != *field_type) {
             this->user_error_tracker.type_mismatch(
                 "in struct initialization", struct_initialization->identifier);
-            this->stack.push(std::make_shared<ErrorType>());
             return;
           }
 
@@ -926,24 +855,20 @@ public:
       }
     }
 
-    this->stack.push(type);
     struct_initialization->set_type(type);
   }
 
   void visit_member_assign(MemberAssign *member_assign) {
     member_assign->accessable->accept(this);
     auto accessable = member_assign->accessable->get_type();
-    // this->stack.pop();
 
     if (accessable->get_tag() == TypeTag::ERROR) {
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     if (accessable->get_tag() != TypeTag::STRUCT) {
       this->user_error_tracker.type_error("expected struct in member assign",
                                           member_assign->identifier);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
@@ -953,16 +878,13 @@ public:
       if (f.first == member_assign->identifier.lexeme) {
         member_assign->value->accept(this);
         auto value = member_assign->value->get_type();
-        // this->stack.pop();
 
         if (*f.second != *value) {
           this->user_error_tracker.type_mismatch("in member assign",
                                                  member_assign->identifier);
-          this->stack.push(std::make_shared<ErrorType>());
           return;
         }
 
-        this->stack.push(f.second);
         member_assign->set_type(f.second);
         return;
       }
@@ -972,31 +894,26 @@ public:
   void visit_as_cast(AsCast *as_cast) {
     as_cast->expr->accept(this);
     auto expr = as_cast->expr->get_type();
-    // this->stack.pop();
 
     if (expr->get_tag() == TypeTag::ERROR) {
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     auto to_type = this->type_converter.convert(as_cast->type);
 
     if (*to_type == *expr) {
-      this->stack.push(to_type);
       as_cast->set_type(to_type);
       return;
     }
 
     if (to_type->get_tag() == TypeTag::FLOAT &&
         expr->get_tag() == TypeTag::INT) {
-      this->stack.push(to_type);
       as_cast->set_type(to_type);
       return;
     }
 
     if (to_type->get_tag() == TypeTag::INT &&
         expr->get_tag() == TypeTag::FLOAT) {
-      this->stack.push(to_type);
       as_cast->set_type(to_type);
       return;
     }
@@ -1007,12 +924,10 @@ public:
       auto expr_type_array = safe_dynamic_pointer_cast<ArrayType>(expr);
 
       if (expr_type_array->element_type->get_tag() == TypeTag::VOID) {
-        this->stack.push(to_type);
         as_cast->set_type(to_type);
         return;
       }
       if (*expr_type_array->element_type == *to_type_array->element_type) {
-        this->stack.push(to_type);
         as_cast->set_type(to_type);
         return;
       }
@@ -1020,26 +935,22 @@ public:
 
     this->user_error_tracker.type_mismatch("in 'as' type cast",
                                            as_cast->type->get_token());
-    this->stack.push(std::make_shared<ErrorType>());
   }
 
   void visit_array_init(ArrayInit *array_init) {
     auto elements = array_init->elements;
     if (!elements.size()) {
       auto result = std::make_shared<ArrayType>(std::make_shared<VoidType>());
-      this->stack.push(result); // resolved later?
       array_init->set_type(result);
       return;
     }
 
     elements[0]->accept(this);
     auto first_el_type = elements[0]->get_type();
-    // this->stack.pop();
 
     for (int i = 1; i < elements.size(); i++) {
       elements[i]->accept(this);
       auto type = elements[i]->get_type();
-      // this->stack.pop();
 
       if (*first_el_type != *type) {
         Token error_token;
@@ -1050,80 +961,65 @@ public:
         this->user_error_tracker.type_mismatch("in array initialization",
                                                error_token);
 
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
     }
 
     auto result = std::make_shared<ArrayType>(first_el_type);
-    this->stack.push(result);
     array_init->set_type(result);
   }
 
   void visit_index_assign(IndexAssign *index_assign) {
     index_assign->lhs->accept(this);
     auto lhs_type = index_assign->lhs->get_type();
-    // this->stack.pop();
 
     index_assign->rhs->accept(this);
     auto rhs_type = index_assign->rhs->get_type();
-    // this->stack.pop();
 
     if (lhs_type->get_tag() != rhs_type->get_tag()) {
       this->user_error_tracker.type_mismatch(
           "in assignment", index_assign->lhs->subscript_token);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    this->stack.push(lhs_type);
     index_assign->set_type(lhs_type);
   }
 
   void visit_match_expr(MatchExpr *match_expr) {
     match_expr->expr->accept(this);
     auto expr_type = match_expr->expr->get_type();
-    // this->stack.pop();
 
     match_expr->else_arm->accept(this);
     auto else_arm_type = match_expr->else_arm->get_type();
-    // this->stack.pop();
 
     if (else_arm_type->get_tag() == TypeTag::ERROR) {
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
     for (auto &arm : match_expr->arms) {
       arm.first->accept(this);
       auto arm_type = arm.first->get_type();
-      // this->stack.pop();
 
       if (*arm_type != *expr_type) {
         this->user_error_tracker.type_mismatch("in match expression",
                                                match_expr->match_token);
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
 
       arm.second->accept(this);
       auto result_type = arm.second->get_type();
-      // this->stack.pop();
 
       if (result_type->get_tag() == TypeTag::ERROR) {
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
 
       if (*else_arm_type != *result_type) {
         this->user_error_tracker.type_mismatch("in match expression",
                                                match_expr->match_token);
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
     }
 
-    this->stack.push(else_arm_type);
     match_expr->set_type(else_arm_type);
   }
 
@@ -1136,14 +1032,12 @@ public:
   void visit_method_call(MethodCall *method_call) {
     method_call->accessable->accept(this);
     auto bird_type = method_call->accessable->get_type();
-    // stack.pop();
 
     if (bird_type->get_tag() != TypeTag::STRUCT) {
       this->user_error_tracker.type_error(
           "method '" + method_call->identifier.lexeme +
               "' does not exist on type " + bird_type->to_string(),
           method_call->identifier);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
@@ -1156,7 +1050,6 @@ public:
           "method '" + method_call->identifier.lexeme +
               "' does not exist on type " + struct_type->to_string(),
           method_call->identifier);
-      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
@@ -1171,7 +1064,6 @@ public:
     compare_args_and_params(
         method_call->identifier, args,
         std::vector(function->params.begin() + 1, function->params.end()));
-    this->stack.push(function->ret);
     method_call->set_type(function->ret);
   }
 
@@ -1212,7 +1104,6 @@ public:
 
     this->return_type = previous_return_type;
     auto result = std::make_shared<LambdaFunction>(params, ret_type);
-    this->stack.push(result);
     lambda->set_type(result);
   }
 };
