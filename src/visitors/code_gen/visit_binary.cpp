@@ -3,23 +3,34 @@
 #include <memory>
 
 void CodeGen::visit_binary(Binary *binary) {
-  switch (binary->op.token_type) {
+  create_binary(binary->op.token_type, binary->left, binary->right);
+}
+
+void CodeGen::create_binary(Token::Type op, std::unique_ptr<Expr> &left,
+                            std::unique_ptr<Expr> &right) {
+  switch (op) {
   case Token::Type::AND:
   case Token::Type::OR:
-    visit_binary_short_circuit(binary);
+    visit_binary_short_circuit(op, left, right);
     break;
   default:
-    visit_binary_normal(binary);
+    left->accept(this);
+    auto normal_left = stack.pop();
+    right->accept(this);
+    auto normal_right = stack.pop();
+    visit_binary_normal(op, normal_left, normal_right);
   }
 }
 
-void CodeGen::visit_binary_short_circuit(Binary *binary) {
-  binary->left->accept(this);
-  binary->right->accept(this);
+void CodeGen::visit_binary_short_circuit(Token::Type op,
+                                         std::unique_ptr<Expr> &left_expr,
+                                         std::unique_ptr<Expr> &right_expr) {
+  left_expr->accept(this);
+  right_expr->accept(this);
 
   auto right = this->stack.pop();
   auto left = this->stack.pop();
-  switch (binary->op.token_type) {
+  switch (op) {
   case Token::Type::AND: {
     this->stack.push(TaggedExpression(
         BinaryenIf(this->mod,
@@ -37,34 +48,29 @@ void CodeGen::visit_binary_short_circuit(Binary *binary) {
     break;
   }
   default:
-    throw BirdException("unsupported short circuit operation: " +
-                        binary->op.lexeme);
+    throw BirdException("unsupported short circuit operation");
   }
 }
 
-void CodeGen::visit_binary_normal(Binary *binary) {
-  binary->left->accept(this);
-  binary->right->accept(this);
-
-  auto right = this->stack.pop();
-  auto left = this->stack.pop();
-
-  if (right.type->type == BirdTypeType::STRING &&
-      left.type->type == BirdTypeType::STRING) {
-    this->handle_binary_string_operations(binary->op.token_type, right, left);
+void CodeGen::visit_binary_normal(Token::Type op, TaggedExpression left,
+                                  TaggedExpression right) {
+  if (right.type->get_tag() == TypeTag::STRING &&
+      left.type->get_tag() == TypeTag::STRING) {
+    this->handle_binary_string_operations(op, right, left);
     return;
   }
 
   try {
-    auto binary_op = this->binary_operations.at(binary->op.token_type);
-    auto binary_op_fn = binary_op.at({left.type->type, right.type->type});
+    auto binary_op = this->binary_operations.at(op);
+    auto binary_op_fn =
+        binary_op.at({left.type->get_tag(), right.type->get_tag()});
 
     this->stack.push(
         TaggedExpression(BinaryenBinary(this->mod, binary_op_fn.value(),
                                         left.value, right.value),
                          binary_op_fn.type));
   } catch (std::out_of_range &e) {
-    throw BirdException("unsupported binary operation: " + binary->op.lexeme);
+    throw BirdException("unsupported binary operation");
   }
 }
 

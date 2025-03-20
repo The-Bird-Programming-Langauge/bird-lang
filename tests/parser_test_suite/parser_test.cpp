@@ -1,4 +1,7 @@
 #include "../helpers/compile_helper.hpp"
+#include "ast_node/expr/array_init.h"
+#include "ast_node/expr/as_cast.h"
+#include <gtest/gtest.h>
 
 TEST(ParserTest, ParseBlockStmt) {
   BirdTest::TestOptions options;
@@ -701,17 +704,17 @@ TEST(ParserTest, ParserBooleanOp) {
 
     Primary *left = dynamic_cast<Primary *>(or_expr->left.get());
     ASSERT_NE(left, nullptr);
-    ASSERT_EQ(left->value.token_type, Token::Type::BOOL_LITERAL);
+    ASSERT_EQ(left->value.token_type, Token::Type::FALSE);
     ASSERT_EQ(left->value.lexeme, "false");
 
     Primary *middle = dynamic_cast<Primary *>(and_expr->left.get());
     ASSERT_NE(middle, nullptr);
-    ASSERT_EQ(middle->value.token_type, Token::Type::BOOL_LITERAL);
+    ASSERT_EQ(middle->value.token_type, Token::Type::TRUE);
     ASSERT_EQ(middle->value.lexeme, "true");
 
     Primary *right = dynamic_cast<Primary *>(and_expr->right.get());
     ASSERT_NE(right, nullptr);
-    ASSERT_EQ(right->value.token_type, Token::Type::BOOL_LITERAL);
+    ASSERT_EQ(right->value.token_type, Token::Type::FALSE);
     ASSERT_EQ(right->value.lexeme, "false");
   };
 
@@ -736,7 +739,7 @@ TEST(ParserTest, SingleLineComments) {
 
 TEST(ParserTest, ArrayWithoutInit) {
   BirdTest::TestOptions options;
-  options.code = "var x: int[] = [];";
+  options.code = "var x: int[] = [] as int[];";
 
   options.compile = false;
   options.interpret = false;
@@ -755,9 +758,11 @@ TEST(ParserTest, ArrayWithoutInit) {
     ASSERT_NE(array, nullptr);
     ASSERT_EQ(array->get_token().lexeme, "int");
 
-    ArrayInit *array_init = dynamic_cast<ArrayInit *>(decl_stmt->value.get());
+    AsCast *as_cast = dynamic_cast<AsCast *>(decl_stmt->value.get());
+    ASSERT_NE(as_cast, nullptr);
+
+    ArrayInit *array_init = dynamic_cast<ArrayInit *>(as_cast->expr.get());
     ASSERT_NE(array_init, nullptr);
-    ASSERT_EQ(array_init->elements.size(), 0);
   };
 
   ASSERT_TRUE(BirdTest::compile(options));
@@ -872,6 +877,26 @@ TEST(ParserTest, StrArrayWithInit) {
 
     Primary *third = dynamic_cast<Primary *>(array_init->elements[2].get());
     ASSERT_EQ(third->value.lexeme, "world!");
+  };
+
+  ASSERT_TRUE(BirdTest::compile(options));
+}
+
+TEST(ParserTest, StructWithMemberFunction) {
+  BirdTest::TestOptions options;
+  options.compile = false;
+  options.interpret = false;
+  options.type_check = false;
+  options.semantic_analyze = false;
+  options.code = "struct Person {\
+                    name: str;\
+                    fn say_name() {\
+                      print self.name; \
+                    }\
+                  };";
+
+  options.after_parse = [&](auto &error_tracker, auto &parser, auto &stmts) {
+    ASSERT_FALSE(error_tracker.has_errors());
   };
 
   ASSERT_TRUE(BirdTest::compile(options));

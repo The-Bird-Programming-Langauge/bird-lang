@@ -20,6 +20,7 @@
    #include <memory>
    #include <optional>
    #include <utility>
+   #include <variant>
 
    #include "../include/ast_node/index.h"
 
@@ -43,11 +44,16 @@
 VAR "var"
 CONST "const"
 IDENTIFIER _("identifier")
-TYPE_LITERAL _("type literal")
 INT_LITERAL _("int literal")
 FLOAT_LITERAL _("float literal")
-BOOL_LITERAL _("bool literal")
 STR_LITERAL _("string literal")
+TRUE "true"
+FALSE "false"
+INT "int"
+FLOAT "float"
+BOOL "bool"
+STR "str"
+VOID "void"
 IF "if"
 ELSE "else"
 WHILE "while"
@@ -98,8 +104,7 @@ LBRACE "{"
 RPAREN ")"
 LPAREN "("
 RBRACKET "]"
-%token <Token> LBRACKET "["
-%token
+LBRACKET "["
 COLON ":"
 BANG "!"
 ARROW "->"
@@ -107,8 +112,8 @@ FAT_ARROW "=>"
 DOT "."
 
 %type <std::unique_ptr<Stmt>> 
+top_level_stmt
 stmt
-block_valid_stmt
 decl_stmt
 if_stmt
 const_stmt
@@ -140,6 +145,7 @@ struct_initialization
 array_initialization
 match
 direct_member_access
+method_call
 index_assign
 grouping
 and_expr
@@ -164,14 +170,6 @@ EQUALITY_OP
 maybe_match_arms
 match_arms
 
-
-%type <std::pair<std::string, std::shared_ptr<ParseType::Type>>>
-field_member
-
-%type <std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>>
-maybe_field_map
-field_map
-
 %type <std::vector<std::pair<std::string, std::unique_ptr<Expr>>>>
 maybe_struct_initialization_list
 struct_initialization_list
@@ -180,14 +178,14 @@ struct_initialization_list
 return_type
 
 %type <std::optional<std::unique_ptr<Stmt>>>
-maybe_block_valid_stmt
+maybe_stmt
 
 %type <std::optional<std::unique_ptr<Expr>>>
 maybe_expr
 
 %type <std::vector<std::unique_ptr<Stmt>>>
-maybe_block_valid_stmts
-block_valid_stmts
+maybe_top_level_stmts
+top_level_stmts
 maybe_stmts
 stmts
 
@@ -195,8 +193,16 @@ stmts
 maybe_arg_list
 arg_list
 
+%type <std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>
+member_decl
+
+%type <std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>>
+maybe_member_decls
+member_decls
+
 %type <std::pair<Token, std::shared_ptr<ParseType::Type>>>
 param
+prop_decl
 
 %type <std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>> 
 maybe_param_list
@@ -265,25 +271,25 @@ import_path
 %%
 
 program: 
-   maybe_stmts { stmts = std::move($1); }
+   maybe_top_level_stmts { stmts = std::move($1); }
 
-maybe_stmts:
+maybe_top_level_stmts:
     %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
-   | stmts { $$ = std::move($1); }
+   | top_level_stmts { $$ = std::move($1); }
 
-stmts: 
-   stmt 
+top_level_stmts: 
+   top_level_stmt 
       { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
-   | stmts stmt 
+   | top_level_stmts top_level_stmt 
       { $1.push_back(std::move($2)); $$ = std::move($1); }
 
-stmt: 
+top_level_stmt: 
    func { $$ = std::move($1); }
    | struct_decl SEMICOLON {$$ = std::move($1); }
-   | block_valid_stmt { $$ = std::move($1); }
+   | stmt { $$ = std::move($1); }
    | error {$$ = std::make_unique<Block>(std::vector<std::unique_ptr<Stmt>>()); /*this is an arbitrary stmt to silence errors*/}
 
-block_valid_stmt:
+stmt:
    decl_stmt SEMICOLON { $$ = std::move($1); }
    | if_stmt { $$ = std::move($1); }
    | const_stmt SEMICOLON { $$ = std::move($1); }
@@ -299,29 +305,35 @@ block_valid_stmt:
    | import_stmt { $$ = std::move($1); }
 
 struct_decl:
-   STRUCT IDENTIFIER LBRACE maybe_field_map RBRACE 
-      { $$ = std::make_unique<StructDecl>($2, $4); }
+   STRUCT IDENTIFIER LBRACE maybe_member_decls RBRACE 
+      { $$ = std::make_unique<StructDecl>($2, std::move($4)); }
 
-maybe_field_map:
-   %empty { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); }
-   | field_map
-   | field_map COMMA
+maybe_member_decls:
+   %empty { $$ = std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>(); }
+   | member_decls { $$ = std::move($1); }
 
-field_map: 
-   field_member
-      { $$ = std::vector<std::pair<std::string, std::shared_ptr<ParseType::Type>>>(); $$.push_back($1); }
-   | field_map COMMA field_member
-      { $$ = std::move($1); $$.push_back($3); }
+member_decls:
+   member_decl {$$ = std::vector<std::variant<std::shared_ptr<Stmt>, std::pair<Token, std::shared_ptr<ParseType::Type>>>>(); $$.push_back(std::move($1)); }
+   | member_decls member_decl { $$ = std::move($1); $$.push_back(std::move($2)); }
 
-field_member:
-   IDENTIFIER COLON type_identifier
-      { $$ = std::make_pair($1.lexeme, $3); }
+member_decl:
+   func { $$ = std::move($1); }
+   | prop_decl { $$ = std::move($1); }
+
+prop_decl: 
+   IDENTIFIER COLON type_identifier SEMICOLON { $$ = std::pair<Token, std::shared_ptr<ParseType::Type>>({$1, $3}); }
 
 decl_stmt: 
    VAR IDENTIFIER EQUAL expr 
       { $$ = std::make_unique<DeclStmt>($2, std::nullopt, std::move($4)); }
    | VAR IDENTIFIER COLON type_identifier EQUAL expr
       { $$ = std::make_unique<DeclStmt>($2, $4, std::move($6)); }
+
+const_stmt: 
+   CONST IDENTIFIER EQUAL expr 
+      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, std::move($4)); }
+   | CONST IDENTIFIER COLON type_identifier EQUAL expr 
+      { $$ = std::make_unique<ConstStmt>($2, std::move($4), std::move($6)); }
 
 if_stmt: 
    IF expr block %prec THEN 
@@ -343,41 +355,12 @@ if_stmt:
             std::move($3), 
             std::move($5)); }
 
-const_stmt: 
-   CONST IDENTIFIER EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, std::nullopt, std::move($4)); }
-   | CONST IDENTIFIER COLON type_identifier EQUAL expr 
-      { $$ = std::make_unique<ConstStmt>($2, std::move($4), std::move($6)); }
-   
-
-print_stmt: 
-   PRINT arg_list 
-      { $$ = std::make_unique<PrintStmt>(std::move($2), $1); }
-
-block: 
-   LBRACE maybe_block_valid_stmts RBRACE 
-      { $$ = std::make_unique<Block>(std::move($2)); }
-
-maybe_block_valid_stmts:
-    %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
-   | block_valid_stmts { $$ = std::move($1); }
-
-block_valid_stmts: 
-   block_valid_stmt 
-      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
-   | block_valid_stmts block_valid_stmt 
-      { $1.push_back(std::move($2)); $$ = std::move($1); }
-
-func: 
-   FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
-      { $$ = std::make_unique<Func>($2, $6, $4, std::move($7)); }
-
 while_stmt: 
    WHILE expr block 
       { $$ = std::make_unique<WhileStmt>($1, std::move($2), std::move($3)); }
 
 for_stmt: 
-   FOR maybe_block_valid_stmt maybe_expr SEMICOLON maybe_expr block 
+   FOR maybe_stmt maybe_expr SEMICOLON maybe_expr block 
       { $$ = std::make_unique<ForStmt>(  
             $1, 
             std::move($2), 
@@ -385,9 +368,31 @@ for_stmt:
             std::move($5), 
             std::move($6)); }
 
-maybe_block_valid_stmt: 
+print_stmt: 
+   PRINT arg_list 
+      { $$ = std::make_unique<PrintStmt>(std::move($2), $1); }
+
+block: 
+   LBRACE maybe_stmts RBRACE 
+      { $$ = std::make_unique<Block>(std::move($2)); }
+
+maybe_stmts:
+    %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   | stmts { $$ = std::move($1); }
+
+stmts: 
+   stmt 
+      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   | stmts stmt 
+      { $1.push_back(std::move($2)); $$ = std::move($1); }
+
+func: 
+   FN IDENTIFIER LPAREN maybe_param_list RPAREN return_type block 
+      { $$ = std::make_unique<Func>($2, $6, $4, std::move($7)); }
+
+maybe_stmt: 
    SEMICOLON { $$ = std::nullopt; }
-   | block_valid_stmt { $$ = std::move($1); }
+   | stmt { $$ = std::move($1); }
 
 maybe_expr: 
    %empty { $$ = std::nullopt; }
@@ -482,6 +487,7 @@ expr:
    | unary_expr { $$ = std::move($1); }
    | type_cast {$$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
+   | method_call {$$ = std::move($1); }
    | subscript_expr { $$ = std::move($1); }
    | index_assign { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
@@ -549,17 +555,8 @@ or_expr:
       { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
 call_expr: 
-   expr LPAREN maybe_arg_list RPAREN %prec CALL 
-      { 
-         if(auto *identifier = dynamic_cast<Primary *>($1.get()))
-         {
-            if (identifier->value.token_type != Token::Type::IDENTIFIER)
-            {
-               // TODO: throw an error here
-            }
-            $$ = std::make_unique<Call>(identifier->value, std::move($3));
-         }
-      }
+   IDENTIFIER LPAREN maybe_arg_list RPAREN %prec CALL 
+      { $$ = std::make_unique<Call>($1, std::move($3)); }
 
 struct_initialization:
    IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
@@ -591,6 +588,10 @@ direct_member_access:
    expr DOT IDENTIFIER %prec SUBSCRIPT
       { $$ = std::make_unique<DirectMemberAccess>(std::move($1), $3); }
 
+method_call:
+   expr DOT call_expr %prec CALL
+      { $$ = std::make_unique<MethodCall>(std::move($1), dynamic_cast<Call *>($3.get())); }
+
 match:
    MATCH expr LBRACE maybe_match_arms match_else_arm RBRACE %prec MATCH_EXPR
    { $$ = std::make_unique<MatchExpr>($1, std::move($2), std::move($4), std::move($5)); }
@@ -617,9 +618,11 @@ match_else_arm:
 
 primary: 
    IDENTIFIER 
+   | SELF
    | INT_LITERAL 
    | FLOAT_LITERAL
-   | BOOL_LITERAL
+   | TRUE
+   | FALSE
    | STR_LITERAL
 
 grouping: 
@@ -659,7 +662,11 @@ PREFIX_UNARY_OP:
 
 type_identifier:
    IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
-   | TYPE_LITERAL { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | INT { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | FLOAT { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | BOOL { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
 
 %%

@@ -107,7 +107,7 @@ TEST(MatchTest, MatchWithSideEffects) {
 TEST(MatchTest, MatchWithStruct) {
   BirdTest::TestOptions options;
   options.code = "struct Foo {"
-                 "  x: int"
+                 "  x: int;"
                  "};"
                  "var x = match 1 {"
                  "   1 => Foo { x = 1 },"

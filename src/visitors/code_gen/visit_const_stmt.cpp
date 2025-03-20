@@ -8,7 +8,7 @@ void CodeGen::visit_const_stmt(ConstStmt *const_stmt) {
   if (const_stmt->type.has_value()) {
     type = this->type_converter.convert(const_stmt->type.value());
   } else {
-    if (initializer.type->type != BirdTypeType::VOID) {
+    if (initializer.type->get_tag() != TypeTag::VOID) {
       type = initializer.type;
     } else {
       BinaryenType binaryen_type = BinaryenExpressionGetType(initializer.value);
@@ -25,8 +25,8 @@ void CodeGen::visit_const_stmt(ConstStmt *const_stmt) {
 
   environment.declare(const_stmt->identifier.lexeme, TaggedIndex(index, type));
 
-  BinaryenExpressionRef set_local =
+  TaggedExpression set_local =
       this->binaryen_set(const_stmt->identifier.lexeme, initializer.value);
 
-  this->stack.push(TaggedExpression(set_local, type));
+  this->stack.push(TaggedExpression(set_local.value, type));
 }

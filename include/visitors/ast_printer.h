@@ -3,7 +3,6 @@
 #include "../ast_node/index.h"
 #include "../bird_type.h"
 #include <iostream>
-#include <map>
 #include <memory>
 #include <vector>
 
@@ -194,10 +193,15 @@ public:
   void visit_struct_decl(StructDecl *struct_decl) {
     std::cout << "struct " << struct_decl->identifier.lexeme;
     std::cout << "{";
-    for (auto it = struct_decl->fields.begin(); it != struct_decl->fields.end();
-         it++) {
-      std::cout << it->first << ": " << it->second->get_token().lexeme << ", ";
+    for (auto &prop_decl : struct_decl->fields) {
+      std::cout << prop_decl.first.lexeme << ": "
+                << prop_decl.second->get_token().lexeme << ";";
     }
+
+    for (auto &fn : struct_decl->fns) {
+      this->visit_func(dynamic_cast<Func *>(fn.get()));
+    }
+
     std::cout << "}";
   }
 
@@ -307,4 +311,10 @@ public:
       }
     }
   };
+
+  void visit_method(Method *method) { this->visit_func(method); }
+
+  void visit_method_call(MethodCall *method_call) {
+    this->visit_call(method_call);
+  }
 };

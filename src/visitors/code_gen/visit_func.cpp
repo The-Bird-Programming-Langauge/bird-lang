@@ -3,7 +3,10 @@
 
 void CodeGen::visit_func(Func *func) {
   auto func_name = func->identifier.lexeme;
+  this->add_func_with_name(func, func_name);
+}
 
+void CodeGen::add_func_with_name(Func *func, std::string func_name) {
   if (func->return_type.has_value()) {
     auto bird_return_type =
         this->type_converter.convert(func->return_type.value());
@@ -53,7 +56,7 @@ void CodeGen::visit_func(Func *func) {
     stmt->accept(this);
     auto result = this->stack.pop();
 
-    if (result.type->type != BirdTypeType::VOID) {
+    if (result.type->get_tag() != TypeTag::VOID) {
       current_function_body.push_back(BinaryenDrop(this->mod, result.value));
     } else {
       current_function_body.push_back(result.value);

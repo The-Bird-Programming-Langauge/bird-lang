@@ -9,6 +9,7 @@
 #include "for_stmt.h"
 #include "func.h"
 #include "if_stmt.h"
+#include "method.h"
 #include "print_stmt.h"
 #include "return_stmt.h"
 #include "stmt.h"

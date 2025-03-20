@@ -1,12 +1,12 @@
 #pragma once
 #include "../ast_node/index.h"
-#include "../exceptions/bird_exception.h"
 #include "visitor_adapter.h"
+#include "visitors/visitor.h"
 #include <cmath>
 #include <memory>
-#include <set>
 #include <vector>
 
+// TOOD: check for strings in function call
 class StaticVisitor : public VisitorAdapter {
 public:
   std::vector<std::string> &static_strings;
@@ -58,6 +58,12 @@ public:
     }
   }
 
+  void visit_struct_decl(StructDecl *struct_decl) {
+    for (auto fn : struct_decl->fns) {
+      fn->accept(this);
+    }
+  }
+
   void visit_struct_initialization(StructInitialization *struct_intialization) {
     for (auto &field_assignment : struct_intialization->field_assignments) {
       field_assignment.second->accept(this);
@@ -92,6 +98,7 @@ public:
   }
 
   void visit_member_assign(MemberAssign *member_assign) {
+    member_assign->accessable->accept(this);
     member_assign->value->accept(this);
   }
 
@@ -128,5 +135,25 @@ public:
     match_expr->else_arm->accept(this);
   }
 
+
   void visit_import_stmt(ImportStmt *import_stmt) {}
+
+  void visit_method(Method *method) { method->block->accept(this); }
+
+  void visit_call(Call *call) {
+    for (auto arg : call->args) {
+      arg->accept(this);
+    }
+  }
+
+  void visit_direct_member_access(DirectMemberAccess *access) {
+    access->accessable->accept(this);
+  }
+
+  void visit_method_call(MethodCall *method_call) {
+    // method_call->instance->accept(this);
+    for (auto &arg : method_call->args) {
+      arg->accept(this);
+    }
+  }
 };

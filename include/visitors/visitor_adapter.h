@@ -32,4 +32,6 @@ public:
   void visit_index_assign(IndexAssign *) override {}
   void visit_match_expr(MatchExpr *) override {}
   void visit_import_stmt(ImportStmt *) override {}
+  void visit_method(Method *) override {}
+  void visit_method_call(MethodCall *) override {}
 };

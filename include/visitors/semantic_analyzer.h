@@ -1,22 +1,23 @@
 #pragma once
 
 #include <memory>
-#include <set>
-#include <variant>
+#include <optional>
 #include <vector>
 
 #include "../ast_node/index.h"
 
 #include "../callable.h"
+#include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
 #include "../exceptions/break_exception.h"
 #include "../exceptions/continue_exception.h"
 #include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
 #include "../import_environment.h"
+#include "../semantic_value.h"
 #include "../sym_table.h"
 #include "../type.h"
-#include "../value.h"
+#include <optional>
 
 /*
  * Visitor that analyzes semantics of the AST
@@ -25,13 +26,15 @@ class SemanticAnalyzer : public Visitor {
 
 public:
   ImportEnvironment standard_library;
+  CoreCallTable core_call_table;
+
   Environment<SemanticValue> env;
   Environment<SemanticCallable> call_table;
   Environment<SemanticType> type_table;
   UserErrorTracker &user_error_tracker;
   int loop_depth;
   int function_depth;
-  bool found_return;
+  bool in_method = false;
 
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
@@ -79,10 +82,7 @@ public:
     }
 
     decl_stmt->value->accept(this);
-
-    SemanticValue mutable_value;
-    mutable_value.is_mutable = true;
-    this->env.declare(decl_stmt->identifier.lexeme, mutable_value);
+    this->env.declare(decl_stmt->identifier.lexeme, SemanticValue(true));
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
@@ -175,6 +175,12 @@ public:
           primary->value);
       return;
     }
+
+    if (primary->value.token_type == Token::Type::SELF && !this->in_method) {
+      this->user_error_tracker.semantic_error(
+          "Use of self outside of struct member function.", primary->value);
+      return;
+    }
   }
 
   void visit_ternary(Ternary *ternary) {
@@ -183,19 +189,8 @@ public:
     ternary->false_expr->accept(this);
   }
 
-  void visit_func(Func *func) {
+  void visit_func_helper(Func *func) {
     this->function_depth += 1;
-    this->found_return = false;
-
-    if (this->identifer_in_any_environment(func->identifier.lexeme)) {
-      this->user_error_tracker.semantic_error(
-          "Identifier '" + func->identifier.lexeme + "' is already declared.",
-          func->identifier);
-      return;
-    }
-
-    this->call_table.declare(func->identifier.lexeme,
-                             SemanticCallable(func->param_list.size()));
 
     this->env.push_env();
 
@@ -208,17 +203,21 @@ public:
       stmt->accept(this);
     }
 
-    if (!found_return && func->return_type.has_value() &&
-        func->return_type.value()->get_token().lexeme != "void") {
-      this->user_error_tracker.semantic_error(
-          "Function '" + func->identifier.lexeme +
-              "' does not have a return statement.",
-          func->identifier);
-    }
-
     this->env.pop_env();
 
     this->function_depth -= 1;
+  }
+
+  void visit_func(Func *func) {
+    if (this->identifer_in_any_environment(func->identifier.lexeme)) {
+      this->user_error_tracker.semantic_error(
+          "Identifier '" + func->identifier.lexeme + "' is already declared.",
+          func->identifier);
+      return;
+    }
+
+    this->call_table.declare(func->identifier.lexeme, SemanticCallable());
+    this->visit_func_helper(func);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -231,27 +230,31 @@ public:
   }
 
   void visit_call(Call *call) {
-    if (!this->call_table.contains(call->identifier.lexeme)) {
-      this->user_error_tracker.semantic_error("Function call identifier '" +
-                                                  call->identifier.lexeme +
-                                                  "' is not declared.",
-                                              call->identifier);
-      return;
-    }
+    // if (!core_call_table.table.contains(call->identifier.lexeme) &&
+    //     !this->call_table.contains(call->identifier.lexeme)) {
+    //   this->user_error_tracker.semantic_error("Function call identifier '" +
+    //                                               call->identifier.lexeme +
+    //                                               "' is not declared.",
+    //                                           call->identifier);
+    //   return;
+    // }
 
-    auto function = this->call_table.get(call->identifier.lexeme);
+    // auto function = core_call_table.table.contains(call->identifier.lexeme)
+    //                     ? SemanticCallable(core_call_table.table
+    //                                            .get(call->identifier.lexeme)
+    //                                            ->params.size())
+    //                     : this->call_table.get(call->identifier.lexeme);
 
-    if (function.param_count != call->args.size()) {
-      this->user_error_tracker.semantic_error(
-          "Function call identifer '" + call->identifier.lexeme +
-              "' does not use the correct number of arguments.",
-          call->identifier);
-      return;
-    }
+    // if (function.param_count != call->args.size()) {
+    //   this->user_error_tracker.semantic_error(
+    //       "Function call identifer '" + call->identifier.lexeme +
+    //           "' does not use the correct number of arguments.",
+    //       call->identifier);
+    //   return;
+    // }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
-    this->found_return = true;
     if (this->function_depth == 0) {
       this->user_error_tracker.semantic_error(
           "Return statement is declared outside of a function.",
@@ -307,6 +310,10 @@ public:
 
   void visit_struct_decl(StructDecl *struct_decl) {
     this->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
+
+    for (auto method : struct_decl->fns) {
+      method->accept(this);
+    }
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
@@ -361,6 +368,19 @@ public:
       // error if import item already exists in global namespace
 
       // add import item to global namespace
+    }
+  }
+
+  void visit_method(Method *method) {
+    this->in_method = true;
+    this->visit_func_helper(method);
+    this->in_method = false;
+  }
+
+  void visit_method_call(MethodCall *method_call) {
+    method_call->instance->accept(this);
+    for (auto &arg : method_call->args) {
+      arg->accept(this);
     }
   }
 };

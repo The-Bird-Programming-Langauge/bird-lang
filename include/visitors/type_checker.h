@@ -1,42 +1,48 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
 #include <set>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
-#include "../ast_node/index.h"
-
 #include "../bird_type.h"
+#include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
-#include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
 #include "../stack.h"
 #include "../sym_table.h"
-#include "../type.h"
 #include "../type_converter.h"
+#include "ast_node/expr/method_call.h"
 #include "hoist_visitor.h"
-#include "visitor_adapter.h"
 
 /*
  * Visitor that checks types of the AST
  */
 class TypeChecker : public Visitor {
 public:
+  CoreCallTable core_call_table;
+
   Environment<std::shared_ptr<BirdType>> env;
   Environment<std::shared_ptr<BirdFunction>> call_table;
 
   Environment<std::shared_ptr<BirdType>> type_table;
 
   std::set<std::string> struct_names;
+  bool found_return = false;
 
   Stack<std::shared_ptr<BirdType>> stack;
   std::optional<std::shared_ptr<BirdType>> return_type;
   UserErrorTracker &user_error_tracker;
   TypeConverter type_converter;
+
+  std::unordered_map<
+      std::string,
+      std::unordered_map<std::string, std::shared_ptr<BirdFunction>>>
+      v_table;
 
   TypeChecker(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker),
@@ -55,86 +61,78 @@ public:
   };
 
   // map of binary operations and their return types
-  const std::map<Token::Type,
-                 std::map<std::pair<BirdTypeType, BirdTypeType>, BirdTypeType>>
+  const std::map<Token::Type, std::map<std::pair<TypeTag, TypeTag>, TypeTag>>
       binary_operations = {
           {Token::Type::PLUS,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
-                BirdTypeType::FLOAT},
-               {{BirdTypeType::STRING, BirdTypeType::STRING},
-                BirdTypeType::STRING},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
+               {{TypeTag::STRING, TypeTag::STRING}, TypeTag::STRING},
            }},
           {Token::Type::MINUS,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
-                BirdTypeType::FLOAT},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
            }},
           {Token::Type::STAR,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
-                BirdTypeType::FLOAT},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
            }},
           {Token::Type::SLASH,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT},
-                BirdTypeType::FLOAT},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
            }},
           {Token::Type::EQUAL_EQUAL,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::BOOL},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::BOOL},
-               {{BirdTypeType::STRING, BirdTypeType::STRING},
-                BirdTypeType::BOOL},
-               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
+               {{TypeTag::STRING, TypeTag::STRING}, TypeTag::BOOL},
+               {{TypeTag::BOOL, TypeTag::BOOL}, TypeTag::BOOL},
            }},
           {Token::Type::BANG_EQUAL,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::BOOL},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::BOOL},
-               {{BirdTypeType::STRING, BirdTypeType::STRING},
-                BirdTypeType::BOOL},
-               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
+               {{TypeTag::STRING, TypeTag::STRING}, TypeTag::BOOL},
+               {{TypeTag::BOOL, TypeTag::BOOL}, TypeTag::BOOL},
            }},
           {Token::Type::GREATER,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::BOOL},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::BOOL},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
            }},
           {Token::Type::GREATER_EQUAL,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::BOOL},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::BOOL},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
            }},
           {Token::Type::LESS,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::BOOL},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::BOOL},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
            }},
           {Token::Type::LESS_EQUAL,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::BOOL},
-               {{BirdTypeType::FLOAT, BirdTypeType::FLOAT}, BirdTypeType::BOOL},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
            }},
           {Token::Type::AND,
            {
-               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+               {{TypeTag::BOOL, TypeTag::BOOL}, TypeTag::BOOL},
            }},
           {Token::Type::OR,
            {
-               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+               {{TypeTag::BOOL, TypeTag::BOOL}, TypeTag::BOOL},
            }},
           {Token::Type::XOR,
            {
-               {{BirdTypeType::BOOL, BirdTypeType::BOOL}, BirdTypeType::BOOL},
+               {{TypeTag::BOOL, TypeTag::BOOL}, TypeTag::BOOL},
            }},
           {Token::Type::PERCENT,
            {
-               {{BirdTypeType::INT, BirdTypeType::INT}, BirdTypeType::INT},
+               {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
            }},
       };
 
@@ -164,7 +162,7 @@ public:
     decl_stmt->value->accept(this);
     auto result = this->stack.pop();
 
-    if (result->type == BirdTypeType::VOID) {
+    if (result->get_tag() == TypeTag::VOID) {
       this->user_error_tracker.type_error("cannot declare void type",
                                           decl_stmt->identifier);
       this->env.declare(decl_stmt->identifier.lexeme,
@@ -223,7 +221,8 @@ public:
         this->assign_to_binary_map.at(assign_expr->assign_operator.token_type);
     auto type_map = this->binary_operations.at(binary_operator);
 
-    if (type_map.find({previous->type, result->type}) == type_map.end()) {
+    if (type_map.find({previous->get_tag(), result->get_tag()}) ==
+        type_map.end()) {
       this->user_error_tracker.type_mismatch("in assignment",
                                              assign_expr->assign_operator);
       this->env.set(assign_expr->identifier.lexeme,
@@ -233,7 +232,7 @@ public:
       return;
     }
 
-    auto new_type = type_map.at({previous->type, result->type});
+    auto new_type = type_map.at({previous->get_tag(), result->get_tag()});
 
     auto new_type_bird_type = bird_type_type_to_bird_type(new_type);
     this->env.set(assign_expr->identifier.lexeme, new_type_bird_type);
@@ -248,27 +247,27 @@ public:
       arg->accept(this);
       auto result = this->stack.pop();
 
-      if (result->type == BirdTypeType::VOID) {
+      if (result->get_tag() == TypeTag::VOID) {
         this->user_error_tracker.type_error("cannot print void type",
                                             print_stmt->print_token);
       }
 
-      if (result->type == BirdTypeType::STRUCT) {
+      if (result->get_tag() == TypeTag::STRUCT) {
         this->user_error_tracker.type_error("cannot print struct type",
                                             print_stmt->print_token);
       }
 
-      if (result->type == BirdTypeType::PLACEHOLDER) {
+      if (result->get_tag() == TypeTag::PLACEHOLDER) {
         this->user_error_tracker.type_error("cannot print struct type",
                                             print_stmt->print_token);
       }
 
-      if (result->type == BirdTypeType::FUNCTION) {
+      if (result->get_tag() == TypeTag::FUNCTION) {
         this->user_error_tracker.type_error("cannot print function type",
                                             print_stmt->print_token);
       }
 
-      if (result->type == BirdTypeType::ERROR) {
+      if (result->get_tag() == TypeTag::ERROR) {
         return;
       }
     }
@@ -278,7 +277,7 @@ public:
     const_stmt->value->accept(this);
     auto result = this->stack.pop();
 
-    if (result->type == BirdTypeType::VOID) {
+    if (result->get_tag() == TypeTag::VOID) {
       this->user_error_tracker.type_error("cannot declare void type",
                                           const_stmt->identifier);
       this->env.declare(const_stmt->identifier.lexeme,
@@ -306,7 +305,7 @@ public:
     while_stmt->condition->accept(this);
     auto condition_result = this->stack.pop();
 
-    if (condition_result->type != BirdTypeType::BOOL) {
+    if (condition_result->get_tag() != TypeTag::BOOL) {
       this->user_error_tracker.type_error(
           "expected bool in while statement condition",
           while_stmt->while_token);
@@ -326,7 +325,7 @@ public:
       for_stmt->condition.value()->accept(this);
       auto condition_result = this->stack.pop();
 
-      if (condition_result->type != BirdTypeType::BOOL) {
+      if (condition_result->get_tag() != TypeTag::BOOL) {
         this->user_error_tracker.type_error(
             "expected bool in for statement condition", for_stmt->for_token);
       }
@@ -347,7 +346,7 @@ public:
     auto left = this->stack.pop();
 
     auto operator_options = this->binary_operations.at(binary->op.token_type);
-    if (operator_options.find({left->type, right->type}) ==
+    if (operator_options.find({left->get_tag(), right->get_tag()}) ==
         operator_options.end()) {
       this->user_error_tracker.type_mismatch("in binary operation", binary->op);
       this->stack.push(std::make_shared<ErrorType>());
@@ -355,7 +354,7 @@ public:
     }
 
     this->stack.push(bird_type_type_to_bird_type(
-        operator_options.at({left->type, right->type})));
+        operator_options.at({left->get_tag(), right->get_tag()})));
   }
 
   void visit_unary(Unary *unary) {
@@ -363,9 +362,9 @@ public:
     auto result = this->stack.pop();
     switch (unary->op.token_type) {
     case Token::Type::MINUS: {
-      if (result->type == BirdTypeType::FLOAT) {
+      if (result->get_tag() == TypeTag::FLOAT) {
         this->stack.push(std::make_shared<FloatType>());
-      } else if (result->type == BirdTypeType::INT) {
+      } else if (result->get_tag() == TypeTag::INT) {
         this->stack.push(std::make_shared<IntType>());
       } else {
         this->user_error_tracker.type_error(
@@ -377,7 +376,7 @@ public:
       break;
     }
     case Token::Type::NOT: {
-      if (result->type == BirdTypeType::BOOL) {
+      if (result->get_tag() == TypeTag::BOOL) {
         this->stack.push(std::make_shared<BoolType>());
       } else {
         this->user_error_tracker.type_error(
@@ -389,9 +388,9 @@ public:
       break;
     }
     case Token::Type::QUESTION: {
-      if (result->type == BirdTypeType::STRUCT) {
+      if (result->get_tag() == TypeTag::STRUCT) {
         this->stack.push(std::make_shared<BoolType>());
-      } else if (result->type == BirdTypeType::PLACEHOLDER) {
+      } else if (result->get_tag() == TypeTag::PLACEHOLDER) {
         this->stack.push(std::make_shared<BoolType>());
       } else {
         this->user_error_tracker.type_error(
@@ -418,7 +417,8 @@ public:
       this->stack.push(std::make_shared<IntType>());
       break;
     }
-    case Token::Type::BOOL_LITERAL: {
+    case Token::Type::TRUE:
+    case Token::Type::FALSE: {
       this->stack.push(std::make_shared<BoolType>());
       break;
     }
@@ -428,6 +428,10 @@ public:
     }
     case Token::Type::IDENTIFIER: {
       this->stack.push(this->env.get(primary->value.lexeme));
+      break;
+    }
+    case Token::Type::SELF: {
+      this->stack.push(this->env.get("self"));
       break;
     }
     default: {
@@ -452,7 +456,7 @@ public:
       true_expr = std::make_shared<ErrorType>();
     }
 
-    if (condition->type != BirdTypeType::BOOL) {
+    if (condition->get_tag() != TypeTag::BOOL) {
       this->user_error_tracker.type_error("expected bool in ternary condition",
                                           ternary->ternary_token);
       this->stack.push(std::make_shared<ErrorType>());
@@ -487,7 +491,8 @@ public:
       return std::make_shared<ErrorType>();
     }
   }
-  void visit_func(Func *func) {
+
+  std::shared_ptr<BirdFunction> create_func(Func *func) {
     std::vector<std::shared_ptr<BirdType>> params;
 
     std::transform(func->param_list.begin(), func->param_list.end(),
@@ -499,11 +504,16 @@ public:
         func->return_type.has_value()
             ? this->type_converter.convert(func->return_type.value())
             : std::shared_ptr<BirdType>(new VoidType());
-    auto previous_return_type = this->return_type;
-    this->return_type = ret;
 
-    std::shared_ptr<BirdFunction> bird_function =
-        std::make_shared<BirdFunction>(params, ret);
+    return std::make_shared<BirdFunction>(params, ret);
+  }
+
+  void visit_func_helper(Func *func,
+                         const std::shared_ptr<BirdFunction> bird_function) {
+    this->found_return = false;
+    auto previous_return_type = this->return_type;
+    this->return_type = bird_function->ret;
+
     this->call_table.declare(func->identifier.lexeme, bird_function);
     this->env.push_env();
 
@@ -518,15 +528,28 @@ public:
       stmt->accept(this);
     }
 
+    if (!this->found_return && func->return_type.has_value() &&
+        func->return_type.value()->get_token().lexeme != "void") {
+      this->user_error_tracker.type_error(
+          "Missing return in a non-void function '" + func->identifier.lexeme +
+              ".'",
+          func->identifier);
+    }
+
     this->return_type = previous_return_type;
     this->env.pop_env();
+  }
+
+  void visit_func(Func *func) {
+    const auto bird_function = create_func(func);
+    this->visit_func_helper(func, bird_function);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
     if_stmt->condition->accept(this);
     auto condition = this->stack.pop();
 
-    if (condition->type != BirdTypeType::BOOL) {
+    if (condition->get_tag() != TypeTag::BOOL) {
       this->user_error_tracker.type_error(
           "expected bool in if statement condition", if_stmt->if_token);
     }
@@ -538,17 +561,30 @@ public:
     }
   }
 
-  void visit_call(Call *call) {
-    auto function = this->call_table.get(call->identifier.lexeme);
+  bool correct_arity(std::vector<std::shared_ptr<BirdType>> params,
+                     std::vector<std::shared_ptr<Expr>> args) {
+    return params.size() == args.size();
+  }
 
-    for (int i = 0; i < function->params.size(); i++) {
-      call->args[i]->accept(this);
+  void compare_args_and_params(Token call_identifier,
+                               std::vector<std::shared_ptr<Expr>> args,
+                               std::vector<std::shared_ptr<BirdType>> params) {
+    if (!correct_arity(params, args)) {
+      this->user_error_tracker.type_error("Invalid number of arguments to " +
+                                              call_identifier.lexeme,
+                                          call_identifier);
+
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
+
+    for (int i = 0; i < params.size(); i++) {
+      args[i]->accept(this);
       auto arg = this->stack.pop();
+      auto param = params[i];
 
-      auto param = function->params[i];
-
-      if (arg->type == BirdTypeType::PLACEHOLDER &&
-          param->type == BirdTypeType::STRUCT) {
+      if (arg->get_tag() == TypeTag::PLACEHOLDER &&
+          param->get_tag() == TypeTag::STRUCT) {
         auto placeholder_type = safe_dynamic_pointer_cast<PlaceholderType>(arg);
         auto struct_type = safe_dynamic_pointer_cast<StructType>(param);
 
@@ -559,14 +595,19 @@ public:
 
       if (*arg != *param) {
         this->user_error_tracker.type_mismatch("in function call",
-                                               call->identifier);
+                                               call_identifier);
       }
     }
+  }
 
+  void visit_call(Call *call) {
+    auto function = this->call_table.get(call->identifier.lexeme);
+    compare_args_and_params(call->identifier, call->args, function->params);
     this->stack.push(function->ret);
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
+    this->found_return = true;
     if (return_stmt->expr.has_value()) {
       return_stmt->expr.value()->accept(this);
       auto result = this->stack.pop();
@@ -583,7 +624,7 @@ public:
       }
     } else {
       if (!this->return_type.has_value() ||
-          this->return_type.value()->type != BirdTypeType::VOID) {
+          this->return_type.value()->get_tag() != TypeTag::VOID) {
         this->user_error_tracker.type_error(
             "expected return value in non-void function",
             return_stmt->return_token);
@@ -618,8 +659,8 @@ public:
     subscript->index->accept(this);
     auto index = this->stack.pop();
 
-    if (subscriptable->type != BirdTypeType::STRING &&
-        subscriptable->type != BirdTypeType::ARRAY) {
+    if (subscriptable->get_tag() != TypeTag::STRING &&
+        subscriptable->get_tag() != TypeTag::ARRAY) {
       this->user_error_tracker.type_error("expected string in subscriptable",
                                           subscript->subscript_token);
 
@@ -627,14 +668,14 @@ public:
       return;
     }
 
-    if (index->type != BirdTypeType::INT) {
+    if (index->get_tag() != TypeTag::INT) {
       this->user_error_tracker.type_error("expected int in subscript index",
                                           subscript->subscript_token);
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    if (subscriptable->type == BirdTypeType::STRING) {
+    if (subscriptable->get_tag() == TypeTag::STRING) {
       this->stack.push(std::make_shared<StringType>());
       return;
     }
@@ -649,27 +690,37 @@ public:
     std::transform(
         struct_decl->fields.begin(), struct_decl->fields.end(),
         std::back_inserter(struct_fields),
-        [&](std::pair<std::string, std::shared_ptr<ParseType::Type>> field) {
-          return std::make_pair(field.first,
+        [&](std::pair<Token, std::shared_ptr<ParseType::Type>> &field) {
+          return std::make_pair(field.first.lexeme,
                                 this->type_converter.convert(field.second));
         });
 
     // TODO: check invalid field types
-
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
     this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
+
+    for (auto &method : struct_decl->fns) {
+      method->accept(this);
+    }
+
+    for (auto &method : struct_decl->fns) {
+      const auto &bird_function =
+          this->v_table.at(struct_decl->identifier.lexeme)
+              .at(method->identifier.lexeme);
+      this->visit_func_helper(method.get(), bird_function);
+    }
   }
 
   void visit_direct_member_access(DirectMemberAccess *direct_member_access) {
     direct_member_access->accessable->accept(this);
     auto accessable = this->stack.pop();
 
-    if (accessable->type == BirdTypeType::ERROR) {
+    if (accessable->get_tag() == TypeTag::ERROR) {
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
-    if (accessable->type == BirdTypeType::PLACEHOLDER) {
+    if (accessable->get_tag() == TypeTag::PLACEHOLDER) {
       auto placeholder = safe_dynamic_pointer_cast<PlaceholderType>(accessable);
       if (this->struct_names.find(placeholder->name) ==
           this->struct_names.end()) {
@@ -681,7 +732,7 @@ public:
       accessable = this->type_table.get(placeholder->name);
     }
 
-    if (accessable->type != BirdTypeType::STRUCT) {
+    if (accessable->get_tag() != TypeTag::STRUCT) {
       this->user_error_tracker.type_error(
           "expected struct in direct member access, found: " +
               bird_type_to_string(accessable),
@@ -743,12 +794,12 @@ public:
         field_assignment.second->accept(this);
         auto field_type = this->stack.pop();
         if (field.first == field_assignment.first) {
-          if (field_type->type == BirdTypeType::ERROR) {
+          if (field_type->get_tag() == TypeTag::ERROR) {
             this->stack.push(std::make_shared<ErrorType>());
             return;
           }
 
-          if (field.second->type == BirdTypeType::PLACEHOLDER) {
+          if (field.second->get_tag() == TypeTag::PLACEHOLDER) {
             auto placeholder =
                 safe_dynamic_pointer_cast<PlaceholderType>(field.second);
             if (this->struct_names.find(placeholder->name) ==
@@ -762,7 +813,7 @@ public:
             field.second = this->type_table.get(placeholder->name);
           }
 
-          if (field_type->type == BirdTypeType::PLACEHOLDER) {
+          if (field_type->get_tag() == TypeTag::PLACEHOLDER) {
             auto placeholder =
                 safe_dynamic_pointer_cast<PlaceholderType>(field_type);
             if (this->struct_names.find(placeholder->name) ==
@@ -795,12 +846,12 @@ public:
     member_assign->accessable->accept(this);
     auto accessable = this->stack.pop();
 
-    if (accessable->type == BirdTypeType::ERROR) {
+    if (accessable->get_tag() == TypeTag::ERROR) {
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    if (accessable->type != BirdTypeType::STRUCT) {
+    if (accessable->get_tag() != TypeTag::STRUCT) {
       this->user_error_tracker.type_error("expected struct in member assign",
                                           member_assign->identifier);
       this->stack.push(std::make_shared<ErrorType>());
@@ -831,7 +882,7 @@ public:
     as_cast->expr->accept(this);
     auto expr = this->stack.pop();
 
-    if (expr->type == BirdTypeType::ERROR) {
+    if (expr->get_tag() == TypeTag::ERROR) {
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
@@ -843,32 +894,29 @@ public:
       return;
     }
 
-    if (to_type->type == BirdTypeType::FLOAT &&
-        expr->type == BirdTypeType::INT) {
+    if (to_type->get_tag() == TypeTag::FLOAT &&
+        expr->get_tag() == TypeTag::INT) {
       this->stack.push(to_type);
       return;
     }
 
-    if (to_type->type == BirdTypeType::INT &&
-        expr->type == BirdTypeType::FLOAT) {
+    if (to_type->get_tag() == TypeTag::INT &&
+        expr->get_tag() == TypeTag::FLOAT) {
       this->stack.push(to_type);
       return;
     }
 
-    if (to_type->type == BirdTypeType::ARRAY &&
-        expr->type == BirdTypeType::ARRAY) {
+    if (to_type->get_tag() == TypeTag::ARRAY &&
+        expr->get_tag() == TypeTag::ARRAY) {
       auto to_type_array = safe_dynamic_pointer_cast<ArrayType>(to_type);
       auto expr_type_array = safe_dynamic_pointer_cast<ArrayType>(expr);
 
-      if (expr_type_array->element_type->type == BirdTypeType::VOID) {
+      if (expr_type_array->element_type->get_tag() == TypeTag::VOID) {
         this->stack.push(to_type);
-      } else if (*expr_type_array->element_type ==
-                 *to_type_array->element_type) {
+        return;
+      }
+      if (*expr_type_array->element_type == *to_type_array->element_type) {
         this->stack.push(to_type);
-      } else {
-        this->user_error_tracker.type_mismatch("in 'as' type cast",
-                                               as_cast->type->get_token());
-        this->stack.push(std::make_shared<ErrorType>());
         return;
       }
     }
@@ -917,7 +965,7 @@ public:
     index_assign->rhs->accept(this);
     auto rhs_type = this->stack.pop();
 
-    if (lhs_type->type != rhs_type->type) {
+    if (lhs_type->get_tag() != rhs_type->get_tag()) {
       this->user_error_tracker.type_mismatch(
           "in assignment", index_assign->lhs->subscript_token);
       this->stack.push(std::make_shared<ErrorType>());
@@ -934,7 +982,7 @@ public:
     match_expr->else_arm->accept(this);
     auto else_arm_type = this->stack.pop();
 
-    if (else_arm_type->type == BirdTypeType::ERROR) {
+    if (else_arm_type->get_tag() == TypeTag::ERROR) {
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
@@ -953,7 +1001,7 @@ public:
       arm.second->accept(this);
       auto result_type = this->stack.pop();
 
-      if (result_type->type == BirdTypeType::ERROR) {
+      if (result_type->get_tag() == TypeTag::ERROR) {
         this->stack.push(std::make_shared<ErrorType>());
         return;
       }
@@ -969,5 +1017,50 @@ public:
     this->stack.push(else_arm_type);
   }
 
+
   void visit_import_stmt(ImportStmt *import_stmt) {};
+
+  void visit_method(Method *method) {
+    this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
+        create_func(method);
+  }
+
+  void visit_method_call(MethodCall *method_call) {
+    method_call->instance->accept(this);
+    const auto struct_temp = this->stack.pop();
+    if (struct_temp->get_tag() != TypeTag::STRUCT) {
+      this->stack.push(std::make_shared<ErrorType>());
+      this->user_error_tracker.type_error(
+          "method '" + method_call->identifier.lexeme +
+              "' does not exist on type " + struct_temp->to_string(),
+          method_call->identifier);
+      return;
+    }
+
+    const auto struct_type = std::dynamic_pointer_cast<StructType>(struct_temp);
+
+    if (this->v_table.count(struct_type->name) == 0 ||
+        this->v_table.at(struct_type->name)
+                .count(method_call->identifier.lexeme) == 0) {
+      this->user_error_tracker.type_error(
+          "method '" + method_call->identifier.lexeme +
+              "' does not exist on type " + struct_temp->to_string(),
+          method_call->identifier);
+      return;
+    }
+
+    const auto method =
+        this->v_table.at(struct_type->name).at(method_call->identifier.lexeme);
+
+    std::vector<std::shared_ptr<BirdType>> new_params;
+
+    for (int i = 1; i < method->params.size(); i += 1) {
+      new_params.push_back(method->params[i]);
+    }
+
+    this->compare_args_and_params(method_call->identifier, method_call->args,
+                                  new_params);
+
+    this->stack.push(method->ret);
+  }
 };

@@ -20,10 +20,18 @@ void CodeGen::visit_primary(Primary *primary) {
     break;
   }
 
-  case Token::Type::BOOL_LITERAL: {
-    BinaryenExpressionRef bool_literal = BinaryenConst(
-        this->mod, primary->value.lexeme == "true" ? BinaryenLiteralInt32(1)
-                                                   : BinaryenLiteralInt32(0));
+  case Token::Type::TRUE: {
+    BinaryenExpressionRef bool_literal =
+        BinaryenConst(this->mod, BinaryenLiteralInt32(1));
+
+    this->stack.push(TaggedExpression(
+        bool_literal, std::shared_ptr<BirdType>(new BoolType())));
+    break;
+  }
+
+  case Token::Type::FALSE: {
+    BinaryenExpressionRef bool_literal =
+        BinaryenConst(this->mod, BinaryenLiteralInt32(0));
 
     this->stack.push(TaggedExpression(
         bool_literal, std::shared_ptr<BirdType>(new BoolType())));
@@ -45,10 +53,12 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 
   case Token::Type::IDENTIFIER: {
-    TaggedIndex tagged_index = this->environment.get(primary->value.lexeme);
-    BinaryenExpressionRef local_get = this->binaryen_get(primary->value.lexeme);
+    this->stack.push(this->binaryen_get(primary->value.lexeme));
+    break;
+  }
 
-    this->stack.push(TaggedExpression(local_get, tagged_index.type));
+  case Token::Type::SELF: {
+    this->stack.push(this->binaryen_get("self"));
     break;
   }
 

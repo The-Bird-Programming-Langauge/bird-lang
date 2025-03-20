@@ -5,6 +5,7 @@
 
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   this->init_std_lib();
+  this->init_array_constructor();
 
   HoistVisitor hoist_visitor(this->struct_names);
   hoist_visitor.hoist(stmts);
@@ -32,6 +33,12 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
       // no stack push here, automatically added
       continue;
     }
+
+    if (auto method_stmt = dynamic_cast<Method *>(stmt.get())) {
+      method_stmt->accept(this);
+      continue;
+    }
+
     if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get())) {
       type_stmt->accept(this);
       // no stack push here, only type table
@@ -58,7 +65,7 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
 
     stmt->accept(this);
     auto result = this->stack.pop();
-    if (result.type->type != BirdTypeType::VOID) {
+    if (result.type->get_tag() != TypeTag::VOID) {
       result = TaggedExpression(BinaryenDrop(this->mod, result.value));
     }
     main_function_body.push_back(result.value);
