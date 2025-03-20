@@ -1,6 +1,9 @@
 #include "../../../include/visitors/code_gen.h"
 
 void CodeGen::visit_const_stmt(ConstStmt *const_stmt) {
+  auto mangled_name = this->name_mangler + const_stmt->identifier.lexeme;
+  // std::cout << "visiting const... " << const_stmt->identifier.lexeme
+  //           << " mangled name: " << mangled_name << std::endl;
   const_stmt->value->accept(this);
   TaggedExpression initializer = this->stack.pop();
 
@@ -23,10 +26,19 @@ void CodeGen::visit_const_stmt(ConstStmt *const_stmt) {
   this->function_locals[this->current_function_name].push_back(
       bird_type_to_binaryen_type(type));
 
-  environment.declare(const_stmt->identifier.lexeme, TaggedIndex(index, type));
+  // std::cout << "declaring const: " << mangled_name
+  //           << " in: " << this->current_function_name << " at index "
+  //           << (this->function_locals[this->current_function_name].size())
+  //           << std::endl;
+
+  environment.declare(mangled_name, TaggedIndex(index, type));
 
   TaggedExpression set_local =
-      this->binaryen_set(const_stmt->identifier.lexeme, initializer.value);
+      this->binaryen_set(mangled_name, initializer.value);
+
+  // std::cout << "const final setting: " << mangled_name << " -> ";
+  // BinaryenExpressionPrint(set_local.value);
+  // std::cout << std::endl;
 
   this->stack.push(TaggedExpression(set_local.value, type));
 }

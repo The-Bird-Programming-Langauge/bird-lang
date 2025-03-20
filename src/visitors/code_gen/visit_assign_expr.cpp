@@ -17,8 +17,8 @@ void CodeGen::visit_assign_expr(AssignExpr *assign_expr) {
     result = stack.pop();
   }
 
-  TaggedExpression assign_stmt =
-      this->binaryen_set(assign_expr->identifier.lexeme, result.value);
+  TaggedExpression assign_stmt = this->binaryen_set(
+      this->name_mangler + assign_expr->identifier.lexeme, result.value);
 
   this->stack.push(TaggedExpression(assign_stmt.value, result.type));
 }

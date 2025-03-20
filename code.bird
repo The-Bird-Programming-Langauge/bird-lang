@@ -1,56 +1,21 @@
+fn get_pi() -> float {
+        return 3.14159;
+}
+
 namespace Math {
-        var x: int = 0;
-        fn add_two(a: int, b: int) -> int {
-                return a + b;
-        }
-        namespace Trig {
-                fn pi() -> float {
-                        return 3.14159;
-                }
+        const pi: float = 3.14159;
+        var y: int = 2;
+        var z: str = "hello";
 
-                fn print_x(x: int) -> void {
-                        print x;
-                }
-
-                struct Triangle {
-                        a: int;
-                        b: int; 
-                        c: int;
-                };
-                namespace Cursed {
-                        struct CursedTriangle {
-                                a: int;
-                                b: int; 
-                                c: int;
-                        };
-                }
+        fn get_pi() -> float {
+                return 3.14159;
         }
 }
 
-print Math::add_two(1, 2);
+print Math::pi;
 
-print Math::Trig::pi();
+print Math::y;
 
+print Math::z;
 
-var t: Math::Trig::Triangle = Math::Trig::Triangle {
-        a = 3,
-        b = 4,
-        c = 5
-};
-
-print t.a;
-print t.b;
-print t.c;
-
-
-Math::Trig::print_x(42);
-
-var cursed: Math::Trig::Cursed::CursedTriangle = Math::Trig::Cursed::CursedTriangle {
-        a = 6,
-        b = 6,
-        c = 6,
-};
-
-print cursed.a;
-print cursed.b;
-print cursed.c;
+print Math::get_pi();

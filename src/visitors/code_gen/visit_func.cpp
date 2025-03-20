@@ -2,7 +2,7 @@
 #include <memory>
 
 void CodeGen::visit_func(Func *func) {
-  auto func_name = func->identifier.lexeme;
+  auto func_name = this->name_mangler + func->identifier.lexeme;
   this->add_func_with_name(func, func_name);
 }
 

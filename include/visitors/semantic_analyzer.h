@@ -201,7 +201,8 @@ public:
   }
 
   void visit_func(Func *func) {
-    if (this->identifer_in_any_environment(func->identifier.lexeme)) {
+    if (this->identifer_in_any_environment(this->name_mangler +
+                                           func->identifier.lexeme)) {
       this->user_error_tracker.semantic_error(
           "Identifier '" + func->identifier.lexeme + "' is already declared.",
           func->identifier);

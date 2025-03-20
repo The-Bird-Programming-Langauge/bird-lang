@@ -54,12 +54,14 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 
   case Token::Type::IDENTIFIER: {
+    auto mangled_name = this->name_mangler + primary->value.lexeme;
     if (auto fun =
             BinaryenGetFunction(this->mod, primary->value.lexeme.c_str())) {
       this->stack.push((BinaryenExpressionRef)fun);
       return;
     }
-    this->stack.push(this->binaryen_get(primary->value.lexeme));
+    // std::cout << "visiting primary: " << mangled_name << std::endl;
+    this->stack.push(this->binaryen_get(mangled_name));
     break;
   }
 

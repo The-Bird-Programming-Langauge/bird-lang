@@ -69,6 +69,11 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
     auto result = this->stack.pop();
     if (result.type->get_tag() != TypeTag::VOID) {
       result = TaggedExpression(BinaryenDrop(this->mod, result.value));
+
+      // std::cout << "------------------\n";
+      // std::cout << "expr:\n";
+      // std::cout << "------------------\n";
+      // BinaryenExpressionPrint(result.value);
     }
     main_function_body.push_back(result.value);
 
@@ -98,6 +103,16 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   BinaryenExpressionRef body =
       BinaryenBlock(this->mod, nullptr, main_function_body.data(),
                     main_function_body.size(), BinaryenTypeNone());
+
+  // std::cout << "------------------\n";
+  // std::cout << "main fn body:\n";
+  // std::cout << "------------------\n";
+
+  // for (size_t i = 0; i < main_function_body.size(); i++) {
+  //   std::cout << "expression " << i << ": ";
+  //   BinaryenExpressionPrint(main_function_body[i]);
+  //   std::cout << std::endl;
+  // }
 
   BinaryenAddFunction(this->mod, "main", params, results,
                       this->function_locals["main"].data(),
