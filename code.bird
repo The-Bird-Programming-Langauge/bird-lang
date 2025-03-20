@@ -20,6 +20,7 @@ print Math::add_two(1, 2);
 
 print Math::Trig::sin(1.2);
 
+/*
 var t: Math::Trig::Triangle = Math::Trig::Triangle {
         a = 3,
         b = 4,
@@ -29,3 +30,4 @@ var t: Math::Trig::Triangle = Math::Trig::Triangle {
 print t.a;
 print t.b;
 print t.c;
+*/

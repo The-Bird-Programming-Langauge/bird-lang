@@ -44,7 +44,6 @@ public:
     for (auto &stmt : *stmts) {
       stmt->accept(this);
     }
-    std::cout << "done sa" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -355,8 +354,6 @@ public:
   void visit_namespace(NamespaceStmt *_namespace) {
     auto previous_mangler = this->name_mangler;
     this->name_mangler += (_namespace->identifier.lexeme + "::");
-
-    std::cout << "mangle: " << name_mangler << std::endl;
 
     for (auto &member : _namespace->members) {
       member->accept(this);

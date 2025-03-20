@@ -146,7 +146,6 @@ public:
     while (!this->stack.empty()) {
       this->stack.pop();
     }
-    std::cout << "done tc" << std::endl;
   }
 
   void visit_block(Block *block) {
