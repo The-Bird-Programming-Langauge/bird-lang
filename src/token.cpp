@@ -56,6 +56,7 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::STRUCT, "STRUCT"},
     {Token::Type::STR_LITERAL, "STR_LITERAL"},
     {Token::Type::INT, "INT"},
+    {Token::Type::UINT, "UINT"},
     {Token::Type::FLOAT, "FLOAT"},
     {Token::Type::BOOL, "BOOL"},
     {Token::Type::STR, "STR"},

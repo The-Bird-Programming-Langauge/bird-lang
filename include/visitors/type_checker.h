@@ -63,27 +63,32 @@ public:
           {Token::Type::PLUS,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::UINT},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
                {{TypeTag::STRING, TypeTag::STRING}, TypeTag::STRING},
            }},
           {Token::Type::MINUS,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::UINT},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
            }},
           {Token::Type::STAR,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::UINT},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
            }},
           {Token::Type::SLASH,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::UINT},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
            }},
           {Token::Type::EQUAL_EQUAL,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::BOOL},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
                {{TypeTag::STRING, TypeTag::STRING}, TypeTag::BOOL},
                {{TypeTag::BOOL, TypeTag::BOOL}, TypeTag::BOOL},
@@ -91,6 +96,7 @@ public:
           {Token::Type::BANG_EQUAL,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::BOOL},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
                {{TypeTag::STRING, TypeTag::STRING}, TypeTag::BOOL},
                {{TypeTag::BOOL, TypeTag::BOOL}, TypeTag::BOOL},
@@ -98,21 +104,25 @@ public:
           {Token::Type::GREATER,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::BOOL},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
            }},
           {Token::Type::GREATER_EQUAL,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::BOOL},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
            }},
           {Token::Type::LESS,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::BOOL},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
            }},
           {Token::Type::LESS_EQUAL,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::BOOL},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::BOOL},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::BOOL},
            }},
           {Token::Type::AND,
@@ -130,6 +140,7 @@ public:
           {Token::Type::PERCENT,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::UINT},
            }},
       };
 
@@ -842,14 +853,19 @@ public:
       return;
     }
 
-    if (to_type->get_tag() == TypeTag::FLOAT &&
-        expr->get_tag() == TypeTag::INT) {
-      this->stack.push(to_type);
-      return;
-    }
+    // if (to_type->get_tag() == TypeTag::FLOAT &&
+    //     expr->get_tag() == TypeTag::INT) {
+    //   this->stack.push(to_type);
+    //   return;
+    // }
 
-    if (to_type->get_tag() == TypeTag::INT &&
-        expr->get_tag() == TypeTag::FLOAT) {
+    // if (to_type->get_tag() == TypeTag::INT &&
+    //     expr->get_tag() == TypeTag::FLOAT) {
+    //   this->stack.push(to_type);
+    //   return;
+    // }
+
+    if (to_type->is_numeric() && expr->is_numeric()) {
       this->stack.push(to_type);
       return;
     }

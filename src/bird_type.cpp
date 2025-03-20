@@ -43,6 +43,8 @@ std::string bird_type_type_to_string(TypeTag type) {
   switch (type) {
   case TypeTag::INT:
     return "int";
+  case TypeTag::UINT:
+    return "uint";
   case TypeTag::FLOAT:
     return "float";
   case TypeTag::BOOL:

@@ -49,6 +49,7 @@ STR_LITERAL _("string literal")
 TRUE "true"
 FALSE "false"
 INT "int"
+UINT "uint"
 FLOAT "float"
 BOOL "bool"
 STR "str"
@@ -627,6 +628,7 @@ PREFIX_UNARY_OP:
 type_identifier:
    IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
    | INT { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | UINT { $$ = std::make_shared<ParseType::Primitive>($1); }
    | FLOAT { $$ = std::make_shared<ParseType::Primitive>($1); }
    | BOOL { $$ = std::make_shared<ParseType::Primitive>($1); }
    | STR { $$ = std::make_shared<ParseType::Primitive>($1); }

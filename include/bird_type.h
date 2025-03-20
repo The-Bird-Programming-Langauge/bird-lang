@@ -12,6 +12,7 @@
  */
 enum class TypeTag {
   INT,
+  UINT,
   FLOAT,
   STRING,
   BOOL,
@@ -29,6 +30,7 @@ struct BirdType {
   virtual bool operator!=(BirdType &other) const = 0;
   virtual TypeTag get_tag() const = 0;
   virtual std::string to_string() const = 0;
+  virtual bool is_numeric() const = 0;
 };
 
 std::string bird_type_to_string(std::shared_ptr<BirdType> type);
@@ -43,6 +45,19 @@ struct IntType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::INT; }
   std::string to_string() const { return "int"; }
+  bool is_numeric() const { return true; }
+};
+
+struct UintType : BirdType {
+  UintType() {}
+  ~UintType() {};
+  bool operator==(BirdType &other) const {
+    return other.get_tag() == TypeTag::UINT;
+  }
+  bool operator!=(BirdType &other) const { return !(*this == other); }
+  TypeTag get_tag() const { return TypeTag::UINT; }
+  std::string to_string() const { return "uint"; }
+  bool is_numeric() const { return true; }
 };
 
 struct FloatType : BirdType {
@@ -54,6 +69,7 @@ struct FloatType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::FLOAT; }
   std::string to_string() const { return "float"; }
+  bool is_numeric() const { return true; }
 };
 
 struct StringType : BirdType {
@@ -68,6 +84,7 @@ struct StringType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::STRING; }
   std::string to_string() const { return "string"; }
+  bool is_numeric() const { return false; }
 };
 
 struct BoolType : BirdType {
@@ -79,6 +96,7 @@ struct BoolType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::BOOL; }
   std::string to_string() const { return "bool"; }
+  bool is_numeric() const { return false; }
 };
 
 struct VoidType : BirdType {
@@ -90,6 +108,7 @@ struct VoidType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::VOID; }
   std::string to_string() const { return "void"; }
+  bool is_numeric() const { return false; }
 };
 
 struct ErrorType : BirdType {
@@ -101,6 +120,7 @@ struct ErrorType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::ERROR; }
   std::string to_string() const { return "error"; }
+  bool is_numeric() const { return false; }
 };
 
 struct StructType : BirdType {
@@ -120,6 +140,7 @@ struct StructType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::STRUCT; }
   std::string to_string() const { return "struct " + name; }
+  bool is_numeric() const { return false; }
 };
 
 struct ArrayType : BirdType {
@@ -140,6 +161,7 @@ struct ArrayType : BirdType {
   std::string to_string() const {
     return "array<" + element_type->to_string() + ">";
   }
+  bool is_numeric() const { return false; }
 };
 
 struct BirdFunction : BirdType {
@@ -185,6 +207,8 @@ struct BirdFunction : BirdType {
     result += ")";
     return result;
   }
+
+  bool is_numeric() const { return ret->is_numeric(); }
 };
 
 std::shared_ptr<BirdType> bird_type_type_to_bird_type(TypeTag type);
@@ -210,6 +234,7 @@ struct PlaceholderType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::PLACEHOLDER; }
   std::string to_string() const { return "placeholder " + name; }
+  bool is_numeric() const { return false; }
 };
 
 template <typename T, typename U = BirdType>

@@ -256,10 +256,11 @@ TEST(ExprTest, BinaryModulus) {
   BirdTest::TestOptions options;
   options.code = "var x: int =  10 % (0 + 5) % 2 + 6 % 2 + 4 % 6;"
                  "print x;";
+
   options.after_interpret = [](Interpreter &interpreter) {
     ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 4);
+    ASSERT_TRUE(is_type<unsigned int>(interpreter.env.get("x")));
+    ASSERT_EQ(as_type<unsigned int>(interpreter.env.get("x")), 4);
   };
 
   options.after_compile = [&](std::string &output, CodeGen &codegen) {
@@ -281,8 +282,8 @@ TEST(ExprTest, AssignModulus) {
                  "print x;";
   options.after_interpret = [](Interpreter &interpreter) {
     ASSERT_TRUE(interpreter.env.contains("x"));
-    ASSERT_TRUE(is_type<int>(interpreter.env.get("x")));
-    ASSERT_EQ(as_type<int>(interpreter.env.get("x")), 1);
+    ASSERT_TRUE(is_type<unsigned int>(interpreter.env.get("x")));
+    ASSERT_EQ(as_type<unsigned int>(interpreter.env.get("x")), 1);
   };
 
   options.after_compile = [&](std::string &output, CodeGen &codegen) {

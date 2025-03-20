@@ -30,6 +30,7 @@ public:
 
     // types
     INT,
+    UINT,
     FLOAT,
     BOOL,
     STR,

@@ -1,4 +1,5 @@
 #pragma once
+#include <ios>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -14,15 +15,25 @@ template <typename T> inline bool is_type(Value value);
 
 inline bool is_numeric(Value value);
 
+inline bool is_integral(Value value);
+
 template <typename T> inline bool is_matching_type(Value left, Value right);
 
 template <typename T> inline T as_type(const Value &value);
 
 template <typename T, typename U> inline T to_type(Value value);
 
-using variant = std::variant<
-    int, double, std::string, bool, std::shared_ptr<std::vector<Value>>,
-    std::shared_ptr<std::unordered_map<std::string, Value>>, std::nullptr_t>;
+template <typename Op>
+Value coerce_numerics_with_operation(Value left, Value right, Op op);
+
+inline double numeric_to_float(Value value);
+inline int numeric_to_int(Value value);
+
+using variant =
+    std::variant<int, unsigned int, double, std::string, bool,
+                 std::shared_ptr<std::vector<Value>>,
+                 std::shared_ptr<std::unordered_map<std::string, Value>>,
+                 std::nullptr_t>;
 class Value {
 public:
   variant data;
@@ -41,17 +52,8 @@ public:
                           "interpret these values.");
     }
 
-    if (is_type<double>(*this) ||
-        is_type<double>(right)) { // result is a double
-      double left_val = to_type<double, int>(*this);
-      double right_val = to_type<double, int>(right);
-
-      return Value(left_val + right_val);
-    }
-
-    int left_val = as_type<int>(*this);
-    int right_val = as_type<int>(right);
-    return Value(left_val + right_val);
+    return coerce_numerics_with_operation(
+        *this, right, [](auto left, auto right) { return left + right; });
   }
 
   Value operator-(Value right) {
@@ -60,17 +62,8 @@ public:
                           "interpret these values.");
     }
 
-    if (is_type<double>(*this) ||
-        is_type<double>(right)) { // result is a double
-      double left_val = to_type<double, int>(*this);
-      double right_val = to_type<double, int>(right);
-
-      return Value(left_val - right_val);
-    }
-
-    int left_val = as_type<int>(*this);
-    int right_val = as_type<int>(right);
-    return Value(left_val - right_val);
+    return coerce_numerics_with_operation(
+        *this, right, [](auto left, auto right) { return left - right; });
   }
 
   Value operator*(Value right) {
@@ -79,53 +72,35 @@ public:
                           "interpret these values.");
     }
 
-    if (is_type<double>(*this) ||
-        is_type<double>(right)) { // result is a double
-      double left_val = to_type<double, int>(*this);
-      double right_val = to_type<double, int>(right);
-
-      return Value(left_val * right_val);
-    }
-
-    int left_val = as_type<int>(*this);
-    int right_val = as_type<int>(right);
-    return Value(left_val * right_val);
+    return coerce_numerics_with_operation(
+        *this, right, [](auto left, auto right) { return left * right; });
   }
 
   Value operator/(Value right) {
-    if (to_type<double, int>(right) == 0)
-      throw BirdException("Division by zero.");
-
     if (!is_numeric(*this) || !is_numeric(right)) {
       throw BirdException("The '/' binary operator could not be used to "
                           "interpret these values.");
     }
 
-    if (is_type<double>(*this) ||
-        is_type<double>(right)) { // result is a double
-      double left_val = to_type<double, int>(*this);
-      double right_val = to_type<double, int>(right);
+    if (numeric_to_float(right) == 0)
+      throw BirdException("Division by zero.");
 
-      return Value(left_val / right_val);
-    }
-
-    int left_val = as_type<int>(*this);
-    int right_val = as_type<int>(right);
-    return Value(left_val / right_val);
+    return coerce_numerics_with_operation(
+        *this, right, [](auto left, auto right) { return left / right; });
   }
 
   Value operator%(Value right) {
-    if (to_type<double, int>(right) == 0)
-      throw BirdException("Modulo by zero.");
-
-    if (!is_type<int>(*this) || !is_type<int>(right)) {
+    if ((!is_integral(*this) || !is_integral(right))) {
       throw BirdException("The '%' binary operator could not be used to "
                           "interpret these values.");
     }
 
-    int left_val = as_type<int>(*this);
-    int right_val = as_type<int>(right);
-    return Value(left_val % right_val);
+    if (numeric_to_int(right) == 0)
+      throw BirdException("Modulo by zero.");
+
+    int left_val = numeric_to_int(*this);
+    int right_val = numeric_to_int(right);
+    return Value(static_cast<unsigned int>(left_val % right_val));
   }
 
   Value operator>(Value right) {
@@ -134,17 +109,8 @@ public:
                           "interpret these values.");
     }
 
-    if (is_type<double>(*this) ||
-        is_type<double>(right)) { // result is a double
-      double left_val = to_type<double, int>(*this);
-      double right_val = to_type<double, int>(right);
-
-      return Value(left_val > right_val);
-    }
-
-    int left_val = as_type<int>(*this);
-    int right_val = as_type<int>(right);
-    return Value(left_val > right_val);
+    return coerce_numerics_with_operation(
+        *this, right, [](auto left, auto right) { return left > right; });
   }
 
   Value operator>=(Value right) {
@@ -153,47 +119,34 @@ public:
                           "interpret these values.");
     }
 
-    if (is_type<double>(*this) ||
-        is_type<double>(right)) { // result is a double
-      double left_val = to_type<double, int>(*this);
-      double right_val = to_type<double, int>(right);
-
-      return Value(left_val >= right_val);
-    }
-
-    int left_val = as_type<int>(*this);
-    int right_val = as_type<int>(right);
-    return Value(left_val >= right_val);
+    return coerce_numerics_with_operation(
+        *this, right, [](auto left, auto right) { return left >= right; });
   }
 
   Value operator<(Value right) {
-    if (is_type<int>(*this) && is_numeric(right))
-      return Value(as_type<int>(*this) < to_type<int, double>(right));
+    if (!is_numeric(*this) || !is_numeric(right)) {
+      throw BirdException("The '<' binary operator could not be used to "
+                          "interpret these values.");
+    }
 
-    if (is_type<double>(*this) && is_numeric(right))
-      return Value(as_type<double>(*this) < to_type<double, int>(right));
-
-    throw BirdException(
-        "The '<' binary operator could not be used to interpret these values.");
+    return coerce_numerics_with_operation(
+        *this, right, [](auto left, auto right) { return left < right; });
   }
 
   Value operator<=(Value right) {
-    if (is_type<int>(*this) && is_numeric(right))
-      return Value(as_type<int>(*this) <= to_type<int, double>(right));
+    if (!is_numeric(*this) || !is_numeric(right)) {
+      throw BirdException("The '<=' binary operator could not be used to "
+                          "interpret these values.");
+    }
 
-    if (is_type<double>(*this) && is_numeric(right))
-      return Value(as_type<double>(*this) <= to_type<double, int>(right));
-
-    throw BirdException("The '<=' binary operator could not be used to "
-                        "interpret these values.");
+    return coerce_numerics_with_operation(
+        *this, right, [](auto left, auto right) { return left <= right; });
   }
 
   Value operator!=(Value right) {
     if (is_numeric(*this) && is_numeric(right)) {
-      double left_double = to_type<double, int>(*this);
-      double right_double = to_type<double, int>(right);
-
-      return Value(left_double != right_double);
+      return coerce_numerics_with_operation(
+          *this, right, [](auto left, auto right) { return left != right; });
     }
 
     if (is_type<std::string>(*this) && is_type<std::string>(right))
@@ -214,10 +167,8 @@ public:
 
   Value operator==(Value right) {
     if (is_numeric(*this) && is_numeric(right)) {
-      double left_double = to_type<double, int>(*this);
-      double right_double = to_type<double, int>(right);
-
-      return Value(left_double == right_double);
+      return coerce_numerics_with_operation(
+          *this, right, [](auto left, auto right) { return left == right; });
     }
 
     if (is_type<std::string>(*this) && is_type<std::string>(right))
@@ -241,6 +192,9 @@ public:
   Value operator-() {
     if (is_type<int>(*this))
       return Value(-as_type<int>(*this));
+
+    if (is_type<unsigned int>(*this))
+      return Value(-to_type<int, unsigned int>(*this));
 
     if (is_type<double>(*this))
       return Value(-as_type<double>(*this));
@@ -305,6 +259,9 @@ public:
     if (is_type<int>(obj))
       os << as_type<int>(obj);
 
+    else if (is_type<unsigned int>(obj))
+      os << as_type<unsigned int>(obj);
+
     else if (is_type<double>(obj))
       os << as_type<double>(obj);
 
@@ -312,7 +269,7 @@ public:
       os << as_type<std::string>(obj);
 
     else if (is_type<bool>(obj))
-      os << as_type<bool>(obj);
+      os << (as_type<bool>(obj) ? "true" : "false");
 
     return os;
   }
@@ -323,7 +280,12 @@ template <typename T> inline bool is_type(Value value) {
 }
 
 inline bool is_numeric(Value value) {
-  return is_type<int>(value) || is_type<double>(value);
+  return is_type<int>(value) || is_type<double>(value) ||
+         is_type<unsigned int>(value);
+}
+
+inline bool is_integral(Value value) {
+  return is_type<int>(value) || is_type<unsigned int>(value);
 }
 
 template <typename T> inline bool is_matching_type(Value left, Value right) {
@@ -337,6 +299,67 @@ template <typename T> inline T as_type(const Value &value) {
 template <typename T, typename U> inline T to_type(Value value) {
   return is_type<T>(value) ? as_type<T>(value)
                            : static_cast<T>(as_type<U>(value));
+}
+
+// Precondition: left and right both contain numeric types
+// Postcondition: the type of the returned Value will be as follows:
+//    if left or right is a double -> double
+//    if left or right is a signed int -> signed int
+//    if left and right are both unsigned -> unsigned int
+template <typename Op>
+Value coerce_numerics_with_operation(Value left, Value right, Op op) {
+  if (is_type<double>(left) || is_type<double>(right)) {
+    return Value(op(numeric_to_float(left), numeric_to_float(right)));
+  }
+
+  if (is_type<int>(left) || is_type<int>(right)) {
+    return Value(op(numeric_to_int(left), numeric_to_int(right)));
+  }
+
+  if (is_type<unsigned int>(left) && is_type<unsigned int>(right)) {
+    return Value(op(as_type<unsigned int>(left), as_type<unsigned int>(right)));
+  }
+
+  throw BirdException("Failed to coerce numeric values");
+}
+
+inline double numeric_to_float(Value value) {
+  if (is_type<double>(value))
+    return as_type<double>(value);
+
+  if (is_type<int>(value))
+    return static_cast<double>(as_type<int>(value));
+
+  if (is_type<unsigned int>(value))
+    return static_cast<double>(as_type<unsigned int>(value));
+
+  throw BirdException("Failed to convert numeric value to float");
+}
+
+inline int numeric_to_int(Value value) {
+  if (is_type<int>(value))
+    return as_type<int>(value);
+
+  if (is_type<unsigned int>(value))
+    return static_cast<int>(as_type<unsigned int>(value));
+
+  if (is_type<double>(value))
+    return static_cast<int>(as_type<double>(value));
+
+  throw BirdException("Failed to convert numeric value to int");
+}
+
+inline unsigned int numeric_to_unsigned_int(Value value) {
+  if (is_type<unsigned int>(value))
+    return as_type<unsigned int>(value);
+
+  if (is_type<int>(value))
+    return static_cast<unsigned int>(as_type<int>(value));
+
+  if (is_type<double>(value))
+    return static_cast<unsigned int>(as_type<double>(value));
+
+  throw BirdException("Failed to convert numeric value to unsigned int");
 }
 
 struct SemanticValue {

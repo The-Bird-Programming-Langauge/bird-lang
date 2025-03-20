@@ -121,11 +121,7 @@ public:
       arg->accept(this);
       auto result = std::move(this->stack.pop());
 
-      if (is_type<bool>(result)) {
-        std::cout << (as_type<bool>(result) ? "true" : "false");
-      } else {
-        std::cout << result;
-      }
+      std::cout << result;
     }
     std::cout << std::endl;
   }
@@ -553,14 +549,27 @@ public:
           safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(
               as_cast->type);
       auto token = primitive->type;
-      if (token.lexeme == "int" && is_type<double>(expr)) {
-        this->stack.push(Value((int)as_type<double>(expr)));
-        return;
-      }
+      // if (token.lexeme == "int" && is_type<double>(expr)) {
+      //   this->stack.push(Value((int)as_type<double>(expr)));
+      //   return;
+      // }
 
-      if (token.lexeme == "float" && is_type<int>(expr)) {
-        this->stack.push(Value((double)as_type<int>(expr)));
+      // if (token.lexeme == "float" && is_type<int>(expr)) {
+      //   this->stack.push(Value((double)as_type<int>(expr)));
+      //   return;
+      // }
+      switch (token.token_type) {
+      case Token::Type::FLOAT:
+        this->stack.push(Value(numeric_to_float(expr)));
         return;
+      case Token::Type::INT:
+        this->stack.push(Value(numeric_to_int(expr)));
+        return;
+      case Token::Type::UINT:
+        this->stack.push(Value(numeric_to_unsigned_int(expr)));
+        return;
+      default:
+        throw BirdException("Tried to cast to invalid primitive type");
       }
     }
 

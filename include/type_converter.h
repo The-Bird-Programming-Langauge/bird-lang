@@ -26,19 +26,23 @@ public:
       Token token =
           safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(type)
               ->type;
-      auto type_name = token.lexeme;
-
-      if (type_name == "int") {
+      switch (token.token_type) {
+      case Token::Type::INT:
         return std::make_shared<IntType>();
-      } else if (type_name == "float") {
+      case Token::Type::UINT:
+        return std::make_shared<UintType>();
+      case Token::Type::FLOAT:
         return std::make_shared<FloatType>();
-      } else if (type_name == "bool") {
+      case Token::Type::BOOL:
         return std::make_shared<BoolType>();
-      } else if (type_name == "str") {
+      case Token::Type::STR:
         return std::make_shared<StringType>();
-      } else if (type_name == "void") {
+      case Token::Type::VOID:
         return std::make_shared<VoidType>();
+      default:
+        return std::make_shared<ErrorType>();
       }
+
     } else if (type->tag == ParseType::Tag::USER_DEFINED) {
       Token token =
           safe_dynamic_pointer_cast<ParseType::UserDefined, ParseType::Type>(
@@ -53,6 +57,7 @@ public:
       if (this->struct_names.find(type_name) != this->struct_names.end()) {
         return std::make_shared<PlaceholderType>(type_name);
       }
+
     } else if (type->tag == ParseType::Tag::ARRAY) {
       auto array_type =
           safe_dynamic_pointer_cast<ParseType::Array, ParseType::Type>(type);
