@@ -4,8 +4,12 @@ namespace Math {
                 return a + b;
         }
         namespace Trig {
-                fn sin(x: float) -> float {
+                fn pi() -> float {
                         return 3.14159;
+                }
+
+                fn print_x(x: int) -> void {
+                        print x;
                 }
 
                 struct Triangle {
@@ -13,14 +17,21 @@ namespace Math {
                         b: int; 
                         c: int;
                 };
+                namespace Cursed {
+                        struct CursedTriangle {
+                                a: int;
+                                b: int; 
+                                c: int;
+                        };
+                }
         }
 }
 
 print Math::add_two(1, 2);
 
-print Math::Trig::sin(1.2);
+print Math::Trig::pi();
 
-/*
+
 var t: Math::Trig::Triangle = Math::Trig::Triangle {
         a = 3,
         b = 4,
@@ -30,4 +41,16 @@ var t: Math::Trig::Triangle = Math::Trig::Triangle {
 print t.a;
 print t.b;
 print t.c;
-*/
+
+
+Math::Trig::print_x(42);
+
+var cursed: Math::Trig::Cursed::CursedTriangle = Math::Trig::Cursed::CursedTriangle {
+        a = 6,
+        b = 6,
+        c = 6,
+};
+
+print cursed.a;
+print cursed.b;
+print cursed.c;

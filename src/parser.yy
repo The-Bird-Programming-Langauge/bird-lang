@@ -668,14 +668,29 @@ PREFIX_UNARY_OP:
    | NOT
 
 type_identifier:
-   IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
+   IDENTIFIER { 
+       $$ = std::make_shared<ParseType::UserDefined>($1); 
+   }
+   | type_identifier COLON_COLON IDENTIFIER { 
+       $$ = std::make_shared<ParseType::UserDefined>(
+           Token(Token::Type::IDENTIFIER,
+                 $1->get_token().lexeme + "::" + $3.lexeme, 
+                 $3.line_num, 
+                 $3.char_num)
+       ); 
+   }
    | INT { $$ = std::make_shared<ParseType::Primitive>($1); }
    | FLOAT { $$ = std::make_shared<ParseType::Primitive>($1); }
    | BOOL { $$ = std::make_shared<ParseType::Primitive>($1); }
    | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
-   | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
-   | LPAREN maybe_type_identifier_list RPAREN type_identifier { $$ = std::make_shared<ParseType::Function>( $1, $2, $4);}
+   | type_identifier LBRACKET RBRACKET { 
+       $$ = std::make_shared<ParseType::Array>($1); 
+   }
+   | LPAREN maybe_type_identifier_list RPAREN type_identifier { 
+       $$ = std::make_shared<ParseType::Function>($1, $2, $4); 
+   }
+
 
 maybe_type_identifier_list:
    %empty { $$ = std::vector<std::shared_ptr<ParseType::Type>>{}; }

@@ -489,11 +489,12 @@ public:
       return std::make_shared<VoidType>();
     } else {
       // type_name is not primitive
-      if (this->type_table.contains(type_name)) {
-        return this->type_table.get(type_name);
+      if (this->type_table.contains(this->name_mangler + type_name)) {
+        return this->type_table.get(this->name_mangler + type_name);
       }
 
-      if (this->struct_names.find(type_name) != this->struct_names.end()) {
+      if (this->struct_names.find(this->name_mangler + type_name) !=
+          this->struct_names.end()) {
         return std::make_shared<PlaceholderType>(type_name);
       }
 
@@ -671,14 +672,15 @@ public:
   }
 
   void visit_type_stmt(TypeStmt *type_stmt) {
-    if (this->type_table.contains(type_stmt->identifier.lexeme)) {
+    if (this->type_table.contains(this->name_mangler +
+                                  type_stmt->identifier.lexeme)) {
       this->user_error_tracker.type_error("type already declared",
                                           type_stmt->identifier);
       return;
     }
 
     this->type_table.declare(
-        type_stmt->identifier.lexeme,
+        this->name_mangler + type_stmt->identifier.lexeme,
         this->type_converter.convert(type_stmt->type_token));
   }
 
@@ -728,7 +730,8 @@ public:
     // TODO: check invalid field types
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
-    this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
+    this->type_table.declare(
+        this->name_mangler + struct_decl->identifier.lexeme, struct_type);
 
     for (auto &method : struct_decl->fns) {
       method->accept(this);
@@ -759,7 +762,7 @@ public:
         return;
       }
 
-      accessable = this->type_table.get(placeholder->name);
+      accessable = this->type_table.get(this->name_mangler + placeholder->name);
     }
 
     if (accessable->get_tag() != TypeTag::STRUCT) {
@@ -788,14 +791,16 @@ public:
 
   void
   visit_struct_initialization(StructInitialization *struct_initialization) {
-    if (!this->type_table.contains(struct_initialization->identifier.lexeme)) {
+    if (!this->type_table.contains(this->name_mangler +
+                                   struct_initialization->identifier.lexeme)) {
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+    auto type = this->type_table.get(this->name_mangler +
+                                     struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -840,7 +845,8 @@ public:
               return;
             }
 
-            field.second = this->type_table.get(placeholder->name);
+            field.second = this->type_table.get(
+                this->name_mangler + this->name_mangler + placeholder->name);
           }
 
           if (field_type->get_tag() == TypeTag::PLACEHOLDER) {
@@ -854,7 +860,8 @@ public:
               return;
             }
 
-            field_type = this->type_table.get(placeholder->name);
+            field_type =
+                this->type_table.get(this->name_mangler + placeholder->name);
           }
 
           if (*field.second != *field_type) {
