@@ -76,6 +76,7 @@ public:
     FALSE,
     FLOAT_LITERAL,
     IDENTIFIER,
+    UINT_LITERAL,
     INT_LITERAL,
     NUMBER,
     STR_LITERAL,

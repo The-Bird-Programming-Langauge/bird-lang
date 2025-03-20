@@ -70,7 +70,7 @@ public:
           {Token::Type::MINUS,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
-               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::UINT},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::INT},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
            }},
           {Token::Type::STAR,
@@ -419,6 +419,10 @@ public:
     switch (primary->value.token_type) {
     case Token::Type::FLOAT_LITERAL: {
       this->stack.push(std::make_shared<FloatType>());
+      break;
+    }
+    case Token::Type::UINT_LITERAL: {
+      this->stack.push(std::make_shared<UintType>());
       break;
     }
     case Token::Type::INT_LITERAL: {
@@ -852,18 +856,6 @@ public:
       this->stack.push(to_type);
       return;
     }
-
-    // if (to_type->get_tag() == TypeTag::FLOAT &&
-    //     expr->get_tag() == TypeTag::INT) {
-    //   this->stack.push(to_type);
-    //   return;
-    // }
-
-    // if (to_type->get_tag() == TypeTag::INT &&
-    //     expr->get_tag() == TypeTag::FLOAT) {
-    //   this->stack.push(to_type);
-    //   return;
-    // }
 
     if (to_type->is_numeric() && expr->is_numeric()) {
       this->stack.push(to_type);

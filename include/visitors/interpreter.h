@@ -362,6 +362,9 @@ public:
     case Token::Type::INT_LITERAL:
       this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
       break;
+    case Token::Type::UINT_LITERAL:
+      this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
+      break;
     case Token::Type::IDENTIFIER:
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
@@ -549,15 +552,6 @@ public:
           safe_dynamic_pointer_cast<ParseType::Primitive, ParseType::Type>(
               as_cast->type);
       auto token = primitive->type;
-      // if (token.lexeme == "int" && is_type<double>(expr)) {
-      //   this->stack.push(Value((int)as_type<double>(expr)));
-      //   return;
-      // }
-
-      // if (token.lexeme == "float" && is_type<int>(expr)) {
-      //   this->stack.push(Value((double)as_type<int>(expr)));
-      //   return;
-      // }
       switch (token.token_type) {
       case Token::Type::FLOAT:
         this->stack.push(Value(numeric_to_float(expr)));

@@ -29,6 +29,9 @@ using T = Token::Type;
 
 EXP             ([Ee][-+]?[0-9]+)
 IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
+FLOAT_LIT       "-"?[0-9]+"."[0-9]+{EXP}?
+INT_LIT         "-"?[0-9]+
+UINT_LIT        [0-9]+"u"
 
 %x MULTILINE_COMMENT
 %x SINGLELINE_COMMENT
@@ -126,20 +129,24 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 "void"                  { yylval->emplace<Token>() = make_token(T::VOID);
                           return token::VOID; }
 
-[0-9]+"."[0-9]+{EXP}?   { yylval->emplace<Token>() = make_token(T::FLOAT_LITERAL);
-                          return token::FLOAT_LITERAL;} 
+{FLOAT_LIT}             { yylval->emplace<Token>() = make_token(T::FLOAT_LITERAL);
+                          return token::FLOAT_LITERAL; } 
 
-[0-9]+                  { yylval->emplace<Token>() = make_token(T::INT_LITERAL);
-                          return token::INT_LITERAL;} 
+{INT_LIT}               { yylval->emplace<Token>() = make_token(T::INT_LITERAL);
+                          return token::INT_LITERAL; }
+
+{UINT_LIT}              { yytext[strlen(yytext)-1] = '\0';
+                          yylval->emplace<Token>() = make_token(T::UINT_LITERAL);
+                          return token::UINT_LITERAL; } 
 
 
 \"(\\.|[^"\\])*\"       { yytext = yytext + 1;
                           yytext[yyleng - 2] = '\0';
                           yylval->emplace<Token>() =  make_token(T::STR_LITERAL);
-                          return token::STR_LITERAL;} 
+                          return token::STR_LITERAL; } 
 
 {IDENT}                 { yylval->emplace<Token>() = make_token(T::IDENTIFIER);
-                          return token::IDENTIFIER;} 
+                          return token::IDENTIFIER; } 
 
 
 "."                     { yylval->emplace<Token>() = make_token(T::DOT);

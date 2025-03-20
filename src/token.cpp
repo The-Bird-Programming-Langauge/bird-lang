@@ -29,6 +29,7 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::IDENTIFIER, "IDENTIFIER"},
     {Token::Type::IF, "IF"},
     {Token::Type::INT_LITERAL, "INT_LITERAL"},
+    {Token::Type::UINT_LITERAL, "UINT_LITERAL"},
     {Token::Type::LBRACE, "LBRACE"},
     {Token::Type::LBRACKET, "LBRACKET"},
     {Token::Type::LESS, "LESS"},

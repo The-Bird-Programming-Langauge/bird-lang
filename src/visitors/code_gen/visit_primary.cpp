@@ -11,6 +11,10 @@ void CodeGen::visit_primary(Primary *primary) {
     break;
   }
 
+  case Token::Type::UINT_LITERAL: {
+    throw BirdException("TODO: Implement UINT_LITERAL for codegen");
+  }
+
   case Token::Type::FLOAT_LITERAL: {
     double value = std::stod(primary->value.lexeme);
     BinaryenExpressionRef float_literal =

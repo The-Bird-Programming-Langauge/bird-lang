@@ -1,5 +1,3 @@
-// var x: int =  10 % (0 + 5) % 2 + 6 % 2 + 4 % 6;
-// print x;
+var x: uint = 1u;
 
-var x = 0 as uint % 2 as uint;
 print x;

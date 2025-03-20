@@ -44,6 +44,7 @@ VAR "var"
 CONST "const"
 IDENTIFIER _("identifier")
 INT_LITERAL _("int literal")
+UINT_LITERAL _("uint literal")
 FLOAT_LITERAL _("float literal")
 STR_LITERAL _("string literal")
 TRUE "true"
@@ -584,6 +585,7 @@ match_else_arm:
 
 primary: 
    IDENTIFIER 
+   | UINT_LITERAL
    | INT_LITERAL 
    | FLOAT_LITERAL
    | TRUE
