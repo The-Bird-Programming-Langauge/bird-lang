@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <tuple>
 
 #include "../ast_node/index.h"
 
@@ -38,7 +39,6 @@ public:
 
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
-    this->init_standard_library();
     this->env.push_env();
     this->call_table.push_env();
     this->type_table.push_env();
@@ -46,17 +46,9 @@ public:
     this->function_depth = 0;
   }
 
-  // probably better to initialize standard library in global visitor. semantic analyzer, interpreter, and codegen will reference it for information required for importing.
-  void init_standard_library()
-  {
-    this->standard_library.add_item("Print::print_i32", IMPORT_FUNCTION);
-    this->standard_library.add_item("Print::print_f64", IMPORT_FUNCTION);
-    this->standard_library.add_item("Print::print_bool", IMPORT_FUNCTION);
-    this->standard_library.add_item("Print::print_str", IMPORT_FUNCTION);
-    this->standard_library.add_item("Print::print_endline", IMPORT_FUNCTION);
-  }
+  void analyze_semantics(std::vector<std::unique_ptr<Stmt>> *stmts, ImportEnvironment& standard_library) {
+    this->standard_library = standard_library;
 
-  void analyze_semantics(std::vector<std::unique_ptr<Stmt>> *stmts) {
     for (auto &stmt : *stmts) {
       stmt->accept(this);
     }

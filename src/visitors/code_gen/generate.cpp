@@ -3,7 +3,8 @@
 #include "../../../include/visitors/static_visitor.h"
 #include <fstream>
 
-void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
+void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts, ImportEnvironment& standard_library) {
+  this->standard_library = standard_library;
   this->init_std_lib();
   this->init_array_constructor();
 

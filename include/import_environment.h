@@ -2,166 +2,110 @@
 
 #include "exceptions/bird_exception.h"
 #include "token.h"
+#include "import_path.h"
+#include "import_item.h"
 #include <string>
 #include <vector>
-#include <optional>
 #include <unordered_map>
-#include <sstream>
-
-enum ImportType
-{
-  IMPORT_NAMESPACE,
-  IMPORT_VARIABLE,
-  IMPORT_TYPE,
-  IMPORT_STRUCT,
-  IMPORT_FUNCTION,
-};
-
-class ImportItem
-{
-public:
-  ImportType type;
-  std::optional<std::unordered_map<std::string, ImportItem>> import_items;
-
-  ImportItem() = default;
-
-  ImportItem(ImportType type)
-  {
-    this->type = type;
-
-    if (type == IMPORT_NAMESPACE)
-    {
-      import_items.emplace();
-    }
-  }
-};
+#include <tuple>
 
 class ImportEnvironment
 {
 public:
-  std::unordered_map<std::string, ImportItem> import_items;
+  ImportNamespace namespace_item;
 
   ImportEnvironment() = default;
 
-  ImportEnvironment(std::unordered_map<std::string, ImportItem> import_items)
+  ImportEnvironment(ImportNamespace namespace_item)
   {
-    this->import_items = std::move(import_items);
+    this->namespace_item = namespace_item;
   }
 
-  bool contains_item(std::vector<std::string> import_path)
+  bool contains_item(ImportPath import_path)
   {
-    auto* current = &import_items;
+    ImportNamespace* current = &this->namespace_item;
 
-    for (int i = 0; i < import_path.size() - 1; i += 1)
+    for (int i = 0; i < import_path.path.size() - 1; i += 1)
     {
-      if (current->find(import_path[i]) == current->end())
+      if (current->import_items.find(import_path.path[i]) == current->import_items.end())
       {
         return false;
       }
 
-      if ((*current)[import_path[i]].type != IMPORT_NAMESPACE)
+      ImportNamespace* next_namespace_item = dynamic_cast<ImportNamespace*>(current->import_items[import_path.path[i]]);
+      if (!next_namespace_item)
       {
-        throw BirdException("'" + import_path[i] + "' is not a namespace");
+          throw BirdException("'" + import_path.path[i] + "' is not a namespace");
       }
 
-      current = &(*current)[import_path[i]].import_items.value();
+      current = next_namespace_item;
     }
 
-    return current->find(import_path.back()) != current->end();
+    return current->import_items.find(import_path.path.back()) != current->import_items.end();
   }
 
-  bool contains_item(std::vector<Token> import_path)
+  void add_item(ImportPath import_path, ImportItem* import_item)
   {
-    return this->contains_item(this->to_string_path(import_path));
-  }
+    ImportNamespace* current = &this->namespace_item;
 
-  bool contains_item(std::string import_path)
-  {
-    return this->contains_item(this->path_split(import_path));
-  }
-
-  void add_item(std::vector<std::string> import_path, ImportType import_type)
-  {
-    auto* current = &import_items;
-
-    for (int i = 0; i < import_path.size() - 1; i += 1)
+    for (int i = 0; i < import_path.path.size() - 1; i += 1)
     {
-      if (current->find(import_path[i]) == current->end())
+      if (current->import_items.find(import_path.path[i]) == current->import_items.end())
       {
-        (*current)[import_path[i]] = ImportItem(IMPORT_NAMESPACE);
+        current->import_items[import_path.path[i]] = new ImportNamespace();
       }
 
-      if ((*current)[import_path[i]].type != IMPORT_NAMESPACE)
+      ImportNamespace* namespace_item = dynamic_cast<ImportNamespace*>(current->import_items[import_path.path[i]]);
+      if (!namespace_item)
       {
-        throw BirdException("'" + import_path[i] + "' is not a namespace");
+        throw BirdException("'" + import_path.path[i] + "' is not a namespace");
       }
 
-      current = &(*current)[import_path[i]].import_items.value();
+      current = namespace_item;
     }
 
-    (*current)[import_path.back()] = ImportItem(import_type);
+    current->import_items[import_path.path.back()] = import_item;
   }
 
-  void add_item(std::vector<Token> import_path, ImportType import_type)
+  std::tuple<std::vector<ImportPath>, std::vector<ImportItem*>> get_items_recursively(ImportPath import_path)
   {
-    this->add_item(this->to_string_path(import_path), import_type);
-  }
+    std::vector<ImportPath> paths;
+    std::vector<ImportItem*> items;
 
-  void add_item(std::string import_path, ImportType import_type)
-  {
-    this->add_item(this->path_split(import_path), import_type);
-  }
+    ImportNamespace* current = &this->namespace_item;
 
-  ImportItem get_item(std::vector<std::string> import_path)
-  {
-    auto* current = &import_items;
-
-    for (int i = 0; i < import_path.size() - 1; i += 1)
+    for (int i = 0; i < import_path.path.size() - 1; i += 1)
     {
-      current = &(*current)[import_path[i]].import_items.value();
+      ImportNamespace* next_namespace_item = dynamic_cast<ImportNamespace*>(current->import_items[import_path.path[i]]);
+      if (!next_namespace_item)
+      {
+        throw BirdException("'" + import_path.path[i] + "' is not a namespace");
+      }
+
+      current = next_namespace_item;
     }
 
-    return (*current)[import_path.back()];
-  }
+    ImportItem* current_item = current->import_items[import_path.path.back()];
 
-  ImportItem get_item(std::vector<Token> import_path)
-  {
-    return this->get_item(this->to_string_path(import_path));
-  }
-
-  ImportItem get_item(std::string import_path)
-  {
-    return this->get_item(this->path_split(import_path));
-  }
-
-  // add a function that returns a list of all edge import item paths under the umbrella of a passed in namespace import item path
-
-  std::vector<std::string> to_string_path(std::vector<Token> path)
-  {
-    std::vector<std::string> result;
-  
-    for (int i = 0; i < path.size(); i += 1)
+    std::function<void(ImportPath, ImportItem*)> dfs = [&](ImportPath current_path, ImportItem* import_item)
     {
-      result.push_back(path[i].lexeme);
-    }
-
-    return result;
-  }
-
-  std::vector<std::string> path_split(std::string path)
-  {
-    std::vector<std::string> result;
-    std::stringstream ss(path);
-    std::string token;
-
-    while (std::getline(ss, token, ':'))
-    {
-        if (!token.empty())
+      if (ImportNamespace* namespace_item = dynamic_cast<ImportNamespace*>(import_item))
+      {
+        for (auto& [key, value] : namespace_item->import_items)
         {
-            result.push_back(token);
+          ImportPath new_path = current_path;
+          new_path.path.push_back(key);
+          dfs(new_path, value);
         }
-    }
+      }
+      else
+      {
+        paths.push_back(current_path);
+        items.push_back(import_item);
+      }
+    };
 
-    return result;
+    dfs(import_path, current_item);
+    return std::make_tuple(paths, items);
   }
 };

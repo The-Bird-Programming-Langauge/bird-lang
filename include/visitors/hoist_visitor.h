@@ -42,6 +42,4 @@ public:
   void visit_array_init(ArrayInit *array_init) {}
 
   void visit_match_expr(MatchExpr *match_expr) {}
-
-  // add import hoisting
 };

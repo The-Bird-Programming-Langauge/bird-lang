@@ -5,6 +5,7 @@
 #include "../stack.h"
 #include "../sym_table.h"
 #include "../type_converter.h"
+#include "../import_environment.h"
 #include "binaryen-c.h"
 #include "visitor.h"
 #include <map>
@@ -155,6 +156,7 @@ class CodeGen : public Visitor {
            }},
       };
 
+  ImportEnvironment standard_library;
   Environment<TaggedIndex> environment; // tracks the index of local variables
   Environment<std::shared_ptr<BirdType>> type_table;
   Stack<TaggedExpression> stack; // for returning values
@@ -258,7 +260,7 @@ class CodeGen : public Visitor {
 public:
   ~CodeGen();
   CodeGen();
-  void generate(std::vector<std::unique_ptr<Stmt>> *stmts);
+  void generate(std::vector<std::unique_ptr<Stmt>> *stmts, ImportEnvironment& standard_library);
 
   // for testing
   Environment<TaggedIndex> &get_environment();

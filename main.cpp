@@ -12,29 +12,47 @@
 
 extern int bird_parse(const char *input);
 
-void repl();
-void compile(std::string filename);
-void interpret(std::string filename);
+void repl(ImportEnvironment& standard_library);
+void compile(std::string filename, ImportEnvironment& standard_library);
+void interpret(std::string filename, ImportEnvironment& standard_library);
 std::string read_file(std::string filename);
 
 int main(int argc, char *argv[]) {
+  // find a better spot to initalize the standard library for visitors
+  ImportEnvironment standard_library;
+  standard_library.add_item(
+    ImportPath("Print::print_i32"),
+    new ImportFunction(std::make_tuple(BinaryenTypeInt32(), BinaryenTypeNone())));
+  standard_library.add_item(
+    ImportPath("Print::print_f64"),
+    new ImportFunction(std::make_tuple(BinaryenTypeFloat64(), BinaryenTypeNone())));
+  standard_library.add_item(
+    ImportPath("Print::print_bool"),
+    new ImportFunction(std::make_tuple(BinaryenTypeInt32(), BinaryenTypeNone())));
+  standard_library.add_item(
+    ImportPath("Print::print_str"),
+    new ImportFunction(std::make_tuple(BinaryenTypeInt32(), BinaryenTypeNone())));
+  standard_library.add_item(
+    ImportPath("Print::print_endline"),
+    new ImportFunction(std::make_tuple(BinaryenTypeNone(), BinaryenTypeNone())));
+
   if (argc == 1) {
-    repl();
+    repl(standard_library);
   } else if (argc == 2) {
     std::string filename = argv[1];
-    compile(filename);
+    compile(filename, standard_library);
   } else {
     if (!strcmp(argv[1], "-i")) {
-      interpret(std::string(argv[2]));
+      interpret(std::string(argv[2]), standard_library);
     } else if (!strcmp(argv[2], "-i")) {
-      interpret(std::string(argv[1]));
+      interpret(std::string(argv[1]), standard_library);
     }
   }
 
   return 0;
 }
 
-void repl() {
+void repl(ImportEnvironment& standard_library) {
   Interpreter interpreter;
   std::string code;
   UserErrorTracker error_tracker(code);
@@ -58,7 +76,7 @@ void repl() {
     printer.print_ast(&ast);
 #endif
 
-    semantic_analyzer.analyze_semantics(&ast);
+    semantic_analyzer.analyze_semantics(&ast, standard_library);
     if (error_tracker.has_errors()) {
       error_tracker.print_errors_and_exit();
     }
@@ -69,14 +87,14 @@ void repl() {
     }
 
     try {
-      interpreter.evaluate(&ast);
+      interpreter.evaluate(&ast, standard_library);
     } catch (std::runtime_error e) {
       std::cout << e.what() << std::endl;
     }
   }
 }
 
-void compile(std::string filename) {
+void compile(std::string filename, ImportEnvironment& standard_library) {
   const auto code = read_file(filename);
   UserErrorTracker error_tracker(code);
 
@@ -93,7 +111,7 @@ void compile(std::string filename) {
 #endif
 
   SemanticAnalyzer semantic_analyzer(error_tracker);
-  semantic_analyzer.analyze_semantics(&ast);
+  semantic_analyzer.analyze_semantics(&ast, standard_library);
 
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
@@ -106,11 +124,11 @@ void compile(std::string filename) {
     error_tracker.print_errors_and_exit();
   }
 
-  // CodeGen codegen;
-  // codegen.generate(&ast);
+  CodeGen codegen;
+  codegen.generate(&ast, standard_library);
 }
 
-void interpret(std::string filename) {
+void interpret(std::string filename, ImportEnvironment& standard_library) {
   auto code = read_file(filename);
   UserErrorTracker error_tracker(code);
 
@@ -127,7 +145,7 @@ void interpret(std::string filename) {
 #endif
 
   SemanticAnalyzer semantic_analyzer(error_tracker);
-  semantic_analyzer.analyze_semantics(&ast);
+  semantic_analyzer.analyze_semantics(&ast, standard_library);
 
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
@@ -143,7 +161,7 @@ void interpret(std::string filename) {
   Interpreter interpreter;
 
   try {
-    interpreter.evaluate(&ast);
+    interpreter.evaluate(&ast, standard_library);
   } catch (std::runtime_error e) {
     std::cout << e.what() << std::endl;
   }

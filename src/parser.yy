@@ -95,8 +95,6 @@ SLASH "/"
 STAR "*"
 QUESTION "?"
 COLON_COLON "::"
-
-%token 
 SEMICOLON ";"
 COMMA ","
 RBRACE "}"

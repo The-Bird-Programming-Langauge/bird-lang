@@ -114,9 +114,6 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 "from"                 {yylval->emplace<Token>() = make_token(T::FROM);
                           return token::FROM; }
 
-{TYPE_IDENT}            { yylval->emplace<Token>() = make_token(T::TYPE_LITERAL);
-                          return token::TYPE_LITERAL;} 
-
 "int"                   { yylval->emplace<Token>() = make_token(T::INT);
                           return token::INT; }
 
