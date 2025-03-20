@@ -9,7 +9,9 @@ void CodeGen::visit_return_stmt(ReturnStmt *return_stmt) {
     auto result = this->stack.pop();
 
     if (*result.type != *func_return_type.type) {
-      throw BirdException("return type mismatch");
+      throw BirdException("return type mismatch. Expected " +
+                          func_return_type.type->to_string() + ", found " +
+                          result.type->to_string());
     }
 
     this->stack.push(TaggedExpression(BinaryenReturn(this->mod, result.value),

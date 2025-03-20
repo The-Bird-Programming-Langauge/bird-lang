@@ -7,7 +7,7 @@
 #include "include/visitors/ast_printer.h"
 #include "include/visitors/code_gen.h"
 #include "include/visitors/interpreter.h"
-// #include "include/visitors/monomorphization.h"
+#include "include/visitors/monomorphization.h"
 #include "include/visitors/semantic_analyzer.h"
 #include "include/visitors/type_checker.h"
 
@@ -59,15 +59,19 @@ void repl() {
     printer.print_ast(&ast);
 #endif
 
-    // Monomorphizer monomorphizer;
-    // monomorphizer.monomorphize(&ast);
-
     semantic_analyzer.analyze_semantics(&ast);
     if (error_tracker.has_errors()) {
       error_tracker.print_errors_and_exit();
     }
 
     type_checker.check_types(&ast);
+    if (error_tracker.has_errors()) {
+      error_tracker.print_errors_and_exit();
+    }
+
+    Monomorphizer monomorphizer(type_checker);
+    monomorphizer.monomorphize(&ast);
+
     if (error_tracker.has_errors()) {
       error_tracker.print_errors_and_exit();
     }
@@ -96,9 +100,6 @@ void compile(std::string filename) {
   printer.print_ast(&ast);
 #endif
 
-  // Monomorphizer monomorphizer;
-  // monomorphizer.monomorphize(&ast);
-
   SemanticAnalyzer semantic_analyzer(error_tracker);
   semantic_analyzer.analyze_semantics(&ast);
 
@@ -108,6 +109,13 @@ void compile(std::string filename) {
 
   TypeChecker type_checker(error_tracker);
   type_checker.check_types(&ast);
+
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
+
+  Monomorphizer monomorphizer(type_checker);
+  monomorphizer.monomorphize(&ast);
 
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
@@ -133,9 +141,6 @@ void interpret(std::string filename) {
   printer.print_ast(&ast);
 #endif
 
-  // Monomorphizer monomorphizer;
-  // monomorphizer.monomorphize(&ast);
-
   SemanticAnalyzer semantic_analyzer(error_tracker);
   semantic_analyzer.analyze_semantics(&ast);
 
@@ -145,6 +150,13 @@ void interpret(std::string filename) {
 
   TypeChecker type_checker(error_tracker);
   type_checker.check_types(&ast);
+
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
+
+  Monomorphizer monomorphizer(type_checker);
+  monomorphizer.monomorphize(&ast);
 
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();

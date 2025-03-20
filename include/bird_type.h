@@ -1,6 +1,7 @@
 #pragma once
 
 #include "exceptions/bird_exception.h"
+#include "parse_type.h"
 #include "token.h"
 #include <algorithm>
 #include <iostream>
@@ -21,7 +22,8 @@ enum class TypeTag {
   ARRAY,
   FUNCTION,
   PLACEHOLDER,
-  LAMBDA
+  LAMBDA,
+  GENERIC_FUNCTION
 };
 
 struct BirdType {
@@ -139,6 +141,18 @@ struct ArrayType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::ARRAY; }
   std::string to_string() const { return element_type->to_string() + "[]"; }
+};
+
+struct GenericFunction : BirdType {
+  Token identifier;
+  std::shared_ptr<BirdType> function;
+  GenericFunction(Token identifier, std::shared_ptr<BirdType> function)
+      : identifier(identifier), function(function) {}
+  ~GenericFunction() {}
+  bool operator==(BirdType &other) const { return true; }
+  bool operator!=(BirdType &other) const { return !(*this == other); }
+  TypeTag get_tag() const { return TypeTag::GENERIC_FUNCTION; };
+  std::string to_string() const { return identifier.lexeme; }
 };
 
 struct BirdFunction : BirdType {

@@ -100,6 +100,7 @@ public:
       std::cout << "<";
       for (auto identifier : func->generic_identifiers) {
         std::cout << identifier.lexeme;
+        std::cout << ", ";
       }
       std::cout << ">";
     }
@@ -176,6 +177,7 @@ public:
       std::cout << "<";
       for (auto arg : call->type_args) {
         print_parse_type(arg);
+        std::cout << ", ";
       }
       std::cout << ">";
     }

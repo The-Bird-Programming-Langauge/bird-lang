@@ -33,6 +33,7 @@ public:
   std::optional<std::shared_ptr<BirdType>> return_type;
   UserErrorTracker &user_error_tracker;
   TypeConverter type_converter;
+  std::unordered_map<std::string, Func *> generic_functions;
 
   std::unordered_map<
       std::string,
@@ -155,6 +156,11 @@ public:
   void visit_decl_stmt(DeclStmt *decl_stmt) {
     decl_stmt->value->accept(this);
     auto result = decl_stmt->value->get_type();
+    if (result->get_tag() == TypeTag::ERROR) {
+      this->env.declare(decl_stmt->identifier.lexeme,
+                        std::make_shared<ErrorType>());
+      return;
+    }
 
     if (result->get_tag() == TypeTag::VOID) {
       this->user_error_tracker.type_error("cannot declare void type",
@@ -167,6 +173,16 @@ public:
     if (decl_stmt->type.has_value()) {
       std::shared_ptr<BirdType> type =
           this->type_converter.convert(decl_stmt->type.value());
+      if (type->get_tag() == TypeTag::ERROR) {
+        this->user_error_tracker.type_error(
+            "referenced to undeclared type: " +
+                decl_stmt->type.value()->get_token().lexeme,
+            decl_stmt->type.value()->get_token());
+
+        this->env.declare(decl_stmt->identifier.lexeme,
+                          std::make_unique<ErrorType>());
+        return;
+      }
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
             "in declaration. Expected " + type->to_string() + ", found " +
@@ -274,6 +290,10 @@ public:
     const_stmt->value->accept(this);
     auto result = const_stmt->value->get_type();
 
+    if (result->get_tag() == TypeTag::ERROR) {
+      return;
+    }
+
     if (result->get_tag() == TypeTag::VOID) {
       this->user_error_tracker.type_error("cannot declare void type",
                                           const_stmt->identifier);
@@ -285,6 +305,15 @@ public:
     if (const_stmt->type.has_value()) {
       std::shared_ptr<BirdType> type =
           this->type_converter.convert(const_stmt->type.value());
+      if (type->get_tag() == TypeTag::ERROR) {
+        this->user_error_tracker.type_error(
+            "referenced to undeclared type: " +
+                const_stmt->type.value()->get_token().lexeme,
+            const_stmt->type.value()->get_token());
+        this->env.declare(const_stmt->identifier.lexeme,
+                          std::make_shared<ErrorType>());
+        return;
+      }
 
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
@@ -510,6 +539,17 @@ public:
 
   void visit_func_helper(Func *func,
                          const std::shared_ptr<BirdFunction> bird_function) {
+    if (func->return_type.has_value()) {
+      auto return_type = type_converter.convert(func->return_type.value());
+      if (return_type->get_tag() == TypeTag::ERROR) {
+        this->user_error_tracker.type_error(
+            "reference to undeclared type " +
+                func->return_type.value()->get_token().lexeme,
+            func->return_type.value()->get_token());
+        return;
+      }
+    }
+
     this->found_return = false;
     auto previous_return_type = this->return_type;
     this->return_type = bird_function->ret;
@@ -517,8 +557,16 @@ public:
     this->env.push_env();
 
     for (auto &param : func->param_list) {
-      this->env.declare(param.first.lexeme,
-                        this->type_converter.convert(param.second));
+      auto param_type = this->type_converter.convert(param.second);
+      if (param_type->get_tag() == TypeTag::ERROR) {
+        user_error_tracker.type_error("reference to undeclared type: " +
+                                          param.second->get_token().lexeme,
+                                      param.second->get_token());
+        this->return_type = previous_return_type;
+        this->env.pop_env();
+        return;
+      }
+      this->env.declare(param.first.lexeme, param_type);
     }
 
     for (auto &stmt : dynamic_cast<Block *>(func->block.get())
@@ -541,6 +589,14 @@ public:
 
   void visit_func(Func *func) {
     const auto bird_function = create_func(func);
+    if (func->generic_identifiers.size()) {
+      this->generic_functions[func->identifier.lexeme] = func;
+      auto generic_function_type =
+          std::make_shared<GenericFunction>(func->identifier, bird_function);
+      this->env.declare(func->identifier.lexeme, generic_function_type);
+      func->set_type(generic_function_type);
+      return;
+    }
     this->env.declare(func->identifier.lexeme, bird_function);
     this->visit_func_helper(func, bird_function);
     func->set_type(bird_function);
@@ -597,7 +653,7 @@ public:
         }
       }
 
-      if (*arg != *param) {
+      if (*param != *arg) {
         this->user_error_tracker.type_mismatch(
             "expected " + param->to_string() + ", found " + arg->to_string(),
             call_identifier);
@@ -609,6 +665,35 @@ public:
   void visit_call(Call *call) {
     call->callable->accept(this);
     auto value = call->callable->get_type();
+    if (value->get_tag() == TypeTag::GENERIC_FUNCTION) {
+      auto generic_function = std::dynamic_pointer_cast<GenericFunction>(value);
+      auto function_type =
+          std::dynamic_pointer_cast<BirdFunction>(generic_function->function);
+      auto function =
+          this->generic_functions[generic_function->identifier.lexeme];
+
+      if (function->generic_identifiers.size() != call->type_args.size()) {
+        this->user_error_tracker.type_error(
+            "Expected " + std::to_string(function->generic_identifiers.size()) +
+                " type arguments, found " +
+                std::to_string(call->type_args.size()),
+            call->call_token);
+        return;
+      }
+
+      for (auto type_arg : call->type_args) {
+        auto result = this->type_converter.convert(type_arg);
+        if (result->get_tag() == TypeTag::ERROR) {
+          this->user_error_tracker.type_error("reference to undeclared type " +
+                                                  type_arg->get_token().lexeme,
+                                              type_arg->get_token());
+        }
+      }
+
+      call->set_type(function_type->ret);
+      return;
+    }
+
     if (value->get_tag() != TypeTag::FUNCTION &&
         value->get_tag() != TypeTag::LAMBDA) {
       this->user_error_tracker.type_mismatch(
@@ -714,11 +799,15 @@ public:
         struct_decl->fields.begin(), struct_decl->fields.end(),
         std::back_inserter(struct_fields),
         [&](std::pair<Token, std::shared_ptr<ParseType::Type>> &field) {
-          return std::make_pair(field.first.lexeme,
-                                this->type_converter.convert(field.second));
+          auto type = this->type_converter.convert(field.second);
+          if (type->get_tag() == TypeTag::ERROR) {
+            user_error_tracker.type_error("reference to undeclared type " +
+                                              field.second->get_token().lexeme,
+                                          field.second->get_token());
+          }
+          return std::make_pair(field.first.lexeme, type);
         });
 
-    // TODO: check invalid field types
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
     this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
@@ -901,6 +990,13 @@ public:
 
     auto to_type = this->type_converter.convert(as_cast->type);
 
+    if (to_type->get_tag() == TypeTag::ERROR) {
+      this->user_error_tracker.type_error("reference to undeclared type " +
+                                              as_cast->type->get_token().lexeme,
+                                          as_cast->type->get_token());
+      return;
+    }
+
     if (*to_type == *expr) {
       as_cast->set_type(to_type);
       return;
@@ -1068,6 +1164,17 @@ public:
   }
 
   void visit_lambda(Lambda *lambda) {
+    if (lambda->return_type.has_value()) {
+      auto return_type = type_converter.convert(lambda->return_type.value());
+      if (return_type->get_tag() == TypeTag::ERROR) {
+        this->user_error_tracker.type_error(
+            "reference to undeclared type " +
+                lambda->return_type.value()->get_token().lexeme,
+            lambda->return_type.value()->get_token());
+        return;
+      }
+    }
+
     this->found_return = false;
     auto previous_return_type = this->return_type;
     auto ret_type = lambda->return_type.has_value()
@@ -1081,7 +1188,14 @@ public:
         lambda->param_list.begin(), lambda->param_list.end(),
         std::back_inserter(params),
         [&](std::pair<Token, std::shared_ptr<ParseType::Type>> param) {
-          return type_converter.convert(param.second);
+          auto type = type_converter.convert(param.second);
+          if (type->get_tag() == TypeTag::ERROR) {
+            this->user_error_tracker.type_error(
+                "reference to undeclared type " +
+                    param.second->get_token().lexeme,
+                param.second->get_token());
+          }
+          return type;
         });
 
     this->env.push_env();
