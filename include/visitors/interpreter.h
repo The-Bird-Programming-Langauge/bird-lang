@@ -35,6 +35,8 @@ public:
   std::unordered_map<std::string, std::unordered_map<std::string, Callable>>
       v_table;
 
+  std::string name_mangler = "";
+
   Interpreter() : type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
     this->type_table.push_env();
@@ -69,11 +71,13 @@ public:
     auto result = std::move(this->stack.pop());
     result.is_mutable = true;
 
-    this->env.declare(decl_stmt->identifier.lexeme, std::move(result));
+    this->env.declare(this->name_mangler + decl_stmt->identifier.lexeme,
+                      std::move(result));
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
-    auto previous_value = this->env.get(assign_expr->identifier.lexeme);
+    auto previous_value =
+        this->env.get(this->name_mangler + assign_expr->identifier.lexeme);
 
     assign_expr->value->accept(this);
     auto value = std::move(this->stack.pop());
@@ -108,7 +112,8 @@ public:
                                assign_expr->assign_operator.lexeme);
     }
 
-    this->env.set(assign_expr->identifier.lexeme, previous_value);
+    this->env.set(this->name_mangler + assign_expr->identifier.lexeme,
+                  previous_value);
   }
 
   void visit_expr_stmt(ExprStmt *expr_stmt) { expr_stmt->expr->accept(this); }
@@ -132,7 +137,8 @@ public:
 
     auto result = std::move(this->stack.pop());
 
-    this->env.declare(const_stmt->identifier.lexeme, std::move(result));
+    this->env.declare(this->name_mangler + const_stmt->identifier.lexeme,
+                      std::move(result));
   }
 
   void visit_while_stmt(WhileStmt *while_stmt) {
@@ -364,10 +370,11 @@ public:
       this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
       break;
     case Token::Type::IDENTIFIER:
-      this->stack.push(this->env.get(primary->value.lexeme));
+      this->stack.push(
+          this->env.get(this->name_mangler + primary->value.lexeme));
       break;
     case Token::Type::SELF:
-      this->stack.push(this->env.get("self"));
+      this->stack.push(this->env.get(this->name_mangler + "self"));
       break;
     default:
       throw std::runtime_error("undefined primary value");
@@ -386,7 +393,7 @@ public:
   }
 
   void visit_func(Func *func) {
-    this->env.declare(func->identifier.lexeme,
+    this->env.declare(this->name_mangler + func->identifier.lexeme,
                       Value(this->create_callable(func->param_list, func->block,
                                                   func->return_type)));
   }
@@ -445,7 +452,7 @@ public:
 
   void visit_type_stmt(TypeStmt *type_stmt) {
     this->type_table.declare(
-        type_stmt->identifier.lexeme,
+        this->name_mangler + type_stmt->identifier.lexeme,
         this->type_converter.convert(type_stmt->type_token));
   }
 
@@ -471,7 +478,7 @@ public:
         });
 
     this->type_table.declare(
-        struct_decl->identifier.lexeme,
+        this->name_mangler + struct_decl->identifier.lexeme,
         std::make_shared<StructType>(struct_decl->identifier.lexeme,
                                      std::move(struct_fields)));
 
@@ -498,7 +505,8 @@ public:
     Struct struct_instance =
         Struct(struct_initialization->identifier.lexeme,
                std::make_shared<std::unordered_map<std::string, Value>>());
-    auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+    auto type = this->type_table.get(this->name_mangler +
+                                     struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -630,7 +638,8 @@ public:
         create_callable(method->param_list, method->block, method->return_type);
     this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
         callable;
-    this->env.declare("0" + method->class_identifier.lexeme +
+    this->env.declare(this->name_mangler + "0" +
+                          method->class_identifier.lexeme +
                           method->identifier.lexeme,
                       Value(callable));
   }
@@ -656,5 +665,26 @@ public:
 
     this->stack.push(Value(this->create_callable(
         lambda->param_list, lambda->block, lambda->return_type)));
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    auto previous_mangler = this->name_mangler;
+    this->name_mangler += (_namespace->identifier.lexeme + "::");
+
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+
+    this->name_mangler = previous_mangler;
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    auto previous_mangler = this->name_mangler;
+
+    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+
+    scope_resolution->identifier->accept(this);
+
+    this->name_mangler = previous_mangler;
   }
 };

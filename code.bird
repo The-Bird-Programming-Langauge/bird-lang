@@ -1,11 +1,31 @@
-fn foobar(bar: (int)void) -> (int)void {
-        return bar;
+namespace Math {
+        var x: int = 0;
+        fn add_two(a: int, b: int) -> int {
+                return a + b;
+        }
+        namespace Trig {
+                fn sin(x: float) -> float {
+                        return 3.14159;
+                }
+
+                struct Triangle {
+                        a: int;
+                        b: int; 
+                        c: int;
+                };
+        }
 }
 
-fn shoebar(x: int) -> void {
-        print x;
-}
+print Math::add_two(1, 2);
 
+print Math::Trig::sin(1.2);
 
-var x: (int)void = shoebar;
-x(3);
+var t: Math::Trig::Triangle = Math::Trig::Triangle {
+        a = 3,
+        b = 4,
+        c = 5
+};
+
+print t.a;
+print t.b;
+print t.c;

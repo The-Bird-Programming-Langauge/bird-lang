@@ -73,6 +73,7 @@ XOR "xor"
 OR "or"
 NOT "not"
 MATCH "match"
+NAMESPACE "namespace"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -86,6 +87,7 @@ GREATER ">"
 GREATER_EQUAL ">="
 LESS "<"
 LESS_EQUAL "<="
+COLON_COLON "::"
 MINUS "-"
 PERCENT "%"
 PLUS "+"
@@ -123,6 +125,8 @@ continue_stmt
 expr_stmt
 type_stmt
 struct_decl
+namespace_stmt
+namespace_declaration_stmt
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -146,6 +150,7 @@ xor_expr
 or_expr
 match_else_arm
 lambda
+scope_resolution
 
 %type <std::unique_ptr<Subscript>>
 subscript_expr
@@ -180,6 +185,8 @@ maybe_expr
 %type <std::vector<std::unique_ptr<Stmt>>>
 maybe_top_level_stmts
 top_level_stmts
+namespace_declaration_stmts
+maybe_namespace_stmts
 maybe_stmts
 stmts
 
@@ -253,6 +260,9 @@ type_identifier_list
 %left MATCH_EXPR
    MATCH
 
+%left SCOPE_RESOLUTION_EXPR
+   COLON_COLON
+
 %nonassoc THEN
 %nonassoc ELSE
 
@@ -291,9 +301,35 @@ stmt:
    | for_stmt { $$ = std::move($1); }
    | return_stmt SEMICOLON { $$ = std::move($1); }
    | break_stmt SEMICOLON { $$ = std::move($1); }
+   | namespace_stmt { $$ = std::move($1); }
    | continue_stmt SEMICOLON { $$ = std::move($1); }
    | expr_stmt SEMICOLON { $$ = std::move($1); }
    | type_stmt SEMICOLON { $$ = std::move($1); }
+
+maybe_namespace_stmts:
+   %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   | namespace_declaration_stmts { $$ = std::move($1); }
+
+namespace_declaration_stmts:
+   namespace_declaration_stmt 
+      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   | namespace_declaration_stmts namespace_declaration_stmt 
+      { $1.push_back(std::move($2)); $$ = std::move($1); }
+
+namespace_declaration_stmt:
+   namespace_stmt { $$ = std::move($1); }
+   | decl_stmt SEMICOLON { $$ = std::move($1); }
+   | const_stmt SEMICOLON { $$ = std::move($1); }
+   | struct_decl SEMICOLON { $$ = std::move($1); }
+   | func { $$ = std::move($1); }
+
+namespace_stmt:
+   NAMESPACE IDENTIFIER LBRACE maybe_namespace_stmts RBRACE
+      { $$ = std::make_unique<NamespaceStmt>($2, std::move($4)); }
+
+scope_resolution:
+    IDENTIFIER COLON_COLON expr %prec SCOPE_RESOLUTION_EXPR
+    { $$ = std::make_unique<ScopeResolutionExpr>($1, std::move($3)); }
 
 struct_decl:
    STRUCT IDENTIFIER LBRACE maybe_member_decls RBRACE 
@@ -461,6 +497,7 @@ expr:
    | struct_initialization { $$ = std::move($1); }
    | array_initialization { $$ = std::move($1); }
    | match { $$ = std::move($1); }
+   | scope_resolution { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
 

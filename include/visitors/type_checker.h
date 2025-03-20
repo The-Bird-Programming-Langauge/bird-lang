@@ -25,6 +25,7 @@
 class TypeChecker : public Visitor {
 public:
   CoreCallTable core_call_table;
+  std::string name_mangler = "";
 
   Environment<std::shared_ptr<BirdType>> env;
   Environment<std::shared_ptr<BirdType>> type_table;
@@ -145,6 +146,7 @@ public:
     while (!this->stack.empty()) {
       this->stack.pop();
     }
+    std::cout << "done tc" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -164,7 +166,7 @@ public:
     if (result->get_tag() == TypeTag::VOID) {
       this->user_error_tracker.type_error("cannot declare void type",
                                           decl_stmt->identifier);
-      this->env.declare(decl_stmt->identifier.lexeme,
+      this->env.declare(this->name_mangler + decl_stmt->identifier.lexeme,
                         std::make_shared<ErrorType>());
       return;
     }
@@ -178,20 +180,22 @@ public:
                 result->to_string(),
             decl_stmt->type.value()->get_token());
 
-        this->env.declare(decl_stmt->identifier.lexeme,
+        this->env.declare(this->name_mangler + decl_stmt->identifier.lexeme,
                           std::make_unique<ErrorType>());
         return;
       }
     }
 
-    this->env.declare(decl_stmt->identifier.lexeme, result);
+    this->env.declare(this->name_mangler + decl_stmt->identifier.lexeme,
+                      result);
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
-    if (!this->env.contains(assign_expr->identifier.lexeme)) {
+    if (!this->env.contains(this->name_mangler +
+                            assign_expr->identifier.lexeme)) {
       this->user_error_tracker.type_error("identifier not declared",
                                           assign_expr->identifier);
-      this->env.set(assign_expr->identifier.lexeme,
+      this->env.set(this->name_mangler + assign_expr->identifier.lexeme,
                     std::make_shared<ErrorType>());
       return;
     }
@@ -205,14 +209,15 @@ public:
       if (*previous != *result) {
         this->user_error_tracker.type_mismatch("in assignment",
                                                assign_expr->assign_operator);
-        this->env.set(assign_expr->identifier.lexeme,
+        this->env.set(this->name_mangler + assign_expr->identifier.lexeme,
                       std::make_shared<ErrorType>());
 
         this->stack.push(std::make_shared<ErrorType>());
         return;
       }
 
-      this->env.set(assign_expr->identifier.lexeme, result);
+      this->env.set(this->name_mangler + assign_expr->identifier.lexeme,
+                    result);
 
       this->stack.push(result);
       return;
@@ -226,7 +231,7 @@ public:
         type_map.end()) {
       this->user_error_tracker.type_mismatch("in assignment",
                                              assign_expr->assign_operator);
-      this->env.set(assign_expr->identifier.lexeme,
+      this->env.set(this->name_mangler + assign_expr->identifier.lexeme,
                     std::make_shared<ErrorType>());
 
       this->stack.push(std::make_shared<ErrorType>());
@@ -236,7 +241,8 @@ public:
     auto new_type = type_map.at({previous->get_tag(), result->get_tag()});
 
     auto new_type_bird_type = bird_type_type_to_bird_type(new_type);
-    this->env.set(assign_expr->identifier.lexeme, new_type_bird_type);
+    this->env.set(this->name_mangler + assign_expr->identifier.lexeme,
+                  new_type_bird_type);
 
     this->stack.push(new_type_bird_type);
   }
@@ -281,7 +287,7 @@ public:
     if (result->get_tag() == TypeTag::VOID) {
       this->user_error_tracker.type_error("cannot declare void type",
                                           const_stmt->identifier);
-      this->env.declare(const_stmt->identifier.lexeme,
+      this->env.declare(this->name_mangler + const_stmt->identifier.lexeme,
                         std::make_shared<ErrorType>());
       return;
     }
@@ -295,13 +301,14 @@ public:
             "in declaration. Expected " + type->to_string() + ", found " +
                 result->to_string(),
             const_stmt->type.value()->get_token());
-        this->env.declare(const_stmt->identifier.lexeme,
+        this->env.declare(this->name_mangler + const_stmt->identifier.lexeme,
                           std::make_shared<ErrorType>());
         return;
       }
     }
 
-    this->env.declare(const_stmt->identifier.lexeme, result);
+    this->env.declare(this->name_mangler + const_stmt->identifier.lexeme,
+                      result);
   }
 
   void visit_while_stmt(WhileStmt *while_stmt) {
@@ -430,11 +437,12 @@ public:
       break;
     }
     case Token::Type::IDENTIFIER: {
-      this->stack.push(this->env.get(primary->value.lexeme));
+      this->stack.push(
+          this->env.get(this->name_mangler + primary->value.lexeme));
       break;
     }
     case Token::Type::SELF: {
-      this->stack.push(this->env.get("self"));
+      this->stack.push(this->env.get(this->name_mangler + "self"));
       break;
     }
     default: {
@@ -520,7 +528,7 @@ public:
     this->env.push_env();
 
     for (auto &param : func->param_list) {
-      this->env.declare(param.first.lexeme,
+      this->env.declare(this->name_mangler + param.first.lexeme,
                         this->type_converter.convert(param.second));
     }
 
@@ -544,7 +552,8 @@ public:
 
   void visit_func(Func *func) {
     const auto bird_function = create_func(func);
-    this->env.declare(func->identifier.lexeme, bird_function);
+    this->env.declare(this->name_mangler + func->identifier.lexeme,
+                      bird_function);
     this->visit_func_helper(func, bird_function);
   }
 
@@ -1103,7 +1112,7 @@ public:
 
     this->env.push_env();
     for (auto &param : lambda->param_list) {
-      this->env.declare(param.first.lexeme,
+      this->env.declare(this->name_mangler + param.first.lexeme,
                         this->type_converter.convert(param.second));
     }
 
@@ -1122,5 +1131,26 @@ public:
     this->return_type = previous_return_type;
 
     this->stack.push(std::make_shared<LambdaFunction>(params, ret_type));
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    auto previous_mangler = this->name_mangler;
+    this->name_mangler += (_namespace->identifier.lexeme + "::");
+
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+
+    this->name_mangler = previous_mangler;
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    auto previous_mangler = this->name_mangler;
+
+    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+
+    scope_resolution->identifier->accept(this);
+
+    this->name_mangler = previous_mangler;
   }
 };

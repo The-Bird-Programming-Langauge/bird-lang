@@ -26,6 +26,7 @@ public:
   Environment<SemanticValue> env;
   Environment<SemanticType> type_table;
   UserErrorTracker &user_error_tracker;
+  std::string name_mangler = "";
   int loop_depth;
   int function_depth;
   bool in_method = false;
@@ -43,6 +44,7 @@ public:
     for (auto &stmt : *stmts) {
       stmt->accept(this);
     }
+    std::cout << "done sa" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -65,18 +67,21 @@ public:
     }
 
     decl_stmt->value->accept(this);
-    this->env.declare(decl_stmt->identifier.lexeme, SemanticValue(true));
+    this->env.declare(this->name_mangler + decl_stmt->identifier.lexeme,
+                      SemanticValue(true));
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
-    if (!this->env.contains(assign_expr->identifier.lexeme)) {
+    if (!this->env.contains(this->name_mangler +
+                            assign_expr->identifier.lexeme)) {
       this->user_error_tracker.semantic_error(
           "Variable '" + assign_expr->identifier.lexeme + "' does not exist.",
           assign_expr->identifier);
       return;
     }
 
-    auto previous_value = this->env.get(assign_expr->identifier.lexeme);
+    auto previous_value =
+        this->env.get(this->name_mangler + assign_expr->identifier.lexeme);
 
     if (!previous_value.is_mutable) {
       this->user_error_tracker.semantic_error(
@@ -107,7 +112,8 @@ public:
 
     const_stmt->value->accept(this);
 
-    this->env.declare(const_stmt->identifier.lexeme, SemanticValue());
+    this->env.declare(this->name_mangler + const_stmt->identifier.lexeme,
+                      SemanticValue());
   }
 
   void visit_while_stmt(WhileStmt *while_stmt) {
@@ -151,7 +157,7 @@ public:
 
   void visit_primary(Primary *primary) {
     if (primary->value.token_type == Token::Type::IDENTIFIER &&
-        !this->env.contains(primary->value.lexeme)) {
+        !this->env.contains(this->name_mangler + primary->value.lexeme)) {
       this->user_error_tracker.semantic_error(
           "Variable '" + primary->value.lexeme + "' does not exist.",
           primary->value);
@@ -173,11 +179,12 @@ public:
 
   void visit_func_with_name(std::string name, Func *func) {
     this->function_depth += 1;
-    this->env.declare(name, SemanticValue());
+    this->env.declare(this->name_mangler + name, SemanticValue());
     this->env.push_env();
 
     for (auto &param : func->param_list) {
-      this->env.declare(param.first.lexeme, SemanticValue(true));
+      this->env.declare(this->name_mangler + param.first.lexeme,
+                        SemanticValue(true));
     }
 
     auto block = std::dynamic_pointer_cast<Block>(func->block);
@@ -256,7 +263,8 @@ public:
       return;
     }
 
-    this->type_table.declare(type_stmt->identifier.lexeme, SemanticType());
+    this->type_table.declare(this->name_mangler + type_stmt->identifier.lexeme,
+                             SemanticType());
   }
 
   bool identifer_in_any_environment(std::string identifer) {
@@ -270,7 +278,8 @@ public:
   };
 
   void visit_struct_decl(StructDecl *struct_decl) {
-    this->type_table.declare(struct_decl->identifier.lexeme, SemanticType());
+    this->type_table.declare(
+        this->name_mangler + struct_decl->identifier.lexeme, SemanticType());
 
     for (auto method : struct_decl->fns) {
       method->accept(this);
@@ -335,10 +344,34 @@ public:
     this->function_depth += 1;
     this->env.push_env();
     for (auto &param : lambda->param_list) {
-      this->env.declare(param.first.lexeme, SemanticValue(true));
+      this->env.declare(this->name_mangler + param.first.lexeme,
+                        SemanticValue(true));
     }
     lambda->block->accept(this);
     this->env.pop_env();
     this->function_depth -= 1;
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    auto previous_mangler = this->name_mangler;
+    this->name_mangler += (_namespace->identifier.lexeme + "::");
+
+    std::cout << "mangle: " << name_mangler << std::endl;
+
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+
+    this->name_mangler = previous_mangler;
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    auto previous_mangler = this->name_mangler;
+
+    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+
+    scope_resolution->identifier->accept(this);
+
+    this->name_mangler = previous_mangler;
   }
 };
