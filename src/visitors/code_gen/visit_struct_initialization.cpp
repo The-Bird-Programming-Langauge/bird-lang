@@ -3,12 +3,13 @@
 
 void CodeGen::visit_struct_initialization(
     StructInitialization *struct_initialization) {
-  auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+  auto mangled_name =
+      this->name_mangler + struct_initialization->identifier.lexeme;
+  auto type = this->type_table.get(mangled_name);
 
   std::shared_ptr<StructType> struct_type =
       safe_dynamic_pointer_cast<StructType>(type);
-  if (struct_constructors.find(struct_initialization->identifier.lexeme) ==
-      struct_constructors.end()) {
+  if (struct_constructors.find(mangled_name) == struct_constructors.end()) {
     this->create_struct_constructor(struct_type);
   }
 

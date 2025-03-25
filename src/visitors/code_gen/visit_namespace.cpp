@@ -3,10 +3,9 @@
 #include <memory>
 
 void CodeGen::visit_namespace(NamespaceStmt *_namespace) {
-  // std::cout << "visiting namespace... " << _namespace->identifier.lexeme
-  //           << std::endl;
   auto previous_mangler = this->name_mangler;
   this->name_mangler += (_namespace->identifier.lexeme + "::");
+  this->type_converter.set_namespace(this->name_mangler);
 
   std::vector<BinaryenExpressionRef> children;
   for (auto &member : _namespace->members) {
@@ -17,6 +16,7 @@ void CodeGen::visit_namespace(NamespaceStmt *_namespace) {
   }
 
   this->name_mangler = previous_mangler;
+  this->type_converter.set_namespace(previous_mangler);
 
   this->stack.push(
       BinaryenBlock(this->mod, _namespace->identifier.lexeme.c_str(),

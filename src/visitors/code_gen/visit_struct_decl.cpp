@@ -1,11 +1,10 @@
 #include "../../../include/visitors/code_gen.h"
-#include "bird_type.h"
 #include <algorithm>
 #include <binaryen-c.h>
 
 void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
   using bird_pair = std::pair<std::string, std::shared_ptr<BirdType>>;
-
+  auto mangled_name = this->name_mangler + struct_decl->identifier.lexeme;
   std::vector<bird_pair> struct_fields;
   std::transform(
       struct_decl->fields.begin(), struct_decl->fields.end(),
@@ -26,10 +25,9 @@ void CodeGen::visit_struct_decl(StructDecl *struct_decl) {
                      type_is_on_heap(second.second->get_tag());
             });
 
-  this->struct_name_to_num_pointers[struct_decl->identifier.lexeme] = count;
-  type_table.declare(struct_decl->identifier.lexeme,
-                     std::make_shared<StructType>(
-                         struct_decl->identifier.lexeme, struct_fields));
+  this->struct_name_to_num_pointers[mangled_name] = count;
+  type_table.declare(mangled_name,
+                     std::make_shared<StructType>(mangled_name, struct_fields));
 
   for (auto &method : struct_decl->fns) {
     method->accept(this);

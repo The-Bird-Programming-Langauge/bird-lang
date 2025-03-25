@@ -10,6 +10,16 @@ namespace Math {
         fn get_pi() -> float {
                 return 3.14159;
         }
+
+        struct Point {
+                x: int;
+                y: int;
+        };
+
+        var p: Point = Point {
+                x = 2,
+                y = 2
+        };
 }
 
 print Math::pi;
@@ -19,3 +29,14 @@ print Math::y;
 print Math::z;
 
 print Math::get_pi();
+
+var p: Math::Point = Math::Point {
+        x = 1,
+        y = 2
+};
+
+print p.x;
+print p.y;
+
+print Math::p.x;
+print Math::p.y;

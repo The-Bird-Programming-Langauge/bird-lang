@@ -717,6 +717,7 @@ public:
   }
 
   void visit_struct_decl(StructDecl *struct_decl) {
+    auto mangled_name = this->name_mangler + struct_decl->identifier.lexeme;
     std::vector<std::pair<std::string, std::shared_ptr<BirdType>>>
         struct_fields;
     std::transform(
@@ -728,10 +729,10 @@ public:
         });
 
     // TODO: check invalid field types
-    auto struct_type = std::make_shared<StructType>(
-        struct_decl->identifier.lexeme, struct_fields);
-    this->type_table.declare(
-        this->name_mangler + struct_decl->identifier.lexeme, struct_type);
+    auto struct_type =
+        std::make_shared<StructType>(mangled_name, struct_fields);
+
+    this->type_table.declare(mangled_name, struct_type);
 
     for (auto &method : struct_decl->fns) {
       method->accept(this);
@@ -739,8 +740,7 @@ public:
 
     for (auto &method : struct_decl->fns) {
       const auto &bird_function =
-          this->v_table.at(struct_decl->identifier.lexeme)
-              .at(method->identifier.lexeme);
+          this->v_table.at(mangled_name).at(method->identifier.lexeme);
       this->visit_func_helper(method.get(), bird_function);
     }
   }
@@ -793,6 +793,8 @@ public:
   visit_struct_initialization(StructInitialization *struct_initialization) {
     if (!this->type_table.contains(this->name_mangler +
                                    struct_initialization->identifier.lexeme)) {
+      std::cout << this->name_mangler + struct_initialization->identifier.lexeme
+                << " not here" << std::endl;
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
       this->stack.push(std::make_shared<ErrorType>());
@@ -1142,21 +1144,24 @@ public:
   void visit_namespace(NamespaceStmt *_namespace) {
     auto previous_mangler = this->name_mangler;
     this->name_mangler += (_namespace->identifier.lexeme + "::");
+    this->type_converter.set_namespace(this->name_mangler);
 
     for (auto &member : _namespace->members) {
       member->accept(this);
     }
 
     this->name_mangler = previous_mangler;
+    this->type_converter.set_namespace(previous_mangler);
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
     auto previous_mangler = this->name_mangler;
-
-    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+    this->name_mangler += (scope_resolution->_namespace.lexeme + "::");
+    this->type_converter.set_namespace(this->name_mangler);
 
     scope_resolution->identifier->accept(this);
 
     this->name_mangler = previous_mangler;
+    this->type_converter.set_namespace(previous_mangler);
   }
 };
