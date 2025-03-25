@@ -43,20 +43,20 @@ public:
     } else if (type->tag == ParseType::Tag::USER_DEFINED) {
       Token token = type->get_token();
       std::string base_name = token.lexeme;
-      std::cout << "base_name: " << base_name << std::endl;
       std::string mangled_name = this->name_mangler + base_name;
-      std::cout << "mangled_name: " << base_name << std::endl;
-      if (this->type_table.contains(mangled_name))
+      if (this->type_table.contains(mangled_name)) {
         return this->type_table.get(mangled_name);
-
-      if (this->type_table.contains(base_name))
+      }
+      if (this->type_table.contains(base_name)) {
         return this->type_table.get(base_name);
-
+      }
       if (this->struct_names.find(mangled_name) != this->struct_names.end())
         return std::make_shared<PlaceholderType>(mangled_name);
 
       if (this->struct_names.find(base_name) != this->struct_names.end())
         return std::make_shared<PlaceholderType>(base_name);
+
+      return std::make_shared<ErrorType>();
     } else if (type->tag == ParseType::Tag::ARRAY) {
       auto array_type = std::dynamic_pointer_cast<ParseType::Array>(type);
       return std::make_shared<ArrayType>(this->convert(array_type->child));

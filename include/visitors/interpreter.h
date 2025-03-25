@@ -503,10 +503,18 @@ public:
   void
   visit_struct_initialization(StructInitialization *struct_initialization) {
     Struct struct_instance =
-        Struct(struct_initialization->identifier.lexeme,
+        Struct(this->name_mangler + struct_initialization->identifier.lexeme,
                std::make_shared<std::unordered_map<std::string, Value>>());
-    auto type = this->type_table.get(this->name_mangler +
-                                     struct_initialization->identifier.lexeme);
+
+    std::string base_name = struct_initialization->identifier.lexeme;
+    std::string mangled_name = this->name_mangler + base_name;
+    std::shared_ptr<BirdType> type = nullptr;
+
+    if (this->type_table.contains(mangled_name)) {
+      type = this->type_table.get(mangled_name);
+    } else if (this->type_table.contains(base_name)) {
+      type = this->type_table.get(base_name);
+    }
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 

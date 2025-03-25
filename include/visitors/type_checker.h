@@ -436,10 +436,17 @@ public:
       break;
     }
     case Token::Type::IDENTIFIER: {
-      this->stack.push(
-          this->env.get(this->name_mangler + primary->value.lexeme));
+      std::string base_name = primary->value.lexeme;
+      std::string mangled_name = this->name_mangler + base_name;
+
+      if (this->env.contains(mangled_name)) {
+        this->stack.push(this->env.get(mangled_name));
+      } else if (this->env.contains(base_name)) {
+        this->stack.push(this->env.get(base_name));
+      }
       break;
     }
+
     case Token::Type::SELF: {
       this->stack.push(this->env.get(this->name_mangler + "self"));
       break;
@@ -791,18 +798,21 @@ public:
 
   void
   visit_struct_initialization(StructInitialization *struct_initialization) {
-    if (!this->type_table.contains(this->name_mangler +
-                                   struct_initialization->identifier.lexeme)) {
-      std::cout << this->name_mangler + struct_initialization->identifier.lexeme
-                << " not here" << std::endl;
+    std::string base_name = struct_initialization->identifier.lexeme;
+    std::string mangled_name = this->name_mangler + base_name;
+    std::shared_ptr<BirdType> type = nullptr;
+
+    if (this->type_table.contains(mangled_name)) {
+      type = this->type_table.get(mangled_name);
+    } else if (this->type_table.contains(base_name)) {
+      type = this->type_table.get(base_name);
+    } else {
+
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
-
-    auto type = this->type_table.get(this->name_mangler +
-                                     struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -847,8 +857,7 @@ public:
               return;
             }
 
-            field.second = this->type_table.get(
-                this->name_mangler + this->name_mangler + placeholder->name);
+            field.second = this->type_table.get(placeholder->name);
           }
 
           if (field_type->get_tag() == TypeTag::PLACEHOLDER) {
@@ -862,8 +871,7 @@ public:
               return;
             }
 
-            field_type =
-                this->type_table.get(this->name_mangler + placeholder->name);
+            field_type = this->type_table.get(placeholder->name);
           }
 
           if (*field.second != *field_type) {
