@@ -13,6 +13,11 @@ namespace Test {
                 struct Bar {
                         x: int;
                         y: int;
+
+                        // fn describe() {
+                        //         print self.x;
+                        //         print self.y;
+                        // }
                 };
         }
 }

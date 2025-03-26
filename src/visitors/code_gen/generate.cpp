@@ -5,6 +5,7 @@
 #include <fstream>
 
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
+  std::cout << "start gen" << std::endl;
   this->init_std_lib();
   this->init_array_constructor();
   this->init_lambda_table();

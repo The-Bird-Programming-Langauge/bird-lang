@@ -2,6 +2,7 @@
 #include <binaryen-c.h>
 
 void CodeGen::visit_primary(Primary *primary) {
+  std::cout << "visit primary cg" << std::endl;
   switch (primary->value.token_type) {
   case Token::Type::INT_LITERAL: {
     int value = std::stoi(primary->value.lexeme);
@@ -54,8 +55,9 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 
   case Token::Type::IDENTIFIER: {
-    if (auto fun =
-            BinaryenGetFunction(this->mod, primary->value.lexeme.c_str())) {
+    std::cout << "ID: " << primary->value.lexeme << std::endl;
+    if (auto fun = BinaryenGetFunction(
+            this->mod, (this->name_mangler + primary->value.lexeme).c_str())) {
       this->stack.push((BinaryenExpressionRef)fun);
       return;
     }

@@ -33,9 +33,7 @@ public:
     }
   }
 
-  void visit_primary(Primary *primary) {
-    std::cout << "primary: " << primary->value.lexeme << std::endl;
-  }
+  void visit_primary(Primary *primary) {}
 
   void visit_decl_stmt(DeclStmt *decl_stmt) {
     std::cout << "decl before: " << decl_stmt->identifier.lexeme << std::endl;

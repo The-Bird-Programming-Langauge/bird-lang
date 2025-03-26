@@ -371,6 +371,7 @@ public:
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
     case Token::Type::SELF:
+      std::cout << "primary" << std::endl;
       this->stack.push(this->env.get("self"));
       break;
     default:
@@ -415,7 +416,7 @@ public:
 
   void visit_call(Call *call) {
     std::string name = call->call_token.lexeme;
-    std::cout << "DFSAF" << name << std::endl;
+    std::cout << "call token: " << name << std::endl;
     if (!env.contains(name)) {
       throw BirdException("function '" + name + "' is not defined.");
     }
