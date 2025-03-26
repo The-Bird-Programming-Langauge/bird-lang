@@ -25,7 +25,7 @@
 class TypeChecker : public Visitor {
 public:
   CoreCallTable core_call_table;
-
+  std::string name_mangler = "";
   Environment<std::shared_ptr<BirdType>> env;
   Environment<std::shared_ptr<BirdType>> type_table;
   std::set<std::string> struct_names;
@@ -145,6 +145,7 @@ public:
     while (!this->stack.empty()) {
       this->stack.pop();
     }
+    std::cout << "tc end" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -482,7 +483,7 @@ public:
       return std::make_shared<VoidType>();
     } else {
       // type_name is not primitive
-      if (this->type_table.contains(type_name)) {
+      if (this->type_table.contains(this->name_mangler + type_name)) {
         return this->type_table.get(type_name);
       }
 
@@ -520,7 +521,7 @@ public:
     this->env.push_env();
 
     for (auto &param : func->param_list) {
-      this->env.declare(param.first.lexeme,
+      this->env.declare(this->name_mangler + param.first.lexeme,
                         this->type_converter.convert(param.second));
     }
 
@@ -609,8 +610,13 @@ public:
   }
 
   void visit_call(Call *call) {
-    call->callable->accept(this);
-    auto value = stack.pop();
+
+    std::string name = call->call_token.lexeme;
+    if (!env.contains(name)) {
+      throw BirdException("function '" + name + "' is not defined.");
+    }
+
+    auto value = env.get(name);
     if (value->get_tag() != TypeTag::FUNCTION &&
         value->get_tag() != TypeTag::LAMBDA) {
       this->user_error_tracker.type_mismatch(
@@ -720,6 +726,7 @@ public:
     // TODO: check invalid field types
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
+    std::cout << "TC: " << struct_decl->identifier.lexeme << std::endl;
     this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
 
     for (auto &method : struct_decl->fns) {
@@ -780,14 +787,18 @@ public:
 
   void
   visit_struct_initialization(StructInitialization *struct_initialization) {
-    if (!this->type_table.contains(struct_initialization->identifier.lexeme)) {
+    std::cout << "SI: " << struct_initialization->identifier.lexeme
+              << std::endl;
+    if (!this->type_table.contains(this->name_mangler +
+                                   struct_initialization->identifier.lexeme)) {
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+    auto type = this->type_table.get(this->name_mangler +
+                                     struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -1122,5 +1133,18 @@ public:
     this->return_type = previous_return_type;
 
     this->stack.push(std::make_shared<LambdaFunction>(params, ret_type));
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    auto prev = this->name_mangler;
+    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+    scope_resolution->identifier->accept(this);
+    this->name_mangler = prev;
   }
 };

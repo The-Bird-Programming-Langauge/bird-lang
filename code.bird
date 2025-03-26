@@ -1,11 +1,39 @@
-fn foobar(bar: (int)void) -> (int)void {
-        return bar;
+namespace Test {
+        var x: int = 42;
+        const y: float = 3.14;
+        fn foo() {
+                print "bar";
+        }
+
+        struct Bar {
+                x: int;
+                y: int;
+        };
+        namespace Other {
+                struct Bar {
+                        x: int;
+                        y: int;
+                };
+        }
 }
 
-fn shoebar(x: int) -> void {
-        print x;
-}
+print Test::x;
+print Test::y;
 
+Test::foo();
 
-var x: (int)void = shoebar;
-x(3);
+var p: Test::Bar = Test::Bar {
+        x = 1,
+        y = 2
+};
+
+var o: Test::Other::Bar = Test::Other::Bar {
+        x = 1,
+        y = 2
+};
+
+print p.x;
+print p.y;
+
+print o.x;
+print o.y;

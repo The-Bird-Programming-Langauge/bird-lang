@@ -32,6 +32,8 @@ class MatchExpr;
 class Method;
 class MethodCall;
 class Lambda;
+class ScopeResolutionExpr;
+class NamespaceStmt;
 
 /*
  * the interface for all visitors,
@@ -71,4 +73,6 @@ public:
   virtual void visit_method(Method *) = 0;
   virtual void visit_method_call(MethodCall *) = 0;
   virtual void visit_lambda(Lambda *) = 0;
+  virtual void visit_namespace(NamespaceStmt *) = 0;
+  virtual void visit_scope_resolution(ScopeResolutionExpr *) = 0;
 };

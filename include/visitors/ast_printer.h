@@ -317,4 +317,18 @@ public:
   }
 
   void visit_lambda(Lambda *lambda) {}
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    std::cout << "namespace " << _namespace->identifier.lexeme << " { ";
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+      std::cout << " ";
+    }
+    std::cout << " }";
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    std::cout << scope_resolution->_namespace.lexeme << "::";
+    scope_resolution->identifier->accept(this);
+  }
 };

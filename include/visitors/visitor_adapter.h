@@ -34,4 +34,6 @@ public:
   void visit_method(Method *) override {}
   void visit_method_call(MethodCall *) override {}
   void visit_lambda(Lambda *) override {}
+  void visit_namespace(NamespaceStmt *) override {}
+  void visit_scope_resolution(ScopeResolutionExpr *) override {}
 };

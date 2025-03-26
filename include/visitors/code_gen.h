@@ -162,6 +162,7 @@ class CodeGen : public Visitor {
   std::map<std::string, std::string> std_lib;
   std::set<std::string> struct_names;
   std::unordered_map<std::string, int> struct_name_to_num_pointers;
+  std::string name_mangler = "";
 
   bool must_garbage_collect = false;
   int lambda_count = 0;
@@ -221,6 +222,8 @@ class CodeGen : public Visitor {
   void visit_continue_stmt(ContinueStmt *continue_stmt);
   void visit_type_stmt(TypeStmt *type_stmt);
   void visit_subscript(Subscript *subscript);
+  void visit_namespace(NamespaceStmt *_namespace);
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution);
 
   /*
   This function is called when a struct declaration is encountered.

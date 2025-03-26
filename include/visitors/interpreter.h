@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -35,6 +36,8 @@ public:
   std::unordered_map<std::string, std::unordered_map<std::string, Callable>>
       v_table;
 
+  std::string name_mangler = "";
+
   Interpreter() : type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
     this->type_table.push_env();
@@ -42,6 +45,7 @@ public:
   }
 
   void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts) {
+    std::cout << "int start " << std::endl;
     HoistVisitor hoist_visitor(this->struct_names);
     hoist_visitor.hoist(stmts);
 
@@ -410,11 +414,16 @@ public:
   }
 
   void visit_call(Call *call) {
-    call->callable->accept(this);
-    auto callable = as_type<Callable>(stack.pop());
+    std::string name = call->call_token.lexeme;
+    std::cout << "DFSAF" << name << std::endl;
+    if (!env.contains(name)) {
+      throw BirdException("function '" + name + "' is not defined.");
+    }
 
-    std::vector<Value> args = {};
-    for (auto arg : call->args) {
+    auto callable = as_type<Callable>(env.get(name));
+
+    std::vector<Value> args;
+    for (auto &arg : call->args) {
       arg->accept(this);
       args.push_back(stack.pop());
     }
@@ -498,7 +507,8 @@ public:
     Struct struct_instance =
         Struct(struct_initialization->identifier.lexeme,
                std::make_shared<std::unordered_map<std::string, Value>>());
-    auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+    auto type = this->type_table.get(this->name_mangler +
+                                     struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -656,5 +666,18 @@ public:
 
     this->stack.push(Value(this->create_callable(
         lambda->param_list, lambda->block, lambda->return_type)));
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    auto prev = this->name_mangler;
+    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+    scope_resolution->identifier->accept(this);
+    this->name_mangler = prev;
   }
 };

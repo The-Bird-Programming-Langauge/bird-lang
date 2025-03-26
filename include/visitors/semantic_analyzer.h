@@ -29,7 +29,7 @@ public:
   int loop_depth;
   int function_depth;
   bool in_method = false;
-
+  std::string name_mangler = "";
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
     this->env.push_env();
@@ -214,7 +214,9 @@ public:
     }
   }
 
-  void visit_call(Call *call) { call->callable->accept(this); }
+  void visit_call(Call *call) {
+    // call->callable->accept(this);
+  }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
     if (this->function_depth == 0) {
@@ -340,5 +342,18 @@ public:
     lambda->block->accept(this);
     this->env.pop_env();
     this->function_depth -= 1;
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    auto prev = this->name_mangler;
+    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+    scope_resolution->identifier->accept(this);
+    this->name_mangler = prev;
   }
 };

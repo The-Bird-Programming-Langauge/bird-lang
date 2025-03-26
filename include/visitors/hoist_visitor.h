@@ -42,5 +42,16 @@ public:
   void visit_array_init(ArrayInit *array_init) {}
 
   void visit_match_expr(MatchExpr *match_expr) {}
+
   void visit_lambda(Lambda *lambda) {}
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    scope_resolution->identifier->accept(this);
+  }
 };

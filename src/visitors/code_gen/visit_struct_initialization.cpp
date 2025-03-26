@@ -3,7 +3,8 @@
 
 void CodeGen::visit_struct_initialization(
     StructInitialization *struct_initialization) {
-  auto type = this->type_table.get(struct_initialization->identifier.lexeme);
+  auto type = this->type_table.get(this->name_mangler +
+                                   struct_initialization->identifier.lexeme);
 
   std::shared_ptr<StructType> struct_type =
       safe_dynamic_pointer_cast<StructType>(type);

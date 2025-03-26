@@ -123,6 +123,9 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 "void"                  { yylval->emplace<Token>() = make_token(T::VOID);
                           return token::VOID; }
 
+"namespace"             { yylval->emplace<Token>() = make_token(T::NAMESPACE);
+                          return token::NAMESPACE; }
+
 [0-9]+"."[0-9]+{EXP}?   { yylval->emplace<Token>() = make_token(T::FLOAT_LITERAL);
                           return token::FLOAT_LITERAL;} 
 
@@ -195,6 +198,9 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 
 "%="                    { yylval->emplace<Token>() = make_token(T::PERCENT_EQUAL);
                           return token::PERCENT_EQUAL; } 
+
+"::"                    { yylval->emplace<Token>() = make_token(T::COLON_COLON);
+                          return token::COLON_COLON; }
 
 ":"                     { yylval->emplace<Token>() = make_token(T::COLON);
                           return token::COLON; } 
