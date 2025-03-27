@@ -85,13 +85,7 @@ public:
         get_current_namespace_prefix() + si->identifier.lexeme;
   }
 
-  void visit_call(Call *call) {
-    call->callable->accept(this);
-
-    for (auto &arg : call->args) {
-      arg->accept(this);
-    }
-  }
+  void visit_call(Call *call) { call->callable->accept(this); }
 
   void visit_type_stmt(TypeStmt *type_stmt) {
     type_stmt->identifier.lexeme =
@@ -103,12 +97,13 @@ public:
         get_current_namespace_prefix() + func->identifier.lexeme;
 
     for (auto &param : func->param_list) {
-      param.first.lexeme = get_current_namespace_prefix() + param.first.lexeme;
-      auto old_token = param.second->get_token();
-      auto new_name = get_current_namespace_prefix() + old_token.lexeme;
-      auto new_token = Token(old_token.token_type, new_name, old_token.line_num,
-                             old_token.char_num);
-      param.second->set_token(new_token);
+      if (param.second->tag == ParseType::USER_DEFINED) {
+        auto old_token = param.second->get_token();
+        auto new_name = get_current_namespace_prefix() + old_token.lexeme;
+        auto new_token = Token(old_token.token_type, new_name,
+                               old_token.line_num, old_token.char_num);
+        param.second->set_token(new_token);
+      }
     }
 
     func->block->accept(this);
@@ -126,7 +121,6 @@ public:
         param.second->set_token(new_token);
       }
     }
-    method->block->accept(this);
   }
 
   void visit_namespace(NamespaceStmt *_namespace) {

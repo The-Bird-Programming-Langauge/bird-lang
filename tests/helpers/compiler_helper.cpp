@@ -5,6 +5,7 @@ bool BirdTest::compile(const TestOptions options) {
   auto code = options.code;
   UserErrorTracker error_tracker(code);
   std::vector<std::unique_ptr<Stmt>> ast;
+
   if (options.parse) {
     Parser parser(code, &error_tracker);
     ast = parser.parse();
@@ -17,6 +18,9 @@ bool BirdTest::compile(const TestOptions options) {
       options.after_parse.value()(error_tracker, parser, ast);
     }
   }
+
+  NameDecorator name_decorator;
+  name_decorator.decorate(&ast);
 
   if (options.semantic_analyze) {
     SemanticAnalyzer analyze_semantics(error_tracker);
