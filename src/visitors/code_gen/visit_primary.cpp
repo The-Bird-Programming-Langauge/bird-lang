@@ -56,8 +56,8 @@ void CodeGen::visit_primary(Primary *primary) {
 
   case Token::Type::IDENTIFIER: {
     std::cout << "ID: " << primary->value.lexeme << std::endl;
-    if (auto fun = BinaryenGetFunction(
-            this->mod, (this->name_mangler + primary->value.lexeme).c_str())) {
+    if (auto fun =
+            BinaryenGetFunction(this->mod, (primary->value.lexeme).c_str())) {
       this->stack.push((BinaryenExpressionRef)fun);
       return;
     }

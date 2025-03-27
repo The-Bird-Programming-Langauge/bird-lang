@@ -32,6 +32,7 @@ void CodeGen::add_func(
   std::vector<BinaryenType> param_types;
 
   for (auto &param : param_list) {
+    std::cout << "converting: " << param.first.lexeme << std::endl;
     auto param_type = this->type_converter.convert(param.second);
     param_types.push_back(bird_type_to_binaryen_type(param_type));
     this->function_locals[func_name].push_back(

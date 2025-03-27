@@ -14,12 +14,17 @@ namespace Test {
                         x: int;
                         y: int;
 
-                        // fn describe() {
-                        //         print self.x;
-                        //         print self.y;
-                        // }
+                        fn describe() {
+                                print self.x;
+                                print self.y;
+                        }
                 };
         }
+
+        var t: Other::Bar = Other::Bar {
+                x = 2,
+                y = 9
+        };
 }
 
 print Test::x;
@@ -42,3 +47,6 @@ print p.y;
 
 print o.x;
 print o.y;
+
+
+Test::t.describe();

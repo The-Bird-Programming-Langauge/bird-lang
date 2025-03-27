@@ -171,8 +171,8 @@ public:
     }
 
     if (decl_stmt->type.has_value()) {
-      std::shared_ptr<BirdType> type =
-          this->type_converter.convert(decl_stmt->type.value());
+      std::shared_ptr<BirdType> type = this->type_converter.convert(
+          decl_stmt->type.value(), this->name_mangler);
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
             "in declaration. Expected " + type->to_string() + ", found " +
@@ -483,7 +483,7 @@ public:
       return std::make_shared<VoidType>();
     } else {
       // type_name is not primitive
-      if (this->type_table.contains(this->name_mangler + type_name)) {
+      if (this->type_table.contains(type_name)) {
         return this->type_table.get(type_name);
       }
 
@@ -521,7 +521,7 @@ public:
     this->env.push_env();
 
     for (auto &param : func->param_list) {
-      this->env.declare(this->name_mangler + param.first.lexeme,
+      this->env.declare(param.first.lexeme,
                         this->type_converter.convert(param.second));
     }
 
@@ -789,16 +789,16 @@ public:
   visit_struct_initialization(StructInitialization *struct_initialization) {
     std::cout << "SI: " << struct_initialization->identifier.lexeme
               << std::endl;
-    if (!this->type_table.contains(this->name_mangler +
-                                   struct_initialization->identifier.lexeme)) {
+    if (!this->type_table.contains(struct_initialization->identifier.lexeme)) {
+      std::cout << "HERE looking for: "
+                << struct_initialization->identifier.lexeme << std::endl;
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    auto type = this->type_table.get(this->name_mangler +
-                                     struct_initialization->identifier.lexeme);
+    auto type = this->type_table.get(struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -838,7 +838,7 @@ public:
             if (this->struct_names.find(placeholder->name) ==
                 this->struct_names.end()) {
               this->user_error_tracker.type_error("struct not declared",
-                                                  Token());
+                                                  Token()); // TODO: fix this
               this->stack.push(std::make_shared<ErrorType>());
               return;
             }
@@ -852,7 +852,7 @@ public:
             if (this->struct_names.find(placeholder->name) ==
                 this->struct_names.end()) {
               this->user_error_tracker.type_error("struct not declared",
-                                                  Token());
+                                                  Token()); // TODO: fix this
               this->stack.push(std::make_shared<ErrorType>());
               return;
             }
@@ -1136,15 +1136,18 @@ public:
   }
 
   void visit_namespace(NamespaceStmt *_namespace) {
+    // auto prev = this->name_mangler;
+    // this->name_mangler += _namespace->identifier.lexeme + "::";
     for (auto &member : _namespace->members) {
       member->accept(this);
     }
+    // this->name_mangler = prev;
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
-    auto prev = this->name_mangler;
-    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+    // auto prev = this->name_mangler;
+    // this->name_mangler += scope_resolution->_namespace.lexeme + "::";
     scope_resolution->identifier->accept(this);
-    this->name_mangler = prev;
+    // this->name_mangler = prev;
   }
 };

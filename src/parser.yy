@@ -586,6 +586,10 @@ call_expr:
 struct_initialization:
    IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
       { $$ = std::make_unique<StructInitialization>($1, std::move($3)); }
+   /* | type_identifier LBRACE maybe_struct_initialization_list RBRACE
+      { 
+         $$ = std::make_unique<StructInitialization>($1->get_token(), std::move($3));
+      } */
 
 maybe_struct_initialization_list:
    %empty { $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>(); }

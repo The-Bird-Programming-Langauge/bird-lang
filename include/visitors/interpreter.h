@@ -415,13 +415,9 @@ public:
   }
 
   void visit_call(Call *call) {
-    std::string name = call->call_token.lexeme;
-    std::cout << "call token: " << name << std::endl;
-    if (!env.contains(name)) {
-      throw BirdException("function '" + name + "' is not defined.");
-    }
+    call->callable->accept(this);
 
-    auto callable = as_type<Callable>(env.get(name));
+    auto callable = as_type<Callable>(this->stack.pop());
 
     std::vector<Value> args;
     for (auto &arg : call->args) {
@@ -508,8 +504,7 @@ public:
     Struct struct_instance =
         Struct(struct_initialization->identifier.lexeme,
                std::make_shared<std::unordered_map<std::string, Value>>());
-    auto type = this->type_table.get(this->name_mangler +
-                                     struct_initialization->identifier.lexeme);
+    auto type = this->type_table.get(struct_initialization->identifier.lexeme);
 
     auto struct_type = safe_dynamic_pointer_cast<StructType>(type);
 
@@ -676,9 +671,9 @@ public:
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
-    auto prev = this->name_mangler;
-    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
+    // auto prev = this->name_mangler;
+    // this->name_mangler += scope_resolution->_namespace.lexeme + "::";
     scope_resolution->identifier->accept(this);
-    this->name_mangler = prev;
+    // this->name_mangler = prev;
   }
 };
