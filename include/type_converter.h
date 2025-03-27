@@ -27,7 +27,6 @@ public:
                                     const std::string &name_mangler = "") {
     if (type->tag == ParseType::Tag::PRIMITIVE) {
       Token token = type->get_token();
-      std::cout << "convert: " << token.lexeme << std::endl;
       auto type_name = token.lexeme;
 
       if (type_name == "int") {
@@ -43,7 +42,6 @@ public:
       }
     } else if (type->tag == ParseType::Tag::USER_DEFINED) {
       Token token = type->get_token();
-      std::cout << "USER DEFINED: " << token.lexeme << std::endl;
       auto type_name = token.lexeme;
 
       if (this->type_table.contains(type_name)) {

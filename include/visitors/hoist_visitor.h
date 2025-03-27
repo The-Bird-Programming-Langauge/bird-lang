@@ -31,8 +31,6 @@ public:
   }
 
   void visit_struct_decl(StructDecl *struct_decl) {
-    std::cout << "HOISTING STRUCT: " << struct_decl->identifier.lexeme
-              << std::endl;
     if (this->struct_names.find(struct_decl->identifier.lexeme) !=
         this->struct_names.end()) {
       return;

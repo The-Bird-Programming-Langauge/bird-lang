@@ -11,7 +11,6 @@ void CodeGen::add_func(
     std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>> param_list,
     std::shared_ptr<Stmt> block,
     std::optional<std::shared_ptr<ParseType::Type>> return_type) {
-  std::cout << "add_func name: " << func_name << std::endl;
   if (return_type.has_value()) {
     auto bird_return_type = this->type_converter.convert(return_type.value());
     auto binaryen_return_type = bird_type_to_binaryen_type(bird_return_type);
@@ -32,7 +31,6 @@ void CodeGen::add_func(
   std::vector<BinaryenType> param_types;
 
   for (auto &param : param_list) {
-    std::cout << "converting: " << param.first.lexeme << std::endl;
     auto param_type = this->type_converter.convert(param.second);
     param_types.push_back(bird_type_to_binaryen_type(param_type));
     this->function_locals[func_name].push_back(

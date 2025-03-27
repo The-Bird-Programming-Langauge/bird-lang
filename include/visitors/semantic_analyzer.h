@@ -351,9 +351,9 @@ public:
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
-    auto prev = this->name_mangler;
+    // auto prev = this->name_mangler;
     this->name_mangler += scope_resolution->_namespace.lexeme + "::";
-    scope_resolution->identifier->accept(this);
-    this->name_mangler = prev;
+    // scope_resolution->identifier->accept(this);
+    // this->name_mangler = prev;
   }
 };

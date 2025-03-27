@@ -145,7 +145,6 @@ public:
     while (!this->stack.empty()) {
       this->stack.pop();
     }
-    std::cout << "tc end" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -610,13 +609,8 @@ public:
   }
 
   void visit_call(Call *call) {
-
-    std::string name = call->call_token.lexeme;
-    if (!env.contains(name)) {
-      throw BirdException("function '" + name + "' is not defined.");
-    }
-
-    auto value = env.get(name);
+    call->callable->accept(this);
+    auto value = stack.pop();
     if (value->get_tag() != TypeTag::FUNCTION &&
         value->get_tag() != TypeTag::LAMBDA) {
       this->user_error_tracker.type_mismatch(
@@ -726,7 +720,6 @@ public:
     // TODO: check invalid field types
     auto struct_type = std::make_shared<StructType>(
         struct_decl->identifier.lexeme, struct_fields);
-    std::cout << "TC: " << struct_decl->identifier.lexeme << std::endl;
     this->type_table.declare(struct_decl->identifier.lexeme, struct_type);
 
     for (auto &method : struct_decl->fns) {
@@ -787,11 +780,7 @@ public:
 
   void
   visit_struct_initialization(StructInitialization *struct_initialization) {
-    std::cout << "SI: " << struct_initialization->identifier.lexeme
-              << std::endl;
     if (!this->type_table.contains(struct_initialization->identifier.lexeme)) {
-      std::cout << "HERE looking for: "
-                << struct_initialization->identifier.lexeme << std::endl;
       this->user_error_tracker.type_error("struct not declared",
                                           struct_initialization->identifier);
       this->stack.push(std::make_shared<ErrorType>());

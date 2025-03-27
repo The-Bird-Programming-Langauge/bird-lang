@@ -561,35 +561,13 @@ or_expr:
 call_expr: 
    direct_member_access LPAREN maybe_arg_list RPAREN %prec CALL 
       { $$ = std::make_unique<MethodCall>(dynamic_cast<DirectMemberAccess*>($1.get()), std::move($3)); }
-
-   | expr LPAREN maybe_arg_list RPAREN 
-   {
-      Token call_token = Token(Token::Type::IDENTIFIER, "", @1.begin.line, @1.begin.column);
-
-      if (auto *primary = dynamic_cast<Primary *>($1.get())) 
-      {
-         call_token = primary->value;
-      } 
-      else if (auto *sr = dynamic_cast<ScopeResolutionExpr *>($1.get())) 
-      {
-         if (auto *inner = dynamic_cast<Primary *>(sr->identifier.get())) 
-         {
-            call_token = inner->value;
-            call_token.lexeme = sr->_namespace.lexeme + "::" + call_token.lexeme;
-         }
-      }
-
-      $$ = std::make_unique<Call>(call_token, std::move($1), std::move($3));
-   }
+   | expr LPAREN maybe_arg_list RPAREN %prec CALL 
+      { $$ = std::make_unique<Call>($2, std::move($1), std::move($3)); }
 
 
 struct_initialization:
    IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
       { $$ = std::make_unique<StructInitialization>($1, std::move($3)); }
-   /* | type_identifier LBRACE maybe_struct_initialization_list RBRACE
-      { 
-         $$ = std::make_unique<StructInitialization>($1->get_token(), std::move($3));
-      } */
 
 maybe_struct_initialization_list:
    %empty { $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>(); }

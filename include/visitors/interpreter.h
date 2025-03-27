@@ -45,7 +45,6 @@ public:
   }
 
   void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts) {
-    std::cout << "int start " << std::endl;
     HoistVisitor hoist_visitor(this->struct_names);
     hoist_visitor.hoist(stmts);
 
@@ -371,7 +370,6 @@ public:
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
     case Token::Type::SELF:
-      std::cout << "primary" << std::endl;
       this->stack.push(this->env.get("self"));
       break;
     default:
