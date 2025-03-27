@@ -23,8 +23,7 @@ public:
 
   TypeConverter() = delete;
 
-  std::shared_ptr<BirdType> convert(std::shared_ptr<ParseType::Type> type,
-                                    const std::string &name_mangler = "") {
+  std::shared_ptr<BirdType> convert(std::shared_ptr<ParseType::Type> type) {
     if (type->tag == ParseType::Tag::PRIMITIVE) {
       Token token = type->get_token();
       auto type_name = token.lexeme;

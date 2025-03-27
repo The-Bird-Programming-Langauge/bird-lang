@@ -29,7 +29,7 @@ public:
   int loop_depth;
   int function_depth;
   bool in_method = false;
-  std::string name_mangler = "";
+
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
     this->env.push_env();
@@ -351,9 +351,6 @@ public:
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
-    // auto prev = this->name_mangler;
-    this->name_mangler += scope_resolution->_namespace.lexeme + "::";
-    // scope_resolution->identifier->accept(this);
-    // this->name_mangler = prev;
+    scope_resolution->identifier->accept(this);
   }
 };

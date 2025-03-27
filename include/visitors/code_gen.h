@@ -162,7 +162,6 @@ class CodeGen : public Visitor {
   std::map<std::string, std::string> std_lib;
   std::set<std::string> struct_names;
   std::unordered_map<std::string, int> struct_name_to_num_pointers;
-  std::string name_mangler = "";
 
   bool must_garbage_collect = false;
   int lambda_count = 0;

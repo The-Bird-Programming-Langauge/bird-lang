@@ -25,7 +25,6 @@
 class TypeChecker : public Visitor {
 public:
   CoreCallTable core_call_table;
-  std::string name_mangler = "";
   Environment<std::shared_ptr<BirdType>> env;
   Environment<std::shared_ptr<BirdType>> type_table;
   std::set<std::string> struct_names;
@@ -170,8 +169,8 @@ public:
     }
 
     if (decl_stmt->type.has_value()) {
-      std::shared_ptr<BirdType> type = this->type_converter.convert(
-          decl_stmt->type.value(), this->name_mangler);
+      std::shared_ptr<BirdType> type =
+          this->type_converter.convert(decl_stmt->type.value());
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
             "in declaration. Expected " + type->to_string() + ", found " +
@@ -1125,18 +1124,12 @@ public:
   }
 
   void visit_namespace(NamespaceStmt *_namespace) {
-    // auto prev = this->name_mangler;
-    // this->name_mangler += _namespace->identifier.lexeme + "::";
     for (auto &member : _namespace->members) {
       member->accept(this);
     }
-    // this->name_mangler = prev;
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
-    // auto prev = this->name_mangler;
-    // this->name_mangler += scope_resolution->_namespace.lexeme + "::";
     scope_resolution->identifier->accept(this);
-    // this->name_mangler = prev;
   }
 };

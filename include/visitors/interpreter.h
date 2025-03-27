@@ -36,8 +36,6 @@ public:
   std::unordered_map<std::string, std::unordered_map<std::string, Callable>>
       v_table;
 
-  std::string name_mangler = "";
-
   Interpreter() : type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
     this->type_table.push_env();
@@ -669,9 +667,6 @@ public:
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
-    // auto prev = this->name_mangler;
-    // this->name_mangler += scope_resolution->_namespace.lexeme + "::";
     scope_resolution->identifier->accept(this);
-    // this->name_mangler = prev;
   }
 };
