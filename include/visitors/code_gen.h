@@ -156,6 +156,7 @@ class CodeGen : public Visitor {
            }},
       };
 
+  std::unordered_map<std::string, unsigned int> &function_capture_size;
   Environment<TaggedIndex> environment; // tracks the index of local variables
   Environment<std::shared_ptr<BirdType>> type_table;
   Stack<TaggedExpression> stack; // for returning values
@@ -175,6 +176,9 @@ class CodeGen : public Visitor {
   std::string current_function_name; // for indexing into maps
   std::vector<MemorySegment>
       memory_segments; // store memory segments to add at once
+
+  std::unordered_map<std::string, unsigned int>
+      function_env_location; // for lambdas
 
   TypeConverter type_converter;
 
@@ -208,6 +212,9 @@ class CodeGen : public Visitor {
   void visit_ternary(Ternary *ternary);
   void visit_const_stmt(ConstStmt *const_stmt);
   void visit_func(Func *func);
+  TaggedType register_function_return(
+      std::string func_name,
+      std::optional<std::shared_ptr<ParseType::Type>> return_type);
   void add_func_with_name(Func *func, std::string func_name);
   void add_func(std::string func_name,
                 std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>
@@ -260,11 +267,14 @@ class CodeGen : public Visitor {
                        Tagged<BinaryenExpressionRef> &index,
                        std::shared_ptr<BirdType> type);
   void visit_lambda(Lambda *lambda);
+  void add_lambda(std::string name, Lambda *lambda);
+  void init_lambda_constructor();
   void init_lambda_table();
+  BinaryenExpressionRef create_environment(unsigned int size);
 
 public:
   ~CodeGen();
-  CodeGen();
+  CodeGen(std::unordered_map<std::string, unsigned int> &function_capture_size);
   void generate(std::vector<std::unique_ptr<Stmt>> *stmts);
 
   // for testing

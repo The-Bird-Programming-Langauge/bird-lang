@@ -59,6 +59,29 @@ void CodeGen::visit_primary(Primary *primary) {
       this->stack.push((BinaryenExpressionRef)fun);
       return;
     }
+    // if in lambda, get from linear memory, and return
+    std::cout << "finding: " << primary->value.lexeme
+              << " in func: " << this->current_function_name << std::endl;
+    if (primary->get_captured()) {
+      std::cout << this->current_function_name << " locals: "
+                << this->function_locals[this->current_function_name].size()
+                << std::endl;
+      const auto env = BinaryenLocalGet(this->mod, 0, BinaryenTypeInt32());
+
+      std::vector<BinaryenExpressionRef> operands = {
+          env, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+      const auto call = BinaryenCall(this->mod, "mem_get_32", operands.data(),
+                                     operands.size(), BinaryenTypeInt32());
+
+      this->stack.push(TaggedExpression(call, std::make_shared<IntType>()));
+      return;
+    }
+
+    // how do we know where in linear memory?
+    // we could reuse self?
+    // use a map from the lambda name to the captured variables
+
+    // else
     this->stack.push(this->binaryen_get(primary->value.lexeme));
     break;
   }

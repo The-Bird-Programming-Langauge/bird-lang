@@ -35,16 +35,17 @@ TEST(FirstClassFunctionReferenceTest, ReturnInt) {
 
 TEST(FirstClassFunctionReferenceTest, ParamTypeMismtach) {
   BirdTest::TestOptions options;
-  options.code = "const x: fn(float) -> float = (x: float) -> float {return x;}"
-                 "var y = x(\"hello\");"
-                 "print y;";
+  options.code =
+      "const x: fn(float) -> float = (x: float) -> float {return x;};"
+      "var y = x(\"hello\");"
+      "print y;";
 
   ASSERT_FALSE(BirdTest::compile(options));
 }
 
 TEST(FirstClassFunctionReferenceTest, ReturnIntTypeMistmatch) {
   BirdTest::TestOptions options;
-  options.code = "const x: fn(str) -> str = fn(x: str) -> str { return x; }"
+  options.code = "const x: fn(str) -> str = fn(x: str) -> str { return x; };"
                  "var y: int = x(\"hello\");"
                  "print y;";
 

@@ -3,6 +3,7 @@
 #include "../../parse_type.h"
 #include "../../token.h"
 #include "../../visitors/visitor.h"
+#include "../capturable.h"
 #include "../expr/expr.h"
 #include "stmt.h"
 #include <memory>
@@ -14,7 +15,9 @@
  * ex:
  * const x: int = 4;
  */
-class ConstStmt : public Stmt {
+class ConstStmt : public Stmt, public Captureable {
+  bool captured = false;
+
 public:
   Token identifier;
   std::optional<std::shared_ptr<ParseType::Type>> type;
@@ -27,4 +30,6 @@ public:
   }
 
   void accept(Visitor *visitor) { visitor->visit_const_stmt(this); }
+  bool get_captured() { return captured; }
+  void set_captured(bool captured) { this->captured = captured; }
 };

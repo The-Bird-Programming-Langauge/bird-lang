@@ -55,7 +55,10 @@ bool BirdTest::compile(const TestOptions options) {
   }
 
   if (options.compile) {
-    CodeGen code_gen;
+    ClosureFinder closure_finder;
+    auto function_capture_size = closure_finder.find_captured(&ast);
+
+    CodeGen code_gen(function_capture_size);
     code_gen.generate(&ast);
     pid_t pid = fork();
 

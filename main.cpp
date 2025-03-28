@@ -5,6 +5,7 @@
 #include "include/exceptions/user_error_tracker.h"
 #include "include/parser.h"
 #include "include/visitors/ast_printer.h"
+#include "include/visitors/closure_finder.h"
 #include "include/visitors/code_gen.h"
 #include "include/visitors/interpreter.h"
 #include "include/visitors/semantic_analyzer.h"
@@ -106,7 +107,10 @@ void compile(std::string filename) {
     error_tracker.print_errors_and_exit();
   }
 
-  CodeGen codegen;
+  ClosureFinder closure_finder;
+  auto function_capture_size = closure_finder.find_captured(&ast);
+
+  CodeGen codegen(function_capture_size);
   codegen.generate(&ast);
 }
 

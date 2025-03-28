@@ -1,11 +1,78 @@
-fn foobar(bar: (int)void) -> (int)void {
-        return bar;
+
+/*
+fn closure() -> fn() -> void {
+        var x = 3; 
+        var function = fn() -> void { // captures reference
+                print "the value of x is: ";
+                print x;
+        };
+
+        return function;
 }
 
-fn shoebar(x: int) -> void {
-        print x;
+var foob = closure();
+
+foob();
+*/
+
+struct Node {
+        val: int;
+        left: Node;
+        right: Node;
+
+        fn print_tree() {
+                self.print_tree_helper(self);
+        }
+
+        fn print_tree_helper(tree: Node ) {
+                if (tree?) {
+                        print tree.val;
+                        self.print_tree_helper(tree.left);
+                        self.print_tree_helper(tree.right);               
+                }
+        }
+};
+
+
+const tree2: Node  = Node {
+        val = 1,
+        left = Node {
+                val = 2,
+        },
+        right = Node {
+                val = 3
+        }
+};
+
+fn print_tree(tree: Node) -> void {
+        if (tree?) {
+                print tree.val;
+                print_tree(tree.left);
+                print_tree(tree.right);
+        }
+}
+
+print_tree(tree2);
+
+tree2.print_tree();
+
+
+const arr = [1,2,3,4];
+
+
+for var i = 0; i < length(arr); i += 1 {
+        print arr[i];
+        arr[i] *= 2;
+}
+
+for var j = 0; j < length(arr); j += 1 {
+        print arr[j];
 }
 
 
-var x: (int)void = shoebar;
-x(3);
+
+
+
+
+
+

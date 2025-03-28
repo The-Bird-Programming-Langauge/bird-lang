@@ -3,6 +3,7 @@
 #include <memory>
 
 void CodeGen::visit_call(Call *call) {
+  std::cout << "visitng call" << std::endl;
   call->callable->accept(this);
   auto function = stack.pop();
 
@@ -14,6 +15,7 @@ void CodeGen::visit_call(Call *call) {
   }
 
   if (function.type->get_tag() == TypeTag::LAMBDA) {
+    // create linear memory thing
     auto bird_function = std::dynamic_pointer_cast<BirdFunction>(function.type);
 
     std::vector<BinaryenType> params;
@@ -21,8 +23,25 @@ void CodeGen::visit_call(Call *call) {
       params.push_back(bird_type_to_binaryen_type(param));
     }
 
+    // extract lambda function pointer
+    std::vector<BinaryenExpressionRef> fn_ptr_operands = {
+        function.value, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+    auto fn_ptr = BinaryenCall(this->mod, "mem_get_32", fn_ptr_operands.data(),
+                               fn_ptr_operands.size(), BinaryenTypeInt32());
+
+    std::vector<BinaryenExpressionRef> env_operands = {
+        function.value,
+        BinaryenConst(this->mod, BinaryenLiteralInt32(bird_type_byte_size(
+                                     std::make_shared<IntType>())))};
+    auto env = BinaryenCall(this->mod, "mem_get_32", env_operands.data(),
+                            env_operands.size(), BinaryenTypeInt32());
+
+    args.insert(args.begin(), env);
+    params.insert(params.begin(), BinaryenTypeInt32());
+
+    // pass it in as an argument(?)
     auto call = BinaryenCallIndirect(
-        this->mod, "lambdas", function.value, args.data(), args.size(),
+        this->mod, "lambdas", fn_ptr, args.data(), args.size(),
         BinaryenTypeCreate(params.data(), params.size()),
         bird_type_to_binaryen_type(bird_function->ret));
 

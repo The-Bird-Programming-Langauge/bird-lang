@@ -1,6 +1,28 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_decl_stmt(DeclStmt *decl_stmt) {
+  if (decl_stmt->get_captured()) {
+    std::cout << "generating captured code" << std::endl;
+    // this->stack.push(BinaryenConst(this->mod, BinaryenLiteralInt32(0)));
+
+    auto env = BinaryenLocalGet(
+        this->mod, this->function_env_location[this->current_function_name],
+        BinaryenTypeInt32());
+
+    decl_stmt->value->accept(this);
+    std::vector<BinaryenExpressionRef> operands = {
+        env, BinaryenConst(this->mod, BinaryenLiteralInt32(0)),
+        stack.pop().value};
+
+    const auto call = BinaryenCall(this->mod, "mem_set_32", operands.data(),
+                                   operands.size(), BinaryenTypeNone());
+    BinaryenExpressionPrint(call);
+
+    this->stack.push(call);
+
+    return;
+  }
   decl_stmt->value->accept(this);
   TaggedExpression initializer_value = this->stack.pop();
 
