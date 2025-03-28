@@ -2,11 +2,11 @@
 
 #include "../../include/exceptions/user_error_tracker.h"
 #include "../../include/parser.h"
+#include "../../include/visitors/closure_finder.h"
+#include "../../include/visitors/code_gen.h"
 #include "../../include/visitors/interpreter.h"
 #include "../../include/visitors/semantic_analyzer.h"
 #include "../../include/visitors/type_checker.h"
-
-#include "../../include/visitors/code_gen.h"
 
 #include <functional>
 #include <gtest/gtest.h>

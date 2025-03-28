@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <optional>
@@ -16,7 +17,6 @@
 #include "../stack.h"
 #include "../sym_table.h"
 #include "../type_converter.h"
-#include "ast_node/expr/method_call.h"
 #include "hoist_visitor.h"
 
 /*
@@ -27,10 +27,7 @@ public:
   CoreCallTable core_call_table;
 
   Environment<std::shared_ptr<BirdType>> env;
-  Environment<std::shared_ptr<BirdFunction>> call_table;
-
   Environment<std::shared_ptr<BirdType>> type_table;
-
   std::set<std::string> struct_names;
   bool found_return = false;
 
@@ -48,7 +45,9 @@ public:
       : user_error_tracker(user_error_tracker),
         type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
-    this->call_table.push_env();
+    for (auto [name, fn] : this->core_call_table.table) {
+      this->env.declare(name, fn);
+    }
     this->type_table.push_env();
   }
 
@@ -175,7 +174,9 @@ public:
           this->type_converter.convert(decl_stmt->type.value());
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
-            "in declaration", decl_stmt->type.value()->get_token());
+            "in declaration. Expected " + type->to_string() + ", found " +
+                result->to_string(),
+            decl_stmt->type.value()->get_token());
 
         this->env.declare(decl_stmt->identifier.lexeme,
                           std::make_unique<ErrorType>());
@@ -291,7 +292,9 @@ public:
 
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
-            "in declaration", const_stmt->type.value()->get_token());
+            "in declaration. Expected " + type->to_string() + ", found " +
+                result->to_string(),
+            const_stmt->type.value()->get_token());
         this->env.declare(const_stmt->identifier.lexeme,
                           std::make_shared<ErrorType>());
         return;
@@ -514,7 +517,6 @@ public:
     auto previous_return_type = this->return_type;
     this->return_type = bird_function->ret;
 
-    this->call_table.declare(func->identifier.lexeme, bird_function);
     this->env.push_env();
 
     for (auto &param : func->param_list) {
@@ -542,6 +544,7 @@ public:
 
   void visit_func(Func *func) {
     const auto bird_function = create_func(func);
+    this->env.declare(func->identifier.lexeme, bird_function);
     this->visit_func_helper(func, bird_function);
   }
 
@@ -570,9 +573,11 @@ public:
                                std::vector<std::shared_ptr<Expr>> args,
                                std::vector<std::shared_ptr<BirdType>> params) {
     if (!correct_arity(params, args)) {
-      this->user_error_tracker.type_error("Invalid number of arguments to " +
-                                              call_identifier.lexeme,
-                                          call_identifier);
+      this->user_error_tracker.type_error(
+          "Invalid number of arguments. Expected " +
+              std::to_string(params.size()) + ", found " +
+              std::to_string(args.size()),
+          call_identifier);
 
       this->stack.push(std::make_shared<ErrorType>());
       return;
@@ -594,15 +599,29 @@ public:
       }
 
       if (*arg != *param) {
-        this->user_error_tracker.type_mismatch("in function call",
-                                               call_identifier);
+        this->user_error_tracker.type_mismatch(
+            "expected " + param->to_string() + ", found " + arg->to_string(),
+            call_identifier);
+        this->stack.push(std::make_shared<ErrorType>());
+        return;
       }
     }
   }
 
   void visit_call(Call *call) {
-    auto function = this->call_table.get(call->identifier.lexeme);
-    compare_args_and_params(call->identifier, call->args, function->params);
+    call->callable->accept(this);
+    auto value = stack.pop();
+    if (value->get_tag() != TypeTag::FUNCTION &&
+        value->get_tag() != TypeTag::LAMBDA) {
+      this->user_error_tracker.type_mismatch(
+          "expected function, found " + value->to_string(), call->call_token);
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
+
+    auto function = std::dynamic_pointer_cast<BirdFunction>(value);
+
+    compare_args_and_params(call->call_token, call->args, function->params);
     this->stack.push(function->ret);
   }
 
@@ -614,8 +633,11 @@ public:
 
       if (this->return_type.has_value()) {
         if (*result != *this->return_type.value()) {
-          this->user_error_tracker.type_mismatch("in return statement",
-                                                 return_stmt->return_token);
+          this->user_error_tracker.type_mismatch(
+              "in return statement. Expected " +
+                  this->return_type.value()->to_string() + ", found " +
+                  result->to_string(),
+              return_stmt->return_token);
         }
       } else {
         this->user_error_tracker.type_error(
@@ -1023,41 +1045,82 @@ public:
   }
 
   void visit_method_call(MethodCall *method_call) {
-    method_call->instance->accept(this);
-    const auto struct_temp = this->stack.pop();
-    if (struct_temp->get_tag() != TypeTag::STRUCT) {
-      this->stack.push(std::make_shared<ErrorType>());
+    method_call->accessable->accept(this);
+    auto bird_type = stack.pop();
+
+    if (bird_type->get_tag() != TypeTag::STRUCT) {
       this->user_error_tracker.type_error(
           "method '" + method_call->identifier.lexeme +
-              "' does not exist on type " + struct_temp->to_string(),
+              "' does not exist on type " + bird_type->to_string(),
           method_call->identifier);
+      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    const auto struct_type = std::dynamic_pointer_cast<StructType>(struct_temp);
+    auto struct_type = std::dynamic_pointer_cast<StructType>(bird_type);
 
     if (this->v_table.count(struct_type->name) == 0 ||
         this->v_table.at(struct_type->name)
                 .count(method_call->identifier.lexeme) == 0) {
       this->user_error_tracker.type_error(
           "method '" + method_call->identifier.lexeme +
-              "' does not exist on type " + struct_temp->to_string(),
+              "' does not exist on type " + struct_type->to_string(),
           method_call->identifier);
+      this->stack.push(std::make_shared<ErrorType>());
       return;
     }
 
-    const auto method =
+    auto function =
         this->v_table.at(struct_type->name).at(method_call->identifier.lexeme);
 
-    std::vector<std::shared_ptr<BirdType>> new_params;
-
-    for (int i = 1; i < method->params.size(); i += 1) {
-      new_params.push_back(method->params[i]);
+    std::vector<std::shared_ptr<Expr>> args;
+    for (auto arg : method_call->args) {
+      args.push_back(arg);
     }
 
-    this->compare_args_and_params(method_call->identifier, method_call->args,
-                                  new_params);
+    compare_args_and_params(
+        method_call->identifier, args,
+        std::vector(function->params.begin() + 1, function->params.end()));
+    this->stack.push(function->ret);
+  }
 
-    this->stack.push(method->ret);
+  void visit_lambda(Lambda *lambda) {
+    this->found_return = false;
+    auto previous_return_type = this->return_type;
+    auto ret_type = lambda->return_type.has_value()
+                        ? type_converter.convert(lambda->return_type.value())
+                        : std::make_shared<VoidType>();
+
+    this->return_type = ret_type;
+
+    std::vector<std::shared_ptr<BirdType>> params{};
+    std::transform(
+        lambda->param_list.begin(), lambda->param_list.end(),
+        std::back_inserter(params),
+        [&](std::pair<Token, std::shared_ptr<ParseType::Type>> param) {
+          return type_converter.convert(param.second);
+        });
+
+    this->env.push_env();
+    for (auto &param : lambda->param_list) {
+      this->env.declare(param.first.lexeme,
+                        this->type_converter.convert(param.second));
+    }
+
+    for (auto &stmt : dynamic_cast<Block *>(lambda->block.get())
+                          ->stmts) // TODO: figure out how not to dynamic cast
+    {
+      stmt->accept(this);
+    }
+    this->env.pop_env();
+
+    if (!this->found_return && ret_type->get_tag() != TypeTag::VOID) {
+      this->user_error_tracker.type_error(
+          "Missing return in a non-void lambda.", lambda->fn_token);
+    }
+
+    this->return_type = previous_return_type;
+
+    this->stack.push(std::make_shared<LambdaFunction>(params, ret_type));
   }
 };

@@ -7,6 +7,7 @@
 #include "../../parse_type.h"
 #include "../../token.h"
 #include "../../visitors/visitor.h"
+#include "../capturable.h"
 #include "stmt.h"
 
 // forward declaration
@@ -17,7 +18,9 @@ class Expr;
  * ex:
  * var x = 4;
  */
-class DeclStmt : public Stmt {
+class DeclStmt : public Stmt, public Captureable {
+  bool captured = false;
+
 public:
   Token identifier;
   std::optional<std::shared_ptr<ParseType::Type>> type;
@@ -30,4 +33,6 @@ public:
   }
 
   void accept(Visitor *visitor) { visitor->visit_decl_stmt(this); }
+  bool get_captured() { return captured; }
+  void set_captured(bool captured) { this->captured = captured; }
 };

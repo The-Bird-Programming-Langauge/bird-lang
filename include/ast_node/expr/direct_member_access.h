@@ -20,10 +20,12 @@ class Expr;
 
 class DirectMemberAccess : public Expr {
 public:
-  std::unique_ptr<Expr> accessable;
+  std::shared_ptr<Expr> accessable;
   Token identifier;
 
   DirectMemberAccess(std::unique_ptr<Expr> accessable, Token identifier)
+      : accessable(std::move(accessable)), identifier(identifier) {};
+  DirectMemberAccess(std::shared_ptr<Expr> accessable, Token identifier)
       : accessable(std::move(accessable)), identifier(identifier) {};
 
   void accept(Visitor *visitor) { visitor->visit_direct_member_access(this); }

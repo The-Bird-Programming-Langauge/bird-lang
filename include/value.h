@@ -1,4 +1,5 @@
 #pragma once
+#include "./callable.h"
 #include <iostream>
 #include <memory>
 #include <string>
@@ -28,9 +29,9 @@ struct Struct {
       : name(name), fields(fields) {}
 };
 
-using variant =
-    std::variant<int, double, std::string, bool,
-                 std::shared_ptr<std::vector<Value>>, Struct, std::nullptr_t>;
+using variant = std::variant<int, double, std::string, bool,
+                             std::shared_ptr<std::vector<Value>>, Struct,
+                             std::nullptr_t, Callable>;
 class Value {
 public:
   variant data;

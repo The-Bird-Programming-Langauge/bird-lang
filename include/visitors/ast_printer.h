@@ -163,7 +163,7 @@ public:
   }
 
   void visit_call(Call *call) {
-    std::cout << call->identifier.lexeme;
+    call->callable->accept(this);
     std::cout << "(";
 
     for (auto &arg : call->args) {
@@ -250,6 +250,17 @@ public:
 
       std::cout << primitive->type.lexeme;
       return;
+    } else if (type->tag == ParseType::FUNCTION) {
+      auto function =
+          safe_dynamic_pointer_cast<ParseType::Function, ParseType::Type>(type);
+      std::cout << "(";
+      for (auto param : function->params) {
+        this->print_parse_type(param);
+      }
+
+      std::cout << ")";
+      std::cout << function->ret;
+      return;
     }
 
     throw BirdException("unknown parse type");
@@ -297,6 +308,13 @@ public:
   void visit_method(Method *method) { this->visit_func(method); }
 
   void visit_method_call(MethodCall *method_call) {
-    this->visit_call(method_call);
+    this->visit_direct_member_access(method_call);
+    std::cout << "(";
+    for (auto arg : method_call->args) {
+      arg->accept(this);
+    }
+    std::cout << ")";
   }
+
+  void visit_lambda(Lambda *lambda) {}
 };

@@ -7,7 +7,6 @@
 #include "../ast_node/index.h"
 
 #include "../callable.h"
-#include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
 #include "../exceptions/break_exception.h"
 #include "../exceptions/continue_exception.h"
@@ -24,10 +23,7 @@
 class SemanticAnalyzer : public Visitor {
 
 public:
-  CoreCallTable core_call_table;
-
   Environment<SemanticValue> env;
-  Environment<SemanticCallable> call_table;
   Environment<SemanticType> type_table;
   UserErrorTracker &user_error_tracker;
   int loop_depth;
@@ -37,7 +33,7 @@ public:
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
     this->env.push_env();
-    this->call_table.push_env();
+    this->env.declare("length", SemanticValue());
     this->type_table.push_env();
     this->loop_depth = 0;
     this->function_depth = 0;
@@ -73,8 +69,7 @@ public:
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
-    if (!this->env.contains(assign_expr->identifier.lexeme) &&
-        !this->call_table.contains(assign_expr->identifier.lexeme)) {
+    if (!this->env.contains(assign_expr->identifier.lexeme)) {
       this->user_error_tracker.semantic_error(
           "Variable '" + assign_expr->identifier.lexeme + "' does not exist.",
           assign_expr->identifier);
@@ -176,9 +171,9 @@ public:
     ternary->false_expr->accept(this);
   }
 
-  void visit_func_helper(Func *func) {
+  void visit_func_with_name(std::string name, Func *func) {
     this->function_depth += 1;
-
+    this->env.declare(name, SemanticValue());
     this->env.push_env();
 
     for (auto &param : func->param_list) {
@@ -195,6 +190,10 @@ public:
     this->function_depth -= 1;
   }
 
+  void visit_func_helper(Func *func) {
+    visit_func_with_name(func->identifier.lexeme, func);
+  }
+
   void visit_func(Func *func) {
     if (this->identifer_in_any_environment(func->identifier.lexeme)) {
       this->user_error_tracker.semantic_error(
@@ -203,7 +202,6 @@ public:
       return;
     }
 
-    this->call_table.declare(func->identifier.lexeme, SemanticCallable());
     this->visit_func_helper(func);
   }
 
@@ -216,30 +214,7 @@ public:
     }
   }
 
-  void visit_call(Call *call) {
-    // if (!core_call_table.table.contains(call->identifier.lexeme) &&
-    //     !this->call_table.contains(call->identifier.lexeme)) {
-    //   this->user_error_tracker.semantic_error("Function call identifier '" +
-    //                                               call->identifier.lexeme +
-    //                                               "' is not declared.",
-    //                                           call->identifier);
-    //   return;
-    // }
-
-    // auto function = core_call_table.table.contains(call->identifier.lexeme)
-    //                     ? SemanticCallable(core_call_table.table
-    //                                            .get(call->identifier.lexeme)
-    //                                            ->params.size())
-    //                     : this->call_table.get(call->identifier.lexeme);
-
-    // if (function.param_count != call->args.size()) {
-    //   this->user_error_tracker.semantic_error(
-    //       "Function call identifer '" + call->identifier.lexeme +
-    //           "' does not use the correct number of arguments.",
-    //       call->identifier);
-    //   return;
-    // }
-  }
+  void visit_call(Call *call) { call->callable->accept(this); }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
     if (this->function_depth == 0) {
@@ -286,7 +261,6 @@ public:
 
   bool identifer_in_any_environment(std::string identifer) {
     return this->env.current_contains(identifer) ||
-           this->call_table.current_contains(identifer) ||
            this->type_table.current_contains(identifer);
   }
 
@@ -344,14 +318,27 @@ public:
 
   void visit_method(Method *method) {
     this->in_method = true;
-    this->visit_func_helper(method);
+    this->visit_func_with_name("0" + method->class_identifier.lexeme + "." +
+                                   method->identifier.lexeme,
+                               method);
     this->in_method = false;
   }
 
   void visit_method_call(MethodCall *method_call) {
-    method_call->instance->accept(this);
+    method_call->accessable->accept(this);
     for (auto &arg : method_call->args) {
       arg->accept(this);
     }
+  }
+
+  void visit_lambda(Lambda *lambda) {
+    this->function_depth += 1;
+    this->env.push_env();
+    for (auto &param : lambda->param_list) {
+      this->env.declare(param.first.lexeme, SemanticValue(true));
+    }
+    lambda->block->accept(this);
+    this->env.pop_env();
+    this->function_depth -= 1;
   }
 };

@@ -2,6 +2,7 @@
 
 #include "../../visitors/visitor.h"
 #include "call.h"
+#include "direct_member_access.h"
 #include "expr.h"
 #include <memory>
 
@@ -25,12 +26,14 @@ class Expr;
  *};
  * foo.say_name();
  */
-class MethodCall : public Call {
+class MethodCall : public DirectMemberAccess {
 public:
-  std::unique_ptr<Expr> instance;
-
-  MethodCall(std::unique_ptr<Expr> instance, Call *call)
-      : Call(call), instance(std::move(instance)) {};
+  std::vector<std::shared_ptr<Expr>> args;
+  MethodCall(DirectMemberAccess *direct_member_access,
+             std::vector<std::shared_ptr<Expr>> args)
+      : DirectMemberAccess(direct_member_access->accessable,
+                           direct_member_access->identifier),
+        args(args) {};
 
   void accept(Visitor *visitor) { visitor->visit_method_call(this); }
 };

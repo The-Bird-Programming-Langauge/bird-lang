@@ -27,10 +27,7 @@
 class Interpreter : public Visitor {
 
 public:
-  CoreCallTable core_call_table;
-
   Environment<Value> env;
-  Environment<Callable> call_table;
   Environment<std::shared_ptr<BirdType>> type_table;
   Stack<Value> stack;
   std::set<std::string> struct_names;
@@ -40,8 +37,8 @@ public:
 
   Interpreter() : type_converter(this->type_table, this->struct_names) {
     this->env.push_env();
-    this->call_table.push_env();
     this->type_table.push_env();
+    this->env.declare("length", Value(Length()));
   }
 
   void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts) {
@@ -389,12 +386,17 @@ public:
   }
 
   void visit_func(Func *func) {
-    this->call_table.declare(func->identifier.lexeme,
-                             this->create_callable(func));
+    this->env.declare(func->identifier.lexeme,
+                      Value(this->create_callable(func->param_list, func->block,
+                                                  func->return_type)));
   }
 
-  Callable create_callable(Func *func) {
-    return Callable(func->param_list, func->block, func->return_type);
+  Callable create_callable(
+      std::vector<std::pair<Token, std::shared_ptr<ParseType::Type>>>
+          param_list,
+      std::shared_ptr<Stmt> block,
+      std::optional<std::shared_ptr<ParseType::Type>> return_type) {
+    return Callable(param_list, block, return_type);
   }
 
   void visit_if_stmt(IfStmt *if_stmt) {
@@ -408,11 +410,8 @@ public:
   }
 
   void visit_call(Call *call) {
-    if (core_call_table.table.contains(call->identifier.lexeme)) {
-      run_core_call(call);
-      return;
-    }
-    auto callable = this->call_table.get(call->identifier.lexeme);
+    call->callable->accept(this);
+    auto callable = as_type<Callable>(stack.pop());
 
     std::vector<Value> args = {};
     for (auto arg : call->args) {
@@ -423,11 +422,10 @@ public:
     callable.call(this, args);
   }
 
-  void run_core_call(Call *call) {
-    if (call->identifier.lexeme == "length") {
-      call->args[0]->accept(this);
-      auto result = std::move(this->stack.pop());
-      stack.push(result.length());
+  void run_core_call(std::string name, std::vector<Value> args) {
+    if (name == "length") {
+      stack.push(args[0].length());
+      return;
     }
   }
 
@@ -628,14 +626,22 @@ public:
 
   void visit_method(Method *method) {
     // register the function with the class
+    const auto callable =
+        create_callable(method->param_list, method->block, method->return_type);
     this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
-        create_callable(method);
+        callable;
+    this->env.declare("0" + method->class_identifier.lexeme +
+                          method->identifier.lexeme,
+                      Value(callable));
   }
 
   void visit_method_call(MethodCall *method_call) {
-    method_call->instance->accept(this);
+    method_call->accessable->accept(this);
     const auto value = stack.pop();
-    const auto struct_val = as_type<Struct>(value);
+    const auto struct_name = as_type<Struct>(value).name;
+
+    auto method =
+        this->v_table.at(struct_name).at(method_call->identifier.lexeme);
 
     std::vector<Value> args = {value};
     for (auto arg : method_call->args) {
@@ -643,7 +649,12 @@ public:
       args.push_back(stack.pop());
     }
 
-    this->v_table[struct_val.name][method_call->identifier.lexeme].call(this,
-                                                                        args);
+    method.call(this, args);
+  }
+
+  void visit_lambda(Lambda *lambda) {
+
+    this->stack.push(Value(this->create_callable(
+        lambda->param_list, lambda->block, lambda->return_type)));
   }
 };

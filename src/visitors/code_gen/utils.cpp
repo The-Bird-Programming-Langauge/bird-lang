@@ -1,5 +1,6 @@
+#include "../../../include/exceptions/bird_exception.h"
 #include "../../../include/visitors/code_gen.h"
-#include "exceptions/bird_exception.h"
+#include <binaryen-c.h>
 
 Token::Type assign_expr_binary_equivalent(Token::Type token_type) {
   switch (token_type) {
@@ -88,6 +89,8 @@ BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type) {
   else if (bird_type->get_tag() == TypeTag::ARRAY)
     return BinaryenTypeInt32();
   else if (bird_type->get_tag() == TypeTag::FUNCTION)
+    return BinaryenTypeInt32();
+  else if (bird_type->get_tag() == TypeTag::LAMBDA)
     return BinaryenTypeInt32();
   else if (bird_type->get_tag() == TypeTag::ERROR)
     throw BirdException("found error type");

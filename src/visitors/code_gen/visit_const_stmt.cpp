@@ -1,6 +1,13 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_const_stmt(ConstStmt *const_stmt) {
+  if (const_stmt->get_captured()) {
+    std::cout << "generating captured code" << std::endl;
+    this->stack.push(BinaryenConst(this->mod, BinaryenLiteralInt32(0)));
+    return;
+  }
+
   const_stmt->value->accept(this);
   TaggedExpression initializer = this->stack.pop();
 

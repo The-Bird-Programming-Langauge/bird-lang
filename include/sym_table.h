@@ -102,4 +102,13 @@ public:
     throw BirdException("cannot get undefined identifier in environment: " +
                         identifier);
   }
+
+  size_t size() {
+    auto size = 0;
+    for (auto env : envs) {
+      size += env.size();
+    }
+
+    return size;
+  }
 };

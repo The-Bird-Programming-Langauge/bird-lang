@@ -27,3 +27,7 @@ void Callable::call(Interpreter *interpreter, std::vector<Value> args) {
     interpreter->env.pop_env();
   }
 }
+
+void Length::call(Interpreter *interpreter, std::vector<Value> args) {
+  interpreter->run_core_call("length", args);
+};

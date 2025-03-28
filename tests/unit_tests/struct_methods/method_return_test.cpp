@@ -47,10 +47,12 @@ INSTANTIATE_TEST_SUITE_P(
         (MethodReturnTestFixtureParams){"fn foo() {}", true, ""},
         (MethodReturnTestFixtureParams){"fn foo() {return 3;}", false,
                                         ">>[ERROR] type mismatch: in return "
-                                        "statement (line 1, character 39)"},
+                                        "statement. Expected void, found int "
+                                        "(line 1, character 39)"},
         (MethodReturnTestFixtureParams){"fn foo() -> void {return 3;}", false,
                                         ">>[ERROR] type mismatch: in return "
-                                        "statement (line 1, character 47)"},
+                                        "statement. Expected void, found int "
+                                        "(line 1, character 47)"},
         (MethodReturnTestFixtureParams){
             "fn foo() -> int {}", false,
             ">>[ERROR] type error: Missing return in a non-void function "
@@ -59,4 +61,5 @@ INSTANTIATE_TEST_SUITE_P(
                                         ""},
         (MethodReturnTestFixtureParams){"fn foo() -> int {return true;}", false,
                                         ">>[ERROR] type mismatch: in return "
-                                        "statement (line 1, character 46)"}));
+                                        "statement. Expected int, found bool "
+                                        "(line 1, character 46)"}));

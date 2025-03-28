@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../parse_type.h"
 #include "../../token.h"
 #include "../../visitors/visitor.h"
 #include "func.h"
-#include "parse_type.h"
 #include "stmt.h"
 
 // forward declaration

@@ -13,9 +13,9 @@
  */
 class MemberAssign : public AssignExpr {
 public:
-  std::unique_ptr<Expr> accessable;
+  std::shared_ptr<Expr> accessable;
 
-  MemberAssign(std::unique_ptr<Expr> accessable, Token member_identifier,
+  MemberAssign(std::shared_ptr<Expr> accessable, Token member_identifier,
                Token assign_operator, std::unique_ptr<Expr> value)
       : AssignExpr(member_identifier, assign_operator, std::move(value)),
         accessable(std::move(accessable)) {}

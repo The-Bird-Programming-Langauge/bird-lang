@@ -139,13 +139,13 @@ struct_initialization
 array_initialization
 match
 direct_member_access
-method_call
 index_assign
 grouping
 and_expr
 xor_expr
 or_expr
 match_else_arm
+lambda
 
 %type <std::unique_ptr<Subscript>>
 subscript_expr
@@ -204,6 +204,10 @@ param_list
 
 %type <std::shared_ptr<ParseType::Type>>
 type_identifier
+
+%type <std::vector<std::shared_ptr<ParseType::Type>>>
+maybe_type_identifier_list
+type_identifier_list
 
 %right ASSIGN
    EQUAL
@@ -450,10 +454,10 @@ expr:
    | unary_expr { $$ = std::move($1); }
    | type_cast {$$ = std::move($1); }
    | call_expr { $$ = std::move($1); }
-   | method_call {$$ = std::move($1); }
    | subscript_expr { $$ = std::move($1); }
    | index_assign { $$ = std::move($1); }
    | direct_member_access { $$ = std::move($1); }
+   | lambda { $$ = std::move($1); }
    | struct_initialization { $$ = std::move($1); }
    | array_initialization { $$ = std::move($1); }
    | match { $$ = std::move($1); }
@@ -518,8 +522,10 @@ or_expr:
       { $$ = std::make_unique<Binary>(std::move($1), $2, std::move($3)); }
 
 call_expr: 
-   IDENTIFIER LPAREN maybe_arg_list RPAREN %prec CALL 
-      { $$ = std::make_unique<Call>($1, std::move($3)); }
+   direct_member_access LPAREN maybe_arg_list RPAREN %prec CALL 
+   { $$ = std::make_unique<MethodCall>(dynamic_cast<DirectMemberAccess*>($1.get()), std::move($3)); }
+   | expr LPAREN maybe_arg_list RPAREN %prec CALL 
+      { $$ = std::make_unique<Call>($2, std::move($1), std::move($3)); }
 
 struct_initialization:
    IDENTIFIER LBRACE maybe_struct_initialization_list RBRACE 
@@ -529,6 +535,11 @@ maybe_struct_initialization_list:
    %empty { $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>(); }
    | struct_initialization_list { $$ = std::move($1); }
    | struct_initialization_list COMMA { $$ = std::move($1); }
+
+lambda:
+   FN LPAREN maybe_param_list RPAREN ARROW type_identifier block {
+      $$ = std::make_unique<Lambda>($1, std::move($3), std::move($6), std::move($7));
+   }
 
 struct_initialization_list:
    IDENTIFIER EQUAL expr 
@@ -550,10 +561,6 @@ subscript_expr:
 direct_member_access:
    expr DOT IDENTIFIER %prec SUBSCRIPT
       { $$ = std::make_unique<DirectMemberAccess>(std::move($1), $3); }
-
-method_call:
-   expr DOT call_expr %prec CALL
-      { $$ = std::make_unique<MethodCall>(std::move($1), dynamic_cast<Call *>($3.get())); }
 
 match:
    MATCH expr LBRACE maybe_match_arms match_else_arm RBRACE %prec MATCH_EXPR
@@ -631,6 +638,16 @@ type_identifier:
    | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
+   | FN LPAREN maybe_type_identifier_list RPAREN ARROW type_identifier { $$ = std::make_shared<ParseType::Function>( $1, $3, $6);}
+   | LPAREN type_identifier RPAREN { $$ = std::move($2); }
+
+maybe_type_identifier_list:
+   %empty { $$ = std::vector<std::shared_ptr<ParseType::Type>>{}; }
+   | type_identifier_list { $$ = $1; }
+
+type_identifier_list:
+   type_identifier { $$ = std::vector<std::shared_ptr<ParseType::Type>>({std::move($1)}); }
+   | type_identifier_list COMMA type_identifier { $$ = $1; $$.push_back(std::move($3)); }
 
 %%
 

@@ -3,7 +3,7 @@
 #include <memory>
 
 void CodeGen::visit_method_call(MethodCall *method_call) {
-  method_call->instance->accept(this);
+  method_call->accessable->accept(this);
   auto struct_expr = stack.pop();
   auto struct_type = std::dynamic_pointer_cast<StructType>(struct_expr.type);
   std::vector<BinaryenExpressionRef> args = {struct_expr.value};
@@ -14,5 +14,5 @@ void CodeGen::visit_method_call(MethodCall *method_call) {
   }
 
   this->stack.push(create_call_with(
-      "0" + struct_type->name + method_call->identifier.lexeme, args));
+      "0" + struct_type->name + "." + method_call->identifier.lexeme, args));
 }

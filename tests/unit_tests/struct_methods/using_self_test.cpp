@@ -47,17 +47,18 @@ INSTANTIATE_TEST_SUITE_P(
         (UsingSelfTestFixtureParams){"fn foo() -> int { return self.val; }",
                                      "const result: int = bar.foo();", true,
                                      ""},
-        (UsingSelfTestFixtureParams){"fn foo() -> str { return self.val; }",
-                                     "bar.foo();", false,
-                                     ">>[ERROR] type mismatch: in return "
-                                     "statement (line 1, character 65)"},
+        (UsingSelfTestFixtureParams){
+            "fn foo() -> str { return self.val; }", "bar.foo();", false,
+            ">>[ERROR] type mismatch: in return "
+            "statement. Expected string, found int (line 1, character 65)"},
         (UsingSelfTestFixtureParams){"fn foo() -> Foo { return self; }",
                                      "const result: Foo = bar.foo();", true,
                                      ""},
         (UsingSelfTestFixtureParams){"fn foo() -> void { return self; }",
                                      "bar.foo();", false,
                                      ">>[ERROR] type mismatch: in return "
-                                     "statement (line 1, character 66)"},
+                                     "statement. Expected void, found struct "
+                                     "Foo (line 1, character 66)"},
         (UsingSelfTestFixtureParams){"fn foo() -> void { self.val += 1; }",
                                      "bar.foo();", true, ""},
         (UsingSelfTestFixtureParams){
