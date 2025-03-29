@@ -745,7 +745,8 @@ public:
       auto placeholder = safe_dynamic_pointer_cast<PlaceholderType>(accessable);
       if (this->struct_names.find(placeholder->name) ==
           this->struct_names.end()) {
-        this->user_error_tracker.type_error("struct not declared", Token());
+        this->user_error_tracker.type_error(
+            "struct not declared: " + placeholder->name, Token());
         this->stack.push(std::make_shared<ErrorType>());
         return;
       }
@@ -780,8 +781,9 @@ public:
   void
   visit_struct_initialization(StructInitialization *struct_initialization) {
     if (!this->type_table.contains(struct_initialization->identifier.lexeme)) {
-      this->user_error_tracker.type_error("struct not declared",
-                                          struct_initialization->identifier);
+      this->user_error_tracker.type_error(
+          "struct not declared: " + struct_initialization->identifier.lexeme,
+          struct_initialization->identifier);
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
@@ -825,7 +827,8 @@ public:
                 safe_dynamic_pointer_cast<PlaceholderType>(field.second);
             if (this->struct_names.find(placeholder->name) ==
                 this->struct_names.end()) {
-              this->user_error_tracker.type_error("struct not declared",
+              this->user_error_tracker.type_error("struct not declared: " +
+                                                      placeholder->name,
                                                   Token()); // TODO: fix this
               this->stack.push(std::make_shared<ErrorType>());
               return;
@@ -839,7 +842,8 @@ public:
                 safe_dynamic_pointer_cast<PlaceholderType>(field_type);
             if (this->struct_names.find(placeholder->name) ==
                 this->struct_names.end()) {
-              this->user_error_tracker.type_error("struct not declared",
+              this->user_error_tracker.type_error("struct not declared: " +
+                                                      placeholder->name,
                                                   Token()); // TODO: fix this
               this->stack.push(std::make_shared<ErrorType>());
               return;

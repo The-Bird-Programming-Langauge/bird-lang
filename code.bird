@@ -1,71 +1,29 @@
-namespace Test {
-        var x: int = 42;
-        const y: float = 3.14;
-
-        fn foo() {
-                print "bar";
-        }
-
-        struct Bar {
-                x: int;
-                y: int;
+namespace A {
+        struct Foo {
+                a: str;
         };
-        namespace Other {
-                struct Bar {
-                        x: int;
-                        y: int;
+}
 
-                        fn describe() {
-                                print self.x;
-                                print self.y;
-                        }
+namespace B {
+        struct Bar {
+                b: str;
+        };
 
-                        fn add() -> int {
-                                return self.x + self.y;
-                        }
+        namespace C {
+                struct Shoe {
+                        c: str;
                 };
         }
 
-        var t: Other::Bar = Other::Bar {
-                x = 10,
-                y = 20
-        };
-
-        var u: Other::Bar = Other::Bar {
-                x = 30,
-                y = 90
-        };
-
-        var z: Other::Bar[] = [ t, u ];
+        const a: A::Foo = A::Foo { a = "a" };
 }
 
-print Test::x;
-print Test::y;
+namespace A {
+        var d: Foo = Foo { a = "a" };
+        var b: B::Bar = B::Bar { b = "b" };
+        var c: B::C::Shoe = B::C::Shoe { c = "c" };
+}
 
-Test::foo();
-
-var p: Test::Bar = Test::Bar {
-        x = 1,
-        y = 2
-};
-
-var o: Test::Other::Bar = Test::Other::Bar {
-        x = 1,
-        y = 2
-};
-
-print p.x;
-print p.y;
-
-print o.x;
-print o.y;
-
-
-Test::t.describe();
-
-print "arr[0]";
-Test::z[0].describe();
-print Test::z[0].add();
-print "arr[1]";
-Test::z[1].describe();
-print Test::z[1].add();
+print B::a.a;
+print A::b.b;
+print A::c.c;
