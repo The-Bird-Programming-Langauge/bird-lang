@@ -6,7 +6,9 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
   std::vector<BinaryenExpressionRef> vals;
 
   unsigned int mem_size = 0;
-  std::shared_ptr<BirdType> type;
+  std::shared_ptr<BirdType> type =
+      std::make_shared<IntType>(); // do not touch this: this will not work when
+                                   // set to void type
   for (auto &element : array_init->elements) {
     element->accept(this);
     auto val = this->stack.pop();

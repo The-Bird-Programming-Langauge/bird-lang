@@ -30,7 +30,7 @@ void CodeGen::generate_array_length_fn() {
 
   BinaryenExpressionRef body =
       BinaryenBlock(this->mod, nullptr, function_body.data(),
-                    function_body.size(), BinaryenTypeNone());
+                    function_body.size(), BinaryenTypeInt32());
 
   BinaryenAddFunction(this->mod, func_name.c_str(), params,
                       binaryen_return_type, nullptr, 0, body);

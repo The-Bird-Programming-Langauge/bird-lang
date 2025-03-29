@@ -1,18 +1,9 @@
-struct Data {
-    stuff: int;
-};
-
-var x = Data { stuff = 1};
-const data: Data[] = [x];
-
-for var i = 0; i < 10; i += 1 {
-    var x = Data {
-        stuff = i,
-    };
-    push(data, x);
-}
 
 
-for var i = 0; i < length(data); i += 1 {
-    print data[i].stuff;
-}
+// be able to declare empty arrays
+
+var x: float[] = [];
+push(x, 1.3);
+print x[0];
+
+

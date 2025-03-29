@@ -1,6 +1,7 @@
 #include "../../../include/visitors/code_gen.h"
 #include "../../../include/visitors/hoist_visitor.h"
 #include "../../../include/visitors/static_visitor.h"
+#include <binaryen-c.h>
 #include <fstream>
 
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
@@ -25,7 +26,7 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
       std::vector<BinaryenType>();
 
   main_function_body.push_back(BinaryenCall(this->mod, "initialize_memory",
-                                            &offset, 1, BinaryenTypeInt32()));
+                                            &offset, 1, BinaryenTypeNone()));
 
   for (auto &stmt : *stmts) {
     if (auto func_stmt = dynamic_cast<Func *>(stmt.get())) {

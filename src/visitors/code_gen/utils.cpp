@@ -1,5 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
-#include "exceptions/bird_exception.h"
+#include <binaryen-c.h>
 
 Token::Type assign_expr_binary_equivalent(Token::Type token_type) {
   switch (token_type) {

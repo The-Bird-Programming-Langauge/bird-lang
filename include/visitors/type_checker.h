@@ -173,6 +173,15 @@ public:
     if (decl_stmt->type.has_value()) {
       std::shared_ptr<BirdType> type =
           this->type_converter.convert(decl_stmt->type.value());
+      if (type->get_tag() == TypeTag::ARRAY &&
+          result->get_tag() == TypeTag::ARRAY) {
+        auto result_array = std::dynamic_pointer_cast<ArrayType>(result);
+        auto type_array = std::dynamic_pointer_cast<ArrayType>(type);
+        if (result_array->element_type->get_tag() == TypeTag::VOID) {
+          result_array->element_type = type_array->element_type;
+        }
+      }
+
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
             "in declaration", decl_stmt->type.value()->get_token());
