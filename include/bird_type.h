@@ -20,7 +20,8 @@ enum class TypeTag {
   STRUCT,
   ARRAY,
   FUNCTION,
-  PLACEHOLDER
+  PLACEHOLDER,
+  GENERIC // TODO: figure out a way to remove this
 };
 
 struct BirdType {
@@ -120,6 +121,14 @@ struct StructType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::STRUCT; }
   std::string to_string() const { return "struct " + name; }
+};
+
+// used for internal library functions, is not exposed to the user
+struct Generic : BirdType {
+  bool operator==(BirdType &other) const { return true; }
+  bool operator!=(BirdType &other) const { return false; }
+  TypeTag get_tag() const { return TypeTag::GENERIC; }
+  std::string to_string() const { return "generic"; }
 };
 
 struct ArrayType : BirdType {

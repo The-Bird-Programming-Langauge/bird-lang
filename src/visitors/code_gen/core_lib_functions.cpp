@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 #include <memory>
 
 void CodeGen::generate_array_length_fn() {
@@ -11,7 +12,7 @@ void CodeGen::generate_array_length_fn() {
       TaggedType(binaryen_return_type, bird_return_type);
 
   std::vector<BinaryenType> param_types{bird_type_to_binaryen_type(
-      std::make_shared<ArrayType>(std::make_shared<VoidType>()))};
+      std::make_shared<ArrayType>(std::make_shared<Generic>()))};
 
   BinaryenType params =
       BinaryenTypeCreate(param_types.data(), param_types.size());

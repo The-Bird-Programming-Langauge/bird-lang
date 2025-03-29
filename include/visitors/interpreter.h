@@ -429,6 +429,14 @@ public:
       auto result = std::move(this->stack.pop());
       stack.push(result.length());
     }
+    if (call->identifier.lexeme == "push") {
+      call->args[0]->accept(this);
+      auto result = std::move(this->stack.pop());
+      call->args[1]->accept(this);
+      auto new_value = std::move(this->stack.pop());
+      auto array = as_type<std::shared_ptr<std::vector<Value>>>(result);
+      array->push_back(new_value);
+    }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {

@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../ast_node/expr/method_call.h"
 #include "../bird_type.h"
 #include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
@@ -16,7 +17,6 @@
 #include "../stack.h"
 #include "../sym_table.h"
 #include "../type_converter.h"
-#include "ast_node/expr/method_call.h"
 #include "hoist_visitor.h"
 
 /*
@@ -247,6 +247,7 @@ public:
       arg->accept(this);
       auto result = this->stack.pop();
 
+      // TODO: change this to a switch
       if (result->get_tag() == TypeTag::VOID) {
         this->user_error_tracker.type_error("cannot print void type",
                                             print_stmt->print_token);
@@ -264,6 +265,11 @@ public:
 
       if (result->get_tag() == TypeTag::FUNCTION) {
         this->user_error_tracker.type_error("cannot print function type",
+                                            print_stmt->print_token);
+      }
+
+      if (result->get_tag() == TypeTag::ARRAY) {
+        this->user_error_tracker.type_error("cannot print array type",
                                             print_stmt->print_token);
       }
 
@@ -334,6 +340,8 @@ public:
     if (for_stmt->increment.has_value()) {
       for_stmt->increment.value()->accept(this);
     }
+
+    for_stmt->body->accept(this);
 
     this->env.pop_env();
   }
@@ -601,9 +609,54 @@ public:
   }
 
   void visit_call(Call *call) {
+    if (core_call_table.table.contains(call->identifier.lexeme)) {
+      check_core_call(call);
+      return;
+    }
     auto function = this->call_table.get(call->identifier.lexeme);
     compare_args_and_params(call->identifier, call->args, function->params);
     this->stack.push(function->ret);
+  }
+
+  void check_core_call(Call *call) {
+    auto fn = core_call_table.table.get(call->identifier.lexeme);
+    const auto function_name = call->identifier.lexeme;
+
+    if (!correct_arity(fn->params, call->args)) {
+      this->user_error_tracker.type_error("Invalid number of arguments to " +
+                                              call->identifier.lexeme,
+                                          call->identifier);
+
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
+    if (function_name == "length") {
+      call->args[0]->accept(this);
+      auto value = this->stack.pop();
+      if (value->get_tag() != TypeTag::ARRAY) {
+        this->stack.push(std::make_shared<ErrorType>());
+        return;
+      }
+      this->stack.push(std::make_shared<IntType>());
+    } else if (function_name == "push") {
+      call->args[0]->accept(this);
+      auto arr_type = this->stack.pop();
+      if (arr_type->get_tag() != TypeTag::ARRAY) {
+        this->stack.push(std::make_shared<ErrorType>());
+        return;
+      }
+
+      auto arr = std::dynamic_pointer_cast<ArrayType>(arr_type);
+      call->args[1]->accept(this);
+      auto el_type = this->stack.pop();
+
+      if (*arr->element_type != *el_type) {
+        this->stack.push(std::make_shared<ErrorType>());
+        return;
+      }
+
+      this->stack.push(std::make_shared<VoidType>());
+    }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {

@@ -130,6 +130,31 @@ function print_memory(memory) {
 
 const moduleOptions = {
     env: {
+        push_ptr: (arr_ptr, value) => {
+            const old_data_ptr = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE);
+            push_32(arr_ptr, value);
+            const length = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE + INT_SIZE);
+            const new_block_ptr = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE);
+            set_block_num_ptrs(new_block_ptr, length);
+        },
+        push_32,
+        push_64: (arr_ptr, value) => {
+            let data_ptr = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE);
+            const length = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE + INT_SIZE);
+            const capacity = (get_block_size(data_ptr) - BLOCK_HEADER_SIZE) / FLOAT_SIZE;
+            if (length + 1 >= capacity) {
+                const new_data_ptr = mem_alloc((get_block_size(data_ptr) - BLOCK_HEADER_SIZE) * 2, 0);
+                for (let i = 0; i < length; i += 1) {
+                    memory.setFloat64(new_data_ptr + BLOCK_HEADER_SIZE + i * FLOAT_SIZE,
+                        (memory.getFloat64(data_ptr + BLOCK_HEADER_SIZE + i * FLOAT_SIZE)));
+                }
+                data_ptr = new_data_ptr;
+                memory.setUint32(arr_ptr + BLOCK_HEADER_SIZE, data_ptr);
+            }
+
+            memory.setFloat64(data_ptr + BLOCK_HEADER_SIZE + length * FLOAT_SIZE, value);
+            memory.setUint32(arr_ptr + BLOCK_HEADER_SIZE + INT_SIZE, length + 1);
+        },
         strcat: (left, right) => {
             const buffer = new Uint8Array(instance.exports.memory.buffer);
             let length = 0;
@@ -248,6 +273,10 @@ const moduleOptions = {
                 // pointer to the current block
                 const block_ptr = stack.pop();
 
+                if (!ptr) {
+                    continue;
+                }
+
                 // if the block is already marked, skip it. otherwise mark it
                 if (block_is_marked(block_ptr)) {
                     continue;
@@ -278,7 +307,7 @@ const moduleOptions = {
                 let update_prev_ptr = true;
 
                 // the loop should stop when we reach the end of the allocated list
-                if (next_ptr === get_null_ptr_address()) {
+                if (next_ptr === get_null_ptr_address() || next_ptr === 0) {
                     next_block_is_not_null = false;
                 }
 
@@ -381,9 +410,34 @@ function mem_alloc(size, num_pointers) {
         // move the current block to the head of the allocated list
         set_block_next_ptr(curr_ptr, get_allocated_list_head_ptr()); // set the pointer of the current block
         set_allocated_list_head_ptr(curr_ptr); // set the head of the allocated list
+    } else {
+        if (curr_ptr === get_free_list_head_ptr()) {
+            set_free_list_head_ptr(get_block_next_ptr(curr_ptr));
+        }
+
+        set_block_next_ptr(curr_ptr, get_allocated_list_head_ptr()); // set the pointer of the current block
+        set_allocated_list_head_ptr(curr_ptr); // set the head of the allocated list
     }
+
 
 
     set_block_num_ptrs(curr_ptr, num_pointers);
     return curr_ptr;
+}
+
+function push_32(arr_ptr, value) {
+    let data_ptr = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE);
+    const length = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE + INT_SIZE);
+    const capacity = (get_block_size(data_ptr) - BLOCK_HEADER_SIZE) / INT_SIZE;
+    if (length + 1 >= capacity) {
+        const new_data_ptr = mem_alloc((get_block_size(data_ptr) - BLOCK_HEADER_SIZE) * 2, 0);
+        for (let i = 0; i < length; i += 1) {
+            memory.setUint32(new_data_ptr + BLOCK_HEADER_SIZE + i * INT_SIZE,
+                (memory.getUint32(data_ptr + BLOCK_HEADER_SIZE + i * INT_SIZE)));
+        }
+        data_ptr = new_data_ptr;
+        memory.setUint32(arr_ptr + BLOCK_HEADER_SIZE, data_ptr);
+    }
+    memory.setUint32(data_ptr + BLOCK_HEADER_SIZE + (length * INT_SIZE), value);
+    memory.setUint32(arr_ptr + BLOCK_HEADER_SIZE + INT_SIZE, length + 1);
 }

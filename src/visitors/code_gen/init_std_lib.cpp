@@ -61,4 +61,16 @@ void CodeGen::init_std_lib() {
 
   BinaryenAddFunctionImport(this->mod, "strcat", "env", "strcat", args_type,
                             BinaryenTypeInt32());
+
+  BinaryenAddFunctionImport(this->mod, "push_32", "env", "push_32", args_type,
+                            BinaryenTypeNone());
+  BinaryenAddFunctionImport(this->mod, "push_ptr", "env", "push_ptr", args_type,
+                            BinaryenTypeNone());
+
+  BinaryenType args_int_float[2] = {BinaryenTypeInt32(),
+                                    BinaryenTypeFloat64()}; // pointer and index
+  BinaryenType args_int_float_type = BinaryenTypeCreate(args_int_float, 2);
+
+  BinaryenAddFunctionImport(this->mod, "push_64", "env", "push_64",
+                            args_int_float_type, BinaryenTypeNone());
 }

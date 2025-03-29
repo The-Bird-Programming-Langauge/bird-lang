@@ -106,8 +106,8 @@ void compile(std::string filename) {
     error_tracker.print_errors_and_exit();
   }
 
-  // CodeGen codegen;
-  // codegen.generate(&ast);
+  CodeGen codegen;
+  codegen.generate(&ast);
 }
 
 void interpret(std::string filename) {
