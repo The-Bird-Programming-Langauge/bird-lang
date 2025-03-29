@@ -634,6 +634,8 @@ public:
       call->args[0]->accept(this);
       auto value = this->stack.pop();
       if (value->get_tag() != TypeTag::ARRAY) {
+        this->user_error_tracker.type_error(
+            "expected array type in length function", call->identifier);
         this->stack.push(std::make_shared<ErrorType>());
         return;
       }
@@ -642,6 +644,8 @@ public:
       call->args[0]->accept(this);
       auto arr_type = this->stack.pop();
       if (arr_type->get_tag() != TypeTag::ARRAY) {
+        this->user_error_tracker.type_error(
+            "expected array type in push function", call->identifier);
         this->stack.push(std::make_shared<ErrorType>());
         return;
       }
@@ -651,6 +655,10 @@ public:
       auto el_type = this->stack.pop();
 
       if (*arr->element_type != *el_type) {
+        this->user_error_tracker.type_mismatch(
+            "expected " + arr->element_type->to_string() + ", found " +
+                el_type->to_string(),
+            call->identifier);
         this->stack.push(std::make_shared<ErrorType>());
         return;
       }
