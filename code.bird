@@ -1,40 +1,10 @@
-namespace A {
-        struct Foo {
-                a: str;
-        };
+namespace X {
+        namespace Y {
+                namespace Z {
+                        struct Deep { msg: str; };
+                }
 
-        var d: Foo = Foo { a = "a" };
-}
-
-namespace B {
-        struct Bar {
-                b: str;
-        };
-
-        namespace C {
-                struct Shoe {
-                        c: str;
-
-                        fn update(a: str) -> Shoe {
-                                return Shoe {
-                                        c = a
-                                };
-                        }
-                };
+                var deep = Z::Deep { msg = "deep" };
         }
-
-        const a: A::Foo = A::Foo { a = "a" };
 }
-
-namespace A {
-        var b: B::Bar = B::Bar { b = "b" };
-        var c: B::C::Shoe = B::C::Shoe { c = "c" };
-}
-
-print B::a.a;
-print A::b.b;
-print A::c.c;
-
-print "global";
-A::c = A::c.update("G");
-print A::c.c;
+print X::Y::deep.msg;

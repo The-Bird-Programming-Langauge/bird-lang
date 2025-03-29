@@ -7,6 +7,7 @@
 #include "visitor_adapter.h"
 #include <memory>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -14,7 +15,6 @@ class NameDecorator : public VisitorAdapter {
   Stack<std::string> ns_stack;
   Stack<std::string> r_stack;
   std::unordered_map<std::string, bool> seen;
-  bool array_init = false;
 
 public:
   void decorate(std::vector<std::unique_ptr<Stmt>> *stmts) {
@@ -39,24 +39,52 @@ public:
     return prefix;
   }
 
-  void visit_print_stmt(PrintStmt *print_stmt) {
-    for (auto &arg : print_stmt->args) {
-      arg->accept(this);
-    }
-  }
-
-  void visit_direct_member_access(DirectMemberAccess *dma) {
-    dma->accessable->accept(this);
-  }
-
   void visit_primary(Primary *primary) {
     if (primary->value.token_type == Token::Type::IDENTIFIER) {
-      if (!this->seen[primary->value.lexeme] && !this->array_init) {
-        primary->value.lexeme =
-            get_current_scope_resolution_prefix() + primary->value.lexeme;
-      } else {
-        primary->value.lexeme =
-            get_current_namespace_prefix() + primary->value.lexeme;
+      auto identifier = primary->value.lexeme;
+
+      if (identifier == "self")
+        return;
+
+      auto from_r = get_current_scope_resolution_prefix() + identifier;
+      auto from_ns = get_current_namespace_prefix() + identifier;
+
+      if (seen.count(from_r)) {
+        primary->value.lexeme = from_r;
+        return;
+      }
+
+      if (seen.count(from_ns)) {
+        primary->value.lexeme = from_ns;
+        return;
+      }
+
+      std::string prefix;
+      std::string global;
+      std::vector<std::string> popped;
+
+      while (!ns_stack.stack.empty()) {
+        auto top = ns_stack.pop();
+        popped.push_back(top);
+        prefix = get_current_namespace_prefix();
+
+        if (seen.count(prefix + identifier)) {
+          global = prefix + identifier;
+          break;
+        }
+      }
+
+      for (auto it = popped.rbegin(); it != popped.rend(); ++it) {
+        ns_stack.push(*it);
+      }
+
+      if (!global.empty()) {
+        primary->value.lexeme = global;
+        return;
+      }
+
+      if (seen.count(identifier)) {
+        return;
       }
     }
   }
@@ -68,21 +96,44 @@ public:
     this->seen[decl_stmt->identifier.lexeme] = true;
 
     if (decl_stmt->type.has_value()) {
-      std::string type_name = decl_stmt->type.value()->get_token().lexeme;
-      std::string resolved = type_name;
+      auto resolved = decl_stmt->type->get()->get_token().lexeme;
+      auto prefix = get_current_namespace_prefix();
+      std::string global;
 
-      if (!this->seen[get_current_namespace_prefix() + type_name]) {
-        resolved = get_current_scope_resolution_prefix() + type_name;
+      if (!this->seen[prefix + resolved]) {
+        std::vector<std::string> popped_stack;
+        while (!ns_stack.stack.empty()) {
+          auto popped = ns_stack.pop();
+          popped_stack.push_back(popped);
+          prefix = get_current_namespace_prefix();
+
+          if (this->seen[prefix + get_current_scope_resolution_prefix() +
+                         resolved]) {
+            global = prefix + resolved;
+            break;
+          }
+        }
+
+        for (auto it = popped_stack.rbegin(); it != popped_stack.rend(); ++it) {
+          ns_stack.push(*it);
+        }
+
+        if (!global.empty()) {
+          resolved = global;
+        } else {
+          resolved = get_current_scope_resolution_prefix() + resolved;
+        }
       } else {
-        resolved = get_current_namespace_prefix() + type_name;
+        resolved = prefix + resolved;
       }
 
       if (this->seen[resolved] &&
           (decl_stmt->type.value()->tag == ParseType::USER_DEFINED ||
            decl_stmt->type.value()->tag == ParseType::ARRAY)) {
-        auto old_token = decl_stmt->type.value()->get_token();
-        auto new_token = Token(old_token.token_type, resolved,
-                               old_token.line_num, old_token.char_num);
+        auto previous_token = decl_stmt->type.value()->get_token();
+        auto new_token =
+            Token(previous_token.token_type, resolved, previous_token.line_num,
+                  previous_token.char_num);
         decl_stmt->type.value()->set_token(new_token);
       }
     }
@@ -97,34 +148,59 @@ public:
     this->seen[const_stmt->identifier.lexeme] = true;
 
     if (const_stmt->type.has_value()) {
-      std::string type_name = const_stmt->type.value()->get_token().lexeme;
-      std::string resolved = type_name;
+      auto resolved = const_stmt->type->get()->get_token().lexeme;
+      auto prefix = get_current_namespace_prefix();
+      std::string global;
 
-      if (!this->seen[get_current_namespace_prefix() + type_name]) {
-        resolved = get_current_scope_resolution_prefix() + type_name;
+      if (!this->seen[prefix + get_current_scope_resolution_prefix() +
+                      resolved]) {
+        std::vector<std::string> popped_stack;
+        while (!ns_stack.stack.empty()) {
+          auto popped = ns_stack.pop();
+          popped_stack.push_back(popped);
+          prefix = get_current_namespace_prefix();
+
+          if (this->seen[prefix + get_current_scope_resolution_prefix() +
+                         resolved]) {
+            global = prefix + resolved;
+            break;
+          }
+        }
+
+        for (auto it = popped_stack.rbegin(); it != popped_stack.rend(); ++it) {
+          ns_stack.push(*it);
+        }
+
+        if (!global.empty()) {
+          resolved = global;
+        } else {
+          resolved = get_current_scope_resolution_prefix() + resolved;
+        }
       } else {
-        resolved = get_current_namespace_prefix() + type_name;
+        resolved = prefix + resolved;
       }
 
       if (this->seen[resolved] &&
           (const_stmt->type.value()->tag == ParseType::USER_DEFINED ||
            const_stmt->type.value()->tag == ParseType::ARRAY)) {
-        auto old_token = const_stmt->type.value()->get_token();
-        auto new_token = Token(old_token.token_type, resolved,
-                               old_token.line_num, old_token.char_num);
+        auto previous_token = const_stmt->type.value()->get_token();
+        auto new_token =
+            Token(previous_token.token_type, resolved, previous_token.line_num,
+                  previous_token.char_num);
         const_stmt->type.value()->set_token(new_token);
       }
     }
 
     const_stmt->value->accept(this);
   }
-  void visit_struct_decl(StructDecl *struct_decl) {
-    std::string qualified =
-        get_current_namespace_prefix() + struct_decl->identifier.lexeme;
 
-    if (!this->seen[qualified]) {
-      struct_decl->identifier.lexeme = qualified;
-      this->seen[qualified] = true;
+  void visit_struct_decl(StructDecl *struct_decl) {
+    auto identifier = struct_decl->identifier.lexeme;
+    auto prefixed_identifier = get_current_namespace_prefix() + identifier;
+
+    if (!this->seen[prefixed_identifier]) {
+      struct_decl->identifier.lexeme = prefixed_identifier;
+      this->seen[prefixed_identifier] = true;
     }
 
     for (auto &method : struct_decl->fns) {
@@ -132,26 +208,45 @@ public:
     }
   }
 
-  void visit_array_init(ArrayInit *array_init) {
-    this->array_init = true;
-    for (auto &element : array_init->elements) {
-      element->accept(this);
-    }
-    this->array_init = false;
-  }
-
   void visit_struct_initialization(StructInitialization *si) {
-    if (!this->seen[get_current_namespace_prefix() + si->identifier.lexeme]) {
-      si->identifier.lexeme =
-          get_current_scope_resolution_prefix() + si->identifier.lexeme;
+    auto resolved = si->identifier.lexeme;
+    auto prefix = get_current_namespace_prefix();
+    std::string global;
+
+    if (!this->seen[prefix + get_current_scope_resolution_prefix() +
+                    resolved]) {
+      std::vector<std::string> popped_stack;
+      while (!ns_stack.stack.empty()) {
+        auto popped = ns_stack.pop();
+        popped_stack.push_back(popped);
+        prefix = get_current_namespace_prefix();
+
+        if (this->seen[prefix + resolved]) {
+          global = prefix + resolved;
+          break;
+        }
+      }
+
+      for (auto it = popped_stack.rbegin(); it != popped_stack.rend(); ++it) {
+        ns_stack.push(*it);
+      }
+
+      if (!global.empty()) {
+        si->identifier.lexeme = global;
+      } else {
+        si->identifier.lexeme =
+            get_current_scope_resolution_prefix() + resolved;
+      }
+
     } else {
-      si->identifier.lexeme = get_current_namespace_prefix() +
-                              get_current_scope_resolution_prefix() +
-                              si->identifier.lexeme;
+      si->identifier.lexeme =
+          prefix + get_current_scope_resolution_prefix() + resolved;
+    }
+
+    for (auto &field : si->field_assignments) {
+      field.second->accept(this);
     }
   }
-
-  void visit_call(Call *call) { call->callable->accept(this); }
 
   void visit_type_stmt(TypeStmt *type_stmt) {
     type_stmt->identifier.lexeme =
@@ -163,49 +258,133 @@ public:
         get_current_namespace_prefix() + func->identifier.lexeme;
 
     for (auto &param : func->param_list) {
+      this->seen[param.second->get_token().lexeme] = true;
+
       if (param.second->tag == ParseType::USER_DEFINED) {
-        auto old_token = param.second->get_token();
-        auto new_name = get_current_namespace_prefix() + old_token.lexeme;
-        auto new_token = Token(old_token.token_type, new_name,
-                               old_token.line_num, old_token.char_num);
+        auto previous_token = param.second->get_token();
+        auto new_name = get_current_namespace_prefix() + previous_token.lexeme;
+        auto new_token =
+            Token(previous_token.token_type, new_name, previous_token.line_num,
+                  previous_token.char_num);
         param.second->set_token(new_token);
       }
     }
 
     if (func->return_type &&
-        func->return_type->get()->tag == ParseType::USER_DEFINED) {
-      auto old_token = func->return_type->get()->get_token();
-      auto new_name = get_current_namespace_prefix() + old_token.lexeme;
-      auto new_token = Token(old_token.token_type, new_name, old_token.line_num,
-                             old_token.char_num);
-      func->return_type->get()->set_token(new_token);
+        (func->return_type.value()->tag == ParseType::USER_DEFINED ||
+         func->return_type.value()->tag == ParseType::ARRAY)) {
+      auto previous_token = func->return_type->get()->get_token();
+      auto resolved = previous_token.lexeme;
+      auto prefix = get_current_namespace_prefix();
+      std::string global;
+
+      if (!this->seen[prefix + resolved]) {
+        std::vector<std::string> popped_stack;
+        while (!ns_stack.stack.empty()) {
+          auto popped = ns_stack.pop();
+          popped_stack.push_back(popped);
+          prefix = get_current_namespace_prefix();
+
+          if (this->seen[prefix + resolved]) {
+            global = prefix + resolved;
+            break;
+          }
+        }
+
+        for (auto it = popped_stack.rbegin(); it != popped_stack.rend(); ++it) {
+          ns_stack.push(*it);
+        }
+
+        if (!global.empty()) {
+          resolved = global;
+        } else {
+          resolved = get_current_scope_resolution_prefix() + resolved;
+        }
+      } else {
+        resolved = prefix + resolved;
+      }
+
+      if (this->seen[resolved] &&
+          (func->return_type->get()->tag == ParseType::USER_DEFINED ||
+           func->return_type->get()->tag == ParseType::ARRAY)) {
+        auto new_token =
+            Token(previous_token.token_type, resolved, previous_token.line_num,
+                  previous_token.char_num);
+        func->return_type->get()->set_token(new_token);
+      }
     }
 
+    this->seen[func->identifier.lexeme] = true;
     func->block->accept(this);
   }
 
   void visit_method(Method *method) {
     method->class_identifier.lexeme =
         get_current_namespace_prefix() + method->class_identifier.lexeme;
-    for (auto param : method->param_list) {
+
+    for (auto &param : method->param_list) {
+      if (param.first.lexeme != "self") {
+        this->seen[param.first.lexeme] = true;
+      }
+
       if (param.second->tag == ParseType::USER_DEFINED) {
-        auto old_token = param.second->get_token();
-        auto new_name = get_current_namespace_prefix() + old_token.lexeme;
-        auto new_token = Token(old_token.token_type, new_name,
-                               old_token.line_num, old_token.char_num);
+        auto previous_token = param.second->get_token();
+        auto prefixed_name =
+            get_current_namespace_prefix() + previous_token.lexeme;
+        auto new_token =
+            Token(previous_token.token_type, prefixed_name,
+                  previous_token.line_num, previous_token.char_num);
         param.second->set_token(new_token);
       }
     }
 
     if (method->return_type &&
-        method->return_type->get()->tag == ParseType::USER_DEFINED) {
-      auto old_token = method->return_type->get()->get_token();
-      auto new_name = get_current_namespace_prefix() + old_token.lexeme;
-      auto new_token = Token(old_token.token_type, new_name, old_token.line_num,
-                             old_token.char_num);
-      method->return_type->get()->set_token(new_token);
+        (method->return_type->get()->tag == ParseType::USER_DEFINED ||
+         method->return_type->get()->tag == ParseType::ARRAY)) {
+      auto previous_token = method->return_type->get()->get_token();
+      auto resolved = previous_token.lexeme;
+
+      auto prefix = get_current_namespace_prefix();
+      std::string global;
+
+      if (!this->seen[prefix + resolved]) {
+        std::vector<std::string> popped_stack;
+        while (!ns_stack.stack.empty()) {
+          auto popped = ns_stack.pop();
+          popped_stack.push_back(popped);
+          prefix = get_current_namespace_prefix();
+
+          if (this->seen[prefix + get_current_scope_resolution_prefix() +
+                         resolved]) {
+            global = prefix + resolved;
+            break;
+          }
+        }
+
+        for (auto it = popped_stack.rbegin(); it != popped_stack.rend(); ++it) {
+          ns_stack.push(*it);
+        }
+
+        if (!global.empty()) {
+          resolved = global;
+        } else {
+          resolved = get_current_scope_resolution_prefix() + resolved;
+        }
+      } else {
+        resolved = prefix + resolved;
+      }
+
+      if (this->seen[resolved] &&
+          (method->return_type->get()->tag == ParseType::USER_DEFINED ||
+           method->return_type->get()->tag == ParseType::ARRAY)) {
+        auto new_token =
+            Token(previous_token.token_type, resolved, previous_token.line_num,
+                  previous_token.char_num);
+        method->return_type->get()->set_token(new_token);
+      }
     }
 
+    this->seen[method->identifier.lexeme] = true;
     method->block->accept(this);
   }
 
@@ -230,7 +409,7 @@ public:
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
-    std::string ns = scope_resolution->_namespace.lexeme + "::";
+    auto ns = scope_resolution->_namespace.lexeme + "::";
 
     if (r_stack.empty() || r_stack.peek() != ns) {
       r_stack.push(ns);
