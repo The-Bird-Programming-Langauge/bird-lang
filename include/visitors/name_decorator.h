@@ -63,7 +63,7 @@ public:
       std::string global;
       std::vector<std::string> popped;
 
-      while (!ns_stack.stack.empty()) {
+      while (!ns_stack.empty()) {
         auto top = ns_stack.pop();
         popped.push_back(top);
         prefix = get_current_namespace_prefix();
@@ -102,7 +102,7 @@ public:
 
       if (!this->seen[prefix + resolved]) {
         std::vector<std::string> popped_stack;
-        while (!ns_stack.stack.empty()) {
+        while (!ns_stack.empty()) {
           auto popped = ns_stack.pop();
           popped_stack.push_back(popped);
           prefix = get_current_namespace_prefix();
@@ -152,10 +152,9 @@ public:
       auto prefix = get_current_namespace_prefix();
       std::string global;
 
-      if (!this->seen[prefix + get_current_scope_resolution_prefix() +
-                      resolved]) {
+      if (!this->seen[prefix + resolved]) {
         std::vector<std::string> popped_stack;
-        while (!ns_stack.stack.empty()) {
+        while (!ns_stack.empty()) {
           auto popped = ns_stack.pop();
           popped_stack.push_back(popped);
           prefix = get_current_namespace_prefix();
@@ -216,7 +215,7 @@ public:
     if (!this->seen[prefix + get_current_scope_resolution_prefix() +
                     resolved]) {
       std::vector<std::string> popped_stack;
-      while (!ns_stack.stack.empty()) {
+      while (!ns_stack.empty()) {
         auto popped = ns_stack.pop();
         popped_stack.push_back(popped);
         prefix = get_current_namespace_prefix();
@@ -280,7 +279,7 @@ public:
 
       if (!this->seen[prefix + resolved]) {
         std::vector<std::string> popped_stack;
-        while (!ns_stack.stack.empty()) {
+        while (!ns_stack.empty()) {
           auto popped = ns_stack.pop();
           popped_stack.push_back(popped);
           prefix = get_current_namespace_prefix();
@@ -349,13 +348,12 @@ public:
 
       if (!this->seen[prefix + resolved]) {
         std::vector<std::string> popped_stack;
-        while (!ns_stack.stack.empty()) {
+        while (!ns_stack.empty()) {
           auto popped = ns_stack.pop();
           popped_stack.push_back(popped);
           prefix = get_current_namespace_prefix();
 
-          if (this->seen[prefix + get_current_scope_resolution_prefix() +
-                         resolved]) {
+          if (this->seen[prefix + resolved]) {
             global = prefix + resolved;
             break;
           }
@@ -389,14 +387,38 @@ public:
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
-    if (!this->seen[get_current_namespace_prefix() +
-                    assign_expr->identifier.lexeme]) {
-      assign_expr->identifier.lexeme = get_current_scope_resolution_prefix() +
-                                       assign_expr->identifier.lexeme;
-      this->seen[get_current_scope_resolution_prefix() +
-                 assign_expr->identifier.lexeme] = true;
+    std::string identifier = assign_expr->identifier.lexeme;
+    std::string from_ns = get_current_namespace_prefix() + identifier;
+    std::string from_r = get_current_scope_resolution_prefix() + identifier;
+
+    if (seen.count(from_ns)) {
+      assign_expr->identifier.lexeme = from_ns;
+    } else if (seen.count(from_r)) {
+      assign_expr->identifier.lexeme = from_r;
+    } else {
+      std::vector<std::string> popped;
+      std::string global;
+      while (!ns_stack.empty()) {
+        std::string popped_ns = ns_stack.pop();
+        popped.push_back(popped_ns);
+
+        std::string prefix = get_current_namespace_prefix();
+        if (seen.count(prefix + identifier)) {
+          global = prefix + identifier;
+          break;
+        }
+      }
+
+      for (auto it = popped.rbegin(); it != popped.rend(); ++it) {
+        ns_stack.push(*it);
+      }
+
+      if (!global.empty()) {
+        assign_expr->identifier.lexeme = global;
+      }
     }
 
+    seen[assign_expr->identifier.lexeme] = true;
     assign_expr->value->accept(this);
   }
 
