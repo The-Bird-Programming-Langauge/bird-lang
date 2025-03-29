@@ -171,6 +171,17 @@ public:
         param.second->set_token(new_token);
       }
     }
+
+    if (func->return_type &&
+        func->return_type->get()->tag == ParseType::USER_DEFINED) {
+      auto old_token = func->return_type->get()->get_token();
+      auto new_name = get_current_namespace_prefix() + old_token.lexeme;
+      auto new_token = Token(old_token.token_type, new_name, old_token.line_num,
+                             old_token.char_num);
+      func->return_type->get()->set_token(new_token);
+    }
+
+    func->block->accept(this);
   }
 
   void visit_method(Method *method) {
@@ -185,6 +196,29 @@ public:
         param.second->set_token(new_token);
       }
     }
+
+    if (method->return_type &&
+        method->return_type->get()->tag == ParseType::USER_DEFINED) {
+      auto old_token = method->return_type->get()->get_token();
+      auto new_name = get_current_namespace_prefix() + old_token.lexeme;
+      auto new_token = Token(old_token.token_type, new_name, old_token.line_num,
+                             old_token.char_num);
+      method->return_type->get()->set_token(new_token);
+    }
+
+    method->block->accept(this);
+  }
+
+  void visit_assign_expr(AssignExpr *assign_expr) {
+    if (!this->seen[get_current_namespace_prefix() +
+                    assign_expr->identifier.lexeme]) {
+      assign_expr->identifier.lexeme = get_current_scope_resolution_prefix() +
+                                       assign_expr->identifier.lexeme;
+      this->seen[get_current_scope_resolution_prefix() +
+                 assign_expr->identifier.lexeme] = true;
+    }
+
+    assign_expr->value->accept(this);
   }
 
   void visit_namespace(NamespaceStmt *_namespace) {
@@ -196,8 +230,16 @@ public:
   }
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
-    this->r_stack.push(scope_resolution->_namespace.lexeme + "::");
+    std::string ns = scope_resolution->_namespace.lexeme + "::";
+
+    if (r_stack.empty() || r_stack.peek() != ns) {
+      r_stack.push(ns);
+    }
+
     scope_resolution->identifier->accept(this);
-    this->r_stack.pop();
+
+    if (!r_stack.empty() && r_stack.peek() == ns) {
+      r_stack.pop();
+    }
   }
 };

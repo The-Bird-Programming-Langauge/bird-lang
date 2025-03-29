@@ -2,6 +2,8 @@ namespace A {
         struct Foo {
                 a: str;
         };
+
+        var d: Foo = Foo { a = "a" };
 }
 
 namespace B {
@@ -12,6 +14,12 @@ namespace B {
         namespace C {
                 struct Shoe {
                         c: str;
+
+                        fn update(a: str) -> Shoe {
+                                return Shoe {
+                                        c = a
+                                };
+                        }
                 };
         }
 
@@ -19,11 +27,14 @@ namespace B {
 }
 
 namespace A {
-        var d: Foo = Foo { a = "a" };
         var b: B::Bar = B::Bar { b = "b" };
         var c: B::C::Shoe = B::C::Shoe { c = "c" };
 }
 
 print B::a.a;
 print A::b.b;
+print A::c.c;
+
+print "global";
+A::c = A::c.update("G");
 print A::c.c;
