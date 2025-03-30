@@ -93,7 +93,7 @@ public:
       auto identifier = type.value()->get_token().lexeme;
       auto resolved = resolve_type_identifier(identifier);
       if (seen[resolved]) {
-        set_token(type.value(), resolved);
+        set_type_token(type.value(), resolved);
       }
     }
   }
@@ -106,13 +106,13 @@ public:
       if (param.second->tag == ParseType::USER_DEFINED) {
         auto identifier =
             get_current_namespace_prefix() + param.second->get_token().lexeme;
-        set_token(param.second, identifier);
+        set_type_token(param.second, identifier);
       }
     }
   }
 
-  void set_token(std::shared_ptr<ParseType::Type> &type,
-                 const std::string &resolved) {
+  void set_type_token(std::shared_ptr<ParseType::Type> &type,
+                      const std::string &resolved) {
     auto token = type->get_token();
     Token new_token(token.token_type, resolved, token.line_num, token.char_num);
     type->set_token(new_token);
