@@ -163,7 +163,6 @@ class CodeGen : public Visitor {
 
   TypeConverter type_converter;
 
-  uint32_t current_offset = 0;
   BinaryenModuleRef mod;
 
   void init_std_lib();

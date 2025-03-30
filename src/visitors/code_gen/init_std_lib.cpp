@@ -37,7 +37,7 @@ void CodeGen::init_std_lib() {
                             args_set_type, BinaryenTypeNone());
 
   BinaryenAddFunctionImport(this->mod, "initialize_memory", "env",
-                            "initialize_memory", BinaryenTypeInt32(),
+                            "initialize_memory", BinaryenTypeNone(),
                             BinaryenTypeNone());
 
   BinaryenType args_set_64[3] = {BinaryenTypeInt32(), BinaryenTypeInt32(),

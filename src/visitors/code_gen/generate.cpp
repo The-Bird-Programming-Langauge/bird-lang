@@ -13,14 +13,7 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   HoistVisitor hoist_visitor(this->struct_names);
   hoist_visitor.hoist(stmts);
 
-  // std::vector<std::string> static_strings;
-  // StaticVisitor static_visitor(static_strings);
-  // static_visitor.static_pass(stmts);
-
   this->init_static_memory();
-
-  BinaryenExpressionRef offset =
-      BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
 
   this->current_function_name = "main";
   auto main_function_body = std::vector<BinaryenExpressionRef>();
@@ -28,7 +21,7 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
       std::vector<BinaryenType>();
 
   main_function_body.push_back(BinaryenCall(this->mod, "initialize_memory",
-                                            &offset, 1, BinaryenTypeNone()));
+                                            nullptr, 0, BinaryenTypeNone()));
 
   for (auto &stmt : *stmts) {
     if (auto func_stmt = dynamic_cast<Func *>(stmt.get())) {

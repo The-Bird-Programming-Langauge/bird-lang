@@ -24,7 +24,6 @@ fs.writeFileSync(outputPath, "");
  * 2. The next 32/64 bits are used to store the actual value
  */
 
-let base_offset = 0;
 const NULL_PTR = 0;
 const FREE_HEAD_PTR = 1;
 const ALLOCATED_HEAD_PTR = 5;
@@ -39,16 +38,12 @@ const FLOAT_SIZE = 8;
 const INT_SIZE = 4;
 
 
-function get_null_ptr_address() {
-    return base_offset + NULL_PTR;
-}
-
 function get_free_list_head_ptr() {
-    return memory.getUint32(base_offset + FREE_HEAD_PTR);
+    return memory.getUint32(FREE_HEAD_PTR);
 }
 
 function get_allocated_list_head_ptr() {
-    return memory.getUint32(base_offset + ALLOCATED_HEAD_PTR);
+    return memory.getUint32(ALLOCATED_HEAD_PTR);
 }
 
 function get_block_size(ptr) {
@@ -84,11 +79,11 @@ function set_block_mark(ptr, mark) {
 }
 
 function set_free_list_head_ptr(ptr) {
-    memory.setUint32(base_offset + FREE_HEAD_PTR, ptr);
+    memory.setUint32(FREE_HEAD_PTR, ptr);
 }
 
 function set_allocated_list_head_ptr(ptr) {
-    memory.setUint32(base_offset + ALLOCATED_HEAD_PTR, ptr);
+    memory.setUint32(ALLOCATED_HEAD_PTR, ptr);
 }
 
 function value_is_pointer(ptr) {
@@ -290,7 +285,7 @@ const moduleOptions = {
             let curr_ptr = get_allocated_list_head_ptr();
 
             // no allocated block exists
-            if (curr_ptr === 0 || curr_ptr === get_null_ptr_address()) {
+            if (curr_ptr === 0) {
                 return;
             }
 
@@ -302,7 +297,7 @@ const moduleOptions = {
                 let update_prev_ptr = true;
 
                 // the loop should stop when we reach the end of the allocated list
-                if (next_ptr === get_null_ptr_address() || next_ptr === 0) {
+                if (next_ptr === 0) {
                     next_block_is_not_null = false;
                 }
 
@@ -332,17 +327,16 @@ const moduleOptions = {
             }
         },
 
-        initialize_memory: (offset) => {
-            base_offset = offset;
+        initialize_memory: () => {
             // initialize the memory header
-            memory.setUint8(base_offset + NULL_PTR, 0); // set the null pointer to 0
-            set_free_list_head_ptr(FREE_LIST_START + base_offset); // set the free list head pointer to the first free block
-            set_allocated_list_head_ptr(0 + base_offset); // set the allocated list head pointer to 0
+            memory.setUint8(NULL_PTR, 0); // set the null pointer to 0
+            set_free_list_head_ptr(FREE_LIST_START); // set the free list head pointer to the first free block
+            set_allocated_list_head_ptr(0); // set the allocated list head pointer to 0
 
             // create the first free block
-            set_block_size(base_offset + FREE_LIST_START, memory.byteLength); // set the size to take up the entire memory
-            set_block_next_ptr(base_offset + FREE_LIST_START, 0); // set the next pointer to the null pointer
-            set_block_mark(base_offset + FREE_LIST_START, 0); // set the mark bit to 0
+            set_block_size(FREE_LIST_START, memory.byteLength); // set the size to take up the entire memory
+            set_block_next_ptr(FREE_LIST_START, 0); // set the next pointer to the null pointer
+            set_block_mark(FREE_LIST_START, 0); // set the mark bit to 0
         }
     }
 };
@@ -372,7 +366,7 @@ function mem_alloc(size, num_pointers) {
         if (curr_ptr + 1 > memory.byteLength) { // we have reached the end of the memory
             throw new Error("Out of memory");
         }
-        if (get_block_next_ptr(curr_ptr) === get_null_ptr_address()) { // we have reached the end of the list
+        if (get_block_next_ptr(curr_ptr) === 0) { // we have reached the end of the list
             wasmMemory.grow(1);
             memory = new DataView(instance.exports.memory.buffer);
             set_block_size(curr_ptr, memory.byteLength - curr_ptr);
