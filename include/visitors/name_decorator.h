@@ -23,6 +23,11 @@ public:
     }
   }
 
+  bool is_primitive(const std::string &name) {
+    return name == "int" || name == "float" || name == "bool" ||
+           name == "str" || name == "void";
+  }
+
   std::string resolve_identifier(std::string &identifier) {
     auto from_r = get_current_scope_resolution_prefix() + identifier;
     if (seen.count(from_r))
@@ -103,10 +108,15 @@ public:
     for (auto &param : params) {
       if (param.first.lexeme != "self")
         seen[param.first.lexeme] = true;
-      if (param.second->tag == ParseType::USER_DEFINED) {
-        auto identifier =
-            get_current_namespace_prefix() + param.second->get_token().lexeme;
-        set_type_token(param.second, identifier);
+
+      if (param.second->tag == ParseType::USER_DEFINED ||
+          param.second->tag == ParseType::ARRAY) {
+        auto identifier = param.second->get_token().lexeme;
+        // checks for array primitive
+        if (!is_primitive(identifier)) {
+          auto resolved = get_current_namespace_prefix() + identifier;
+          set_type_token(param.second, resolved);
+        }
       }
     }
   }
