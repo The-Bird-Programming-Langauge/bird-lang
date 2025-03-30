@@ -1,6 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
 #include "../../../include/visitors/hoist_visitor.h"
-#include "../../../include/visitors/static_visitor.h"
 #include <binaryen-c.h>
 #include <fstream>
 
