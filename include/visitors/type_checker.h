@@ -177,6 +177,13 @@ public:
           result->get_tag() == TypeTag::ARRAY) {
         auto result_array = std::dynamic_pointer_cast<ArrayType>(result);
         auto type_array = std::dynamic_pointer_cast<ArrayType>(type);
+        if (type_array->element_type->get_tag() == TypeTag::VOID) {
+          this->user_error_tracker.type_error("cannot declare void type",
+                                              decl_stmt->identifier);
+          this->env.declare(decl_stmt->identifier.lexeme,
+                            std::make_shared<ErrorType>());
+          return;
+        }
         if (result_array->element_type->get_tag() == TypeTag::VOID) {
           result_array->element_type = type_array->element_type;
         }
@@ -303,6 +310,21 @@ public:
     if (const_stmt->type.has_value()) {
       std::shared_ptr<BirdType> type =
           this->type_converter.convert(const_stmt->type.value());
+      if (type->get_tag() == TypeTag::ARRAY &&
+          result->get_tag() == TypeTag::ARRAY) {
+        auto result_array = std::dynamic_pointer_cast<ArrayType>(result);
+        auto type_array = std::dynamic_pointer_cast<ArrayType>(type);
+        if (type_array->element_type->get_tag() == TypeTag::VOID) {
+          this->user_error_tracker.type_error("cannot declare void type",
+                                              const_stmt->identifier);
+          this->env.declare(const_stmt->identifier.lexeme,
+                            std::make_shared<ErrorType>());
+          return;
+        }
+        if (result_array->element_type->get_tag() == TypeTag::VOID) {
+          result_array->element_type = type_array->element_type;
+        }
+      }
 
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(

@@ -70,3 +70,18 @@ TEST(EmptyArrayTest, EmptyArrayToStruct) {
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(EmptyArrayTest, VoidArray) {
+  BirdTest::TestOptions options;
+  options.code = "var x: void[] = [];";
+
+  options.after_type_check = [&](UserErrorTracker &error_tracker,
+                                 TypeChecker &type_checker) {
+    ASSERT_TRUE(error_tracker.has_errors());
+    ASSERT_EQ(std::get<0>(error_tracker.get_errors()[0]),
+              ">>[ERROR] type error: cannot declare void type (line 1, "
+              "character 5)");
+  };
+
+  ASSERT_FALSE(BirdTest::compile(options));
+}
