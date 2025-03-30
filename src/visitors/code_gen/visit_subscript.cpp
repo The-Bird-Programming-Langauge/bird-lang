@@ -28,12 +28,7 @@ void CodeGen::visit_subscript(Subscript *subscript) {
       this->mod,
       BinaryenBinary(this->mod, BinaryenLtSInt32(), index.value, array_length),
       get_subscript_result(subscriptable, index, type),
-      // TODO: Get the commented-out line to work and replace the
-      // line below with it BinaryenThrow(this->mod, "Error:
-      // index out of bounds", {}, 0));
-      BinaryenConst(this->mod, type->get_tag() == TypeTag::FLOAT
-                                   ? BinaryenLiteralFloat64(0)
-                                   : BinaryenLiteralInt32(0)));
+      BinaryenThrow(this->mod, "RuntimeBirdError", nullptr, 0));
 
   this->stack.push(
       TaggedExpression(bounds_checked_access, std::shared_ptr<BirdType>(type)));

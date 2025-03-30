@@ -7,6 +7,8 @@
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   this->init_std_lib();
   this->init_array_constructor();
+  BinaryenAddTag(this->mod, "RuntimeBirdError", BinaryenTypeNone(),
+                 BinaryenTypeNone());
 
   HoistVisitor hoist_visitor(this->struct_names);
   hoist_visitor.hoist(stmts);
