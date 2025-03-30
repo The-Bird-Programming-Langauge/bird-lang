@@ -21,7 +21,7 @@ Token::Type assign_expr_binary_equivalent(Token::Type token_type) {
 
 bool type_is_on_heap(const TypeTag type) {
   return type == TypeTag::STRUCT || type == TypeTag::ARRAY ||
-         type == TypeTag::PLACEHOLDER;
+         type == TypeTag::PLACEHOLDER || type == TypeTag::STRING;
 }
 
 const char *get_mem_set_for_type(const TypeTag type) {

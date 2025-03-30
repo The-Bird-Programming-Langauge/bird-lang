@@ -21,5 +21,11 @@ TEST(SubscriptTest, SubscriptStringInvalid) {
 
   ASSERT_THROW(BirdTest::compile(options), BirdException);
   options.interpret = false;
-  ASSERT_FALSE(BirdTest::compile(options));
+
+  options.after_compile = [&](std::string output, CodeGen &code_gen) {
+    // there was a runtime error
+    ASSERT_EQ(output, "\n");
+  };
+
+  ASSERT_TRUE(BirdTest::compile(options));
 }

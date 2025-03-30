@@ -13,11 +13,11 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   HoistVisitor hoist_visitor(this->struct_names);
   hoist_visitor.hoist(stmts);
 
-  std::vector<std::string> static_strings;
-  StaticVisitor static_visitor(static_strings);
-  static_visitor.static_pass(stmts);
+  // std::vector<std::string> static_strings;
+  // StaticVisitor static_visitor(static_strings);
+  // static_visitor.static_pass(stmts);
 
-  this->init_static_memory(static_strings);
+  this->init_static_memory();
 
   BinaryenExpressionRef offset =
       BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));

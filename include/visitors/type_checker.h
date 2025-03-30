@@ -664,9 +664,11 @@ public:
     if (function_name == "length") {
       call->args[0]->accept(this);
       auto value = this->stack.pop();
-      if (value->get_tag() != TypeTag::ARRAY) {
+      if (value->get_tag() != TypeTag::ARRAY &&
+          value->get_tag() != TypeTag::STRING) {
         this->user_error_tracker.type_error(
-            "expected array type in length function", call->identifier);
+            "expected array or string type in length function",
+            call->identifier);
         this->stack.push(std::make_shared<ErrorType>());
         return;
       }

@@ -21,8 +21,8 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
   auto &locals = this->function_locals[this->current_function_name];
   locals.push_back(BinaryenTypeInt32());
 
-  auto identifier = std::to_string(locals.size()) + "temp";
-  this->environment.declare(identifier, TaggedIndex(locals.size(), type));
+  auto identifier = std::to_string(locals.size() - 1) + "temp";
+  this->environment.declare(identifier, TaggedIndex(locals.size() - 1, type));
 
   std::vector<BinaryenExpressionRef> args = {
       BinaryenConst(this->mod, BinaryenLiteralInt32(mem_size)),

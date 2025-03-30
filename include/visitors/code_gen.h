@@ -31,17 +31,6 @@ using TaggedIndex = Tagged<BinaryenIndex>;
 using TaggedType = Tagged<BinaryenType>;
 using TaggedBinaryOpFn = Tagged<std::function<BinaryenOp(void)>>;
 
-/*
- * used to avoid multiple BinaryenMemorySet calls
- * which somehow retain the information but overwrite
- * the page bounds
- */
-struct MemorySegment {
-  const char *data;
-  BinaryenIndex size;
-  BinaryenExpressionRef offset;
-};
-
 class CodeGen : public Visitor {
   // and, or, and string operations are handled separately
   // differently
@@ -171,8 +160,6 @@ class CodeGen : public Visitor {
   // allows us to track the local variables of a function
   std::unordered_map<std::string, std::vector<BinaryenType>> function_locals;
   std::string current_function_name; // for indexing into maps
-  std::vector<MemorySegment>
-      memory_segments; // store memory segments to add at once
 
   TypeConverter type_converter;
 
@@ -180,8 +167,7 @@ class CodeGen : public Visitor {
   BinaryenModuleRef mod;
 
   void init_std_lib();
-  void add_memory_segment(const std::string &str);
-  void init_static_memory(std::vector<std::string> &strings);
+  void init_static_memory();
 
   void garbage_collect();
   void visit_block(Block *block);
@@ -202,6 +188,10 @@ class CodeGen : public Visitor {
                                        TaggedExpression right);
   void visit_unary(Unary *unary);
   void visit_primary(Primary *primary);
+  TaggedExpression generate_string_from_string(std::string string);
+  TaggedExpression
+  generate_string_from_chars(std::vector<BinaryenExpressionRef> vals);
+
   TaggedExpression create_unary_not(BinaryenExpressionRef condition);
   void visit_ternary(Ternary *ternary);
   void visit_const_stmt(ConstStmt *const_stmt);
@@ -214,6 +204,7 @@ class CodeGen : public Visitor {
   void visit_continue_stmt(ContinueStmt *continue_stmt);
   void visit_type_stmt(TypeStmt *type_stmt);
   void visit_subscript(Subscript *subscript);
+  void subscript_string(TaggedExpression subscriptable, TaggedExpression index);
 
   /*
   This function is called when a struct declaration is encountered.

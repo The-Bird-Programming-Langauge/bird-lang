@@ -131,7 +131,6 @@ function print_memory(memory) {
 const moduleOptions = {
     env: {
         push_ptr: (arr_ptr, value) => {
-            const old_data_ptr = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE);
             push_32(arr_ptr, value);
             const length = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE + INT_SIZE);
             const new_block_ptr = memory.getUint32(arr_ptr + BLOCK_HEADER_SIZE);
@@ -156,44 +155,45 @@ const moduleOptions = {
             memory.setUint32(arr_ptr + BLOCK_HEADER_SIZE + INT_SIZE, length + 1);
         },
         strcat: (left, right) => {
-            const buffer = new Uint8Array(instance.exports.memory.buffer);
-            let length = 0;
-            for (let i = left; buffer[i] != 0; i++) {
-                length += 1;
+            const left_data = memory.getUint32(left + BLOCK_HEADER_SIZE);
+            const left_length = memory.getUint32(left + BLOCK_HEADER_SIZE + INT_SIZE);
+            const right_data = memory.getUint32(right + BLOCK_HEADER_SIZE);
+            const right_length = memory.getUint32(right + BLOCK_HEADER_SIZE + INT_SIZE);
+
+            const ptr = mem_alloc(8);
+            const data = mem_alloc(left_length * INT_SIZE + right_length * INT_SIZE);
+
+            memory.setUint32(ptr + BLOCK_HEADER_SIZE, data);
+            memory.setUint32(ptr + BLOCK_HEADER_SIZE + INT_SIZE, left_length + right_length);
+
+            for (let i = 0; i < left_length; i++) {
+                const char = memory.getUint32(left_data + BLOCK_HEADER_SIZE + i * INT_SIZE);
+                memory.setUint32(data + BLOCK_HEADER_SIZE + i * INT_SIZE, char);
             }
 
-            for (let i = right; buffer[i] != 0; i++) {
-                length += 1;
+            for (let i = 0; i < right_length; i++) {
+                const char = memory.getUint32(right_data + BLOCK_HEADER_SIZE + i * INT_SIZE);
+                memory.setUint32(data + BLOCK_HEADER_SIZE + (i + left_length) * INT_SIZE, char);
             }
 
-            const ptr = mem_alloc(length + 1); // one extra for \0
 
-            let pos = ptr;
-            for (let i = right; buffer[i] != 0; i++) {
-                buffer[pos] = buffer[i];
-                pos += 1;
-            }
-
-            for (let i = left; buffer[i] != 0; i++) {
-                buffer[pos] = buffer[i];
-                pos += 1;
-            }
-
-            buffer[pos] = "\0";
             return ptr;
         },
         strcmp: (left, right) => {
-            const buffer = new Uint8Array(instance.exports.memory.buffer);
+            const left_data = memory.getUint32(left + BLOCK_HEADER_SIZE);
+            const left_length = memory.getUint32(left + BLOCK_HEADER_SIZE + INT_SIZE);
+            const right_data = memory.getUint32(right + BLOCK_HEADER_SIZE);
+            const right_length = memory.getUint32(right + BLOCK_HEADER_SIZE + INT_SIZE);
 
-            let i = left;
-            let j = right;
-            while (buffer[i] != buffer[j]) {
-                if (buffer[i] != buffer[j]) {
+            if (left_length != right_length) {
+                return false;
+            }
+
+            for (let i = 0; i < left_length; i++) {
+                if (memory.getUint32(left_data + BLOCK_HEADER_SIZE + i * INT_SIZE) !=
+                    memory.getUint32(right_data + BLOCK_HEADER_SIZE + i * INT_SIZE)
+                ) {
                     return false;
-                }
-
-                if (buffer[i] == "\0" || buffer[j] == "\0") {
-                    return buffer[i] == "\0" && buffer[i] == "\0";
                 }
             }
 
@@ -213,10 +213,12 @@ const moduleOptions = {
             fs.appendFileSync(outputPath, bool_str);
         },
         print_str: (ptr) => {
-            const buffer = new Uint8Array(instance.exports.memory.buffer);
+            const data = memory.getUint32(ptr + BLOCK_HEADER_SIZE);
+            const length = memory.getUint32(ptr + BLOCK_HEADER_SIZE + INT_SIZE);
+
             let str = "";
-            for (let i = ptr; buffer[i] !== 0; i++) {
-                str += String.fromCharCode(buffer[i]);
+            for (let i = 0; i < length; i++) {
+                str += String.fromCharCode(memory.getUint32(data + BLOCK_HEADER_SIZE + i * INT_SIZE));
             }
 
             process.stdout.write(str);
@@ -233,20 +235,13 @@ const moduleOptions = {
         mem_get_64: (ptr, byte_offset) => {
             return memory.getFloat64(ptr + BLOCK_HEADER_SIZE + byte_offset);
         },
-        /**
-         * The first byte of the pointer is used to store the pointer bit 
-         * 
-         */
         mem_set_32: (ptr, offset, value) => {
-            // memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0);
             memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset, value);
         },
         mem_set_64: (ptr, offset, value) => {
-            // memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b10);
             memory.setFloat64(ptr + BLOCK_HEADER_SIZE + offset, value);
         },
         mem_set_ptr: (ptr, offset, value) => {
-            // memory.setUint8(ptr + BLOCK_HEADER_SIZE + offset, 0b01);
             memory.setUint32(ptr + BLOCK_HEADER_SIZE + offset, value);
         },
 
