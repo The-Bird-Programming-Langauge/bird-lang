@@ -61,50 +61,13 @@ public:
     }
     return global.empty() ? identifier : global;
   }
-
-  std::string resolve_type_identifier(std::string &identifier) {
-    std::string ns_prefix = get_current_namespace_prefix();
-    std::string scoped =
-        ns_prefix + get_current_scope_resolution_prefix() + identifier;
-
-    if (seen[scoped])
-      return scoped;
-
-    if (seen[ns_prefix + identifier])
-      return ns_prefix + identifier;
-
-    std::vector<std::string> popped;
-    std::string global;
-    while (!ns_stack.empty()) {
-      auto popped_ns = ns_stack.pop();
-      popped.push_back(popped_ns);
-
-      ns_prefix = get_current_namespace_prefix();
-      scoped = ns_prefix + get_current_scope_resolution_prefix() + identifier;
-      if (seen[scoped]) {
-        global = scoped;
-        break;
-      }
-      if (seen[ns_prefix + identifier]) {
-        global = ns_prefix + identifier;
-        break;
-      }
-    }
-
-    for (auto it = popped.rbegin(); it != popped.rend(); ++it) {
-      ns_stack.push(*it);
-    }
-
-    return !global.empty() ? global
-                           : get_current_scope_resolution_prefix() + identifier;
-  }
-
+  
   void
   maybe_resolve_type(std::optional<std::shared_ptr<ParseType::Type>> &type) {
     if (type && (type.value()->tag == ParseType::USER_DEFINED ||
                  type.value()->tag == ParseType::ARRAY)) {
       auto identifier = type.value()->get_token().lexeme;
-      auto resolved = resolve_type_identifier(identifier);
+      auto resolved = resolve_identifier(identifier);
       if (seen[resolved]) {
         set_type_token(type.value(), resolved);
       }
@@ -122,7 +85,7 @@ public:
         auto identifier = param.second->get_token().lexeme;
         // checks for array primitive
         if (!is_primitive(identifier)) {
-          auto resolved = resolve_type_identifier(identifier);
+          auto resolved = resolve_identifier(identifier);
           set_type_token(param.second, resolved);
         }
       }
@@ -194,7 +157,7 @@ public:
   }
 
   void visit_struct_initialization(StructInitialization *si) {
-    si->identifier.lexeme = resolve_type_identifier(si->identifier.lexeme);
+    si->identifier.lexeme = resolve_identifier(si->identifier.lexeme);
 
     for (auto &field : si->field_assignments) {
       field.second->accept(this);
