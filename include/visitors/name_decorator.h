@@ -42,8 +42,7 @@ public:
     if (this->seen[from_ns])
       return from_ns;
 
-    // if we make it here, it is declared outside of the namespace or not fully
-    // qualified
+    // if we make it here, it is declared outside of the namespace
     std::vector<std::string> popped;
     std::string global;
     while (!ns_stack.empty()) {
@@ -57,6 +56,7 @@ public:
     for (auto it = popped.rbegin(); it != popped.rend(); ++it) {
       ns_stack.push(*it);
     }
+
     return global.empty() ? identifier : global;
   }
 
@@ -84,6 +84,12 @@ public:
     }
   }
 
+  std::string declare_in_current_ns(std::string &identifier) {
+    auto decorated = this->get_current_namespace_prefix() + identifier;
+    this->seen[decorated] = true;
+    return decorated;
+  }
+
   std::string get_current_namespace_prefix() {
     std::string prefix;
     for (auto &pref : this->ns_stack.stack) {
@@ -109,34 +115,27 @@ public:
 
   void visit_decl_stmt(DeclStmt *decl_stmt) {
     decl_stmt->identifier.lexeme =
-        this->get_current_namespace_prefix() + decl_stmt->identifier.lexeme;
+        this->declare_in_current_ns(decl_stmt->identifier.lexeme);
 
     if (decl_stmt->type)
       this->resolve_type(decl_stmt->type.value());
 
-    this->seen[decl_stmt->identifier.lexeme] = true;
     decl_stmt->value->accept(this);
   }
 
   void visit_const_stmt(ConstStmt *const_stmt) {
     const_stmt->identifier.lexeme =
-        this->get_current_namespace_prefix() + const_stmt->identifier.lexeme;
+        this->declare_in_current_ns(const_stmt->identifier.lexeme);
 
     if (const_stmt->type)
       this->resolve_type(const_stmt->type.value());
 
-    this->seen[const_stmt->identifier.lexeme] = true;
     const_stmt->value->accept(this);
   }
 
   void visit_struct_decl(StructDecl *struct_decl) {
-    auto from_ns =
-        this->get_current_namespace_prefix() + struct_decl->identifier.lexeme;
-
-    if (!this->seen[from_ns]) {
-      struct_decl->identifier.lexeme = from_ns;
-      this->seen[from_ns] = true;
-    }
+    struct_decl->identifier.lexeme =
+        this->declare_in_current_ns(struct_decl->identifier.lexeme);
 
     for (auto &method : struct_decl->fns) {
       method->accept(this);
@@ -153,33 +152,30 @@ public:
 
   void visit_type_stmt(TypeStmt *type_stmt) {
     type_stmt->identifier.lexeme =
-        this->get_current_namespace_prefix() + type_stmt->identifier.lexeme;
-
-    this->seen[type_stmt->identifier.lexeme] = true;
+        this->declare_in_current_ns(type_stmt->identifier.lexeme);
   }
 
   void visit_func(Func *func) {
     func->identifier.lexeme =
-        this->get_current_namespace_prefix() + func->identifier.lexeme;
+        this->declare_in_current_ns(func->identifier.lexeme);
 
     this->decorate_param_list(func->param_list);
 
     if (func->return_type)
       this->resolve_type(func->return_type.value());
 
-    this->seen[func->identifier.lexeme] = true;
     func->block->accept(this);
   }
 
   void visit_method(Method *method) {
     method->class_identifier.lexeme =
-        this->get_current_namespace_prefix() + method->class_identifier.lexeme;
+        this->declare_in_current_ns(method->class_identifier.lexeme);
 
     this->decorate_param_list(method->param_list);
+
     if (method->return_type)
       this->resolve_type(method->return_type.value());
 
-    this->seen[method->identifier.lexeme] = true;
     method->block->accept(this);
   }
 
@@ -187,7 +183,6 @@ public:
     assign_expr->identifier.lexeme =
         this->resolve_identifier(assign_expr->identifier.lexeme);
 
-    this->seen[assign_expr->identifier.lexeme] = true;
     assign_expr->value->accept(this);
   }
 
