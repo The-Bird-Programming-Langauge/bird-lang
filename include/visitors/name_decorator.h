@@ -30,7 +30,8 @@ public:
 
   std::string resolve_identifier(std::string &identifier) {
     // check local namespace for a scoped variable
-    auto from_local = get_current_namespace_prefix() + get_current_scope_resolution_prefix() + identifier;
+    auto from_local = get_current_namespace_prefix() +
+                      get_current_scope_resolution_prefix() + identifier;
     if (seen[from_local])
       return from_local;
 
@@ -39,12 +40,13 @@ public:
     if (seen[from_r])
       return from_r;
 
-    // check local namespace 
+    // check local namespace
     auto from_ns = get_current_namespace_prefix() + identifier;
     if (seen[from_ns])
       return from_ns;
-    
-    // if we make it here, it is declared outside of the namespace or not fully qualified
+
+    // if we make it here, it is declared outside of the namespace or not fully
+    // qualified
     std::vector<std::string> popped;
     std::string global;
     while (!ns_stack.empty()) {
@@ -61,7 +63,7 @@ public:
     }
     return global.empty() ? identifier : global;
   }
-  
+
   void
   maybe_resolve_type(std::optional<std::shared_ptr<ParseType::Type>> &type) {
     if (type && (type.value()->tag == ParseType::USER_DEFINED ||

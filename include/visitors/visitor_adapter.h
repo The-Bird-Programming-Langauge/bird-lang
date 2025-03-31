@@ -125,4 +125,14 @@ public:
     }
   }
   void visit_lambda(Lambda *lambda) override { lambda->block->accept(this); }
+
+  void visit_namespace(NamespaceStmt *_namespace) override {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) override {
+    scope_resolution->identifier->accept(this);
+  }
 };

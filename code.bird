@@ -1,20 +1,8 @@
 namespace A {
-  namespace B {
-    var x = 0;
-  }
-}
-
-namespace C {
-  namespace A {
     namespace B {
-      var x = 1;
+        type number = int;
     }
-  }
-  fn print_x() {
-    // check for local ns A::B::x 
-    // before global
-    print A::B::x;
-  }
+    var x: B::number = 0;
 }
 
-C::print_x();
+print A::x;

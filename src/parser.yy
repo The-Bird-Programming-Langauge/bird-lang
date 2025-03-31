@@ -321,6 +321,7 @@ namespace_declaration_stmt:
    | decl_stmt SEMICOLON { $$ = std::move($1); }
    | const_stmt SEMICOLON { $$ = std::move($1); }
    | struct_decl SEMICOLON { $$ = std::move($1); }
+   | type_stmt SEMICOLON { $$ = std::move($1); }
    | func { $$ = std::move($1); }
 
 namespace_stmt:
