@@ -29,25 +29,33 @@ public:
   }
 
   std::string resolve_identifier(std::string &identifier) {
+    // check local namespace for a scoped variable
+    auto from_local = get_current_namespace_prefix() + get_current_scope_resolution_prefix() + identifier;
+    if (seen[from_local])
+      return from_local;
+
+    // check if it is fully qualified as-is
     auto from_r = get_current_scope_resolution_prefix() + identifier;
-    if (seen.count(from_r))
+    if (seen[from_r])
       return from_r;
 
+    // check local namespace 
     auto from_ns = get_current_namespace_prefix() + identifier;
-    if (seen.count(from_ns))
+    if (seen[from_ns])
       return from_ns;
-
+    
+    // if we make it here, it is declared outside of the namespace or not fully qualified
     std::vector<std::string> popped;
     std::string global;
     while (!ns_stack.empty()) {
       auto top = ns_stack.pop();
       popped.push_back(top);
-      if (seen.count(get_current_namespace_prefix() + identifier)) {
+      if (seen[get_current_namespace_prefix() + identifier]) {
         global = get_current_namespace_prefix() + identifier;
         break;
       }
     }
-
+    // restore stack
     for (auto it = popped.rbegin(); it != popped.rend(); ++it) {
       ns_stack.push(*it);
     }
@@ -114,7 +122,7 @@ public:
         auto identifier = param.second->get_token().lexeme;
         // checks for array primitive
         if (!is_primitive(identifier)) {
-          auto resolved = get_current_namespace_prefix() + identifier;
+          auto resolved = resolve_type_identifier(identifier);
           set_type_token(param.second, resolved);
         }
       }
