@@ -47,12 +47,14 @@ IDENTIFIER _("identifier")
 INT_LITERAL _("int literal")
 FLOAT_LITERAL _("float literal")
 STR_LITERAL _("string literal")
+CHAR_LITERAL _("char literal")
 TRUE "true"
 FALSE "false"
 INT "int"
 FLOAT "float"
 BOOL "bool"
 STR "str"
+CHAR "char"
 VOID "void"
 IF "if"
 ELSE "else"
@@ -587,6 +589,7 @@ primary:
    | TRUE
    | FALSE
    | STR_LITERAL
+   | CHAR_LITERAL
 
 grouping: 
    LPAREN expr RPAREN 
@@ -630,6 +633,7 @@ type_identifier:
    | BOOL { $$ = std::make_shared<ParseType::Primitive>($1); }
    | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | CHAR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
 
 %%

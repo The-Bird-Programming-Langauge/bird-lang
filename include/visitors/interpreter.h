@@ -366,6 +366,9 @@ public:
     case Token::Type::INT_LITERAL:
       this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
       break;
+    case Token::Type::CHAR_LITERAL:
+      this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
+      break;
     case Token::Type::IDENTIFIER:
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
@@ -579,6 +582,11 @@ public:
 
       if (token.lexeme == "float" && is_type<int>(expr)) {
         this->stack.push(Value((double)as_type<int>(expr)));
+        return;
+      }
+
+      if (token.lexeme == "int" && is_type<std::string>(expr)) {
+        this->stack.push(Value((int)as_type<std::string>(expr)[0]));
         return;
       }
     }

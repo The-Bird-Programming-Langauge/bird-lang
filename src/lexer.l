@@ -120,6 +120,9 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 "str"                   { yylval->emplace<Token>() = make_token(T::STR);
                           return token::STR; }
 
+"char"                  { yylval->emplace<Token>() = make_token(T::CHAR);
+                          return token::CHAR; }
+
 "void"                  { yylval->emplace<Token>() = make_token(T::VOID);
                           return token::VOID; }
 
@@ -134,6 +137,12 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
                           yytext[yyleng - 2] = '\0';
                           yylval->emplace<Token>() =  make_token(T::STR_LITERAL);
                           return token::STR_LITERAL;} 
+
+\'.\'                  { yytext = yytext + 1;
+                          yytext[yyleng - 2] = '\0';
+                          yylval->emplace<Token>() =  make_token(T::CHAR_LITERAL);
+                          return token::CHAR_LITERAL;
+                        }
 
 {IDENT}                 { yylval->emplace<Token>() = make_token(T::IDENTIFIER);
                           return token::IDENTIFIER;} 

@@ -465,6 +465,10 @@ public:
       this->stack.push(std::make_shared<StringType>());
       break;
     }
+    case Token::Type::CHAR_LITERAL: {
+      this->stack.push(std::make_shared<CharType>());
+      break;
+    }
     case Token::Type::IDENTIFIER: {
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
@@ -770,7 +774,7 @@ public:
     }
 
     if (subscriptable->get_tag() == TypeTag::STRING) {
-      this->stack.push(std::make_shared<StringType>());
+      this->stack.push(std::make_shared<CharType>());
       return;
     }
 
@@ -996,6 +1000,18 @@ public:
 
     if (to_type->get_tag() == TypeTag::INT &&
         expr->get_tag() == TypeTag::FLOAT) {
+      this->stack.push(to_type);
+      return;
+    }
+
+    if (to_type->get_tag() == TypeTag::INT &&
+        expr->get_tag() == TypeTag::CHAR) {
+      this->stack.push(to_type);
+      return;
+    }
+
+    if (to_type->get_tag() == TypeTag::STRING &&
+        expr->get_tag() == TypeTag::CHAR) {
       this->stack.push(to_type);
       return;
     }

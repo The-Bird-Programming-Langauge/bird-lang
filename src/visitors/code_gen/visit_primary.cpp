@@ -47,6 +47,13 @@ void CodeGen::visit_primary(Primary *primary) {
     break;
   }
 
+  case Token::Type::CHAR_LITERAL: {
+    const BinaryenExpressionRef c = BinaryenConst(
+        this->mod, BinaryenLiteralInt32(primary->value.lexeme[0]));
+    this->stack.push(TaggedExpression(c, std::make_shared<CharType>()));
+    break;
+  }
+
   case Token::Type::IDENTIFIER: {
     this->stack.push(this->binaryen_get(primary->value.lexeme));
     break;
@@ -62,12 +69,8 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 }
 
-TaggedExpression CodeGen::generate_string_from_string(std::string string) {
-  std::vector<BinaryenExpressionRef> vals;
-
-  for (auto &element : string) {
-    vals.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(element)));
-  }
+TaggedExpression
+CodeGen::generate_string_from_exprs(std::vector<BinaryenExpressionRef> vals) {
   unsigned int mem_size =
       vals.size() * bird_type_byte_size(std::make_shared<IntType>());
   std::shared_ptr<BirdType> type =
@@ -115,4 +118,14 @@ TaggedExpression CodeGen::generate_string_from_string(std::string string) {
                              binaryen_calls.size(), BinaryenTypeInt32());
 
   return TaggedExpression(block, std::make_shared<StringType>());
+}
+
+TaggedExpression CodeGen::generate_string_from_string(std::string string) {
+  std::vector<BinaryenExpressionRef> vals;
+
+  for (auto &element : string) {
+    vals.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(element)));
+  }
+
+  return this->generate_string_from_exprs(vals);
 }

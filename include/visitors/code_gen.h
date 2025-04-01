@@ -188,6 +188,8 @@ class CodeGen : public Visitor {
   void visit_unary(Unary *unary);
   void visit_primary(Primary *primary);
   TaggedExpression generate_string_from_string(std::string string);
+  TaggedExpression
+  generate_string_from_exprs(std::vector<BinaryenExpressionRef> vals);
 
   TaggedExpression create_unary_not(BinaryenExpressionRef condition);
   void visit_ternary(Ternary *ternary);
