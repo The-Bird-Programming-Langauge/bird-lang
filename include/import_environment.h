@@ -8,6 +8,8 @@
 #include <vector>
 #include <unordered_map>
 #include <tuple>
+#include <functional>
+#include <iostream>
 
 class ImportEnvironment
 {
@@ -35,7 +37,7 @@ public:
       ImportNamespace* next_namespace_item = dynamic_cast<ImportNamespace*>(current->import_items[import_path.path[i]]);
       if (!next_namespace_item)
       {
-          throw BirdException("'" + import_path.path[i] + "' is not a namespace");
+        throw BirdException("'" + import_path.path[i] + "' is not a namespace");
       }
 
       current = next_namespace_item;
@@ -67,6 +69,24 @@ public:
     current->import_items[import_path.path.back()] = import_item;
   }
 
+  ImportItem* get_item(ImportPath import_path)
+  {
+    ImportNamespace* current = &this->namespace_item;
+
+    for (int i = 0; i < import_path.path.size() - 1; i += 1)
+    {
+      ImportNamespace* next_namespace_item = dynamic_cast<ImportNamespace*>(current->import_items[import_path.path[i]]);
+      if (!next_namespace_item)
+      {
+        throw BirdException("'" + import_path.path[i] + "' is not a namespace");
+      }
+
+      current = next_namespace_item;
+    }
+
+    return current->import_items[import_path.path.back()];
+  }
+
   std::tuple<std::vector<ImportPath>, std::vector<ImportItem*>> get_items_recursively(ImportPath import_path)
   {
     std::vector<ImportPath> paths;
@@ -89,12 +109,13 @@ public:
 
     std::function<void(ImportPath, ImportItem*)> dfs = [&](ImportPath current_path, ImportItem* import_item)
     {
-      if (ImportNamespace* namespace_item = dynamic_cast<ImportNamespace*>(import_item))
+      ImportNamespace* namespace_item = dynamic_cast<ImportNamespace*>(import_item);
+      if (namespace_item)
       {
         for (auto& [key, value] : namespace_item->import_items)
         {
           ImportPath new_path = current_path;
-          new_path.path.push_back(key);
+          new_path.add_string_token(key);
           dfs(new_path, value);
         }
       }
@@ -107,5 +128,24 @@ public:
 
     dfs(import_path, current_item);
     return std::make_tuple(paths, items);
+  }
+  
+  void debug_print(const ImportNamespace& namespace_item, const std::string& indent = "") const
+  {
+    for (const auto& [key, value] : namespace_item.import_items)
+    {
+      std::cout << indent << "- '" << key << "'" << std::endl;
+      ImportNamespace* sub_namespace = dynamic_cast<ImportNamespace*>(value);
+      if (sub_namespace)
+      {
+        debug_print(*sub_namespace, indent + "  ");
+      }
+    }
+  }
+
+  void debug() const
+  {
+    std::cout << "ImportEnvironment Debug Output:\n";
+    debug_print(namespace_item);
   }
 };

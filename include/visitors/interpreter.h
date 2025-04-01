@@ -19,7 +19,6 @@
 #include "../stack.h"
 #include "../sym_table.h"
 #include "../type_converter.h"
-#include "../import_environment.h"
 #include "../value.h"
 
 /*
@@ -29,8 +28,6 @@ class Interpreter : public Visitor {
 
 public:
   CoreCallTable core_call_table;
-
-  ImportEnvironment standard_library;
   Environment<Value> env;
   Environment<Callable> call_table;
   Environment<std::shared_ptr<BirdType>> type_table;
@@ -46,8 +43,7 @@ public:
     this->type_table.push_env();
   }
 
-  void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts, ImportEnvironment& standard_library) {
-    this->standard_library = standard_library;
+  void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts) {
     HoistVisitor hoist_visitor(this->struct_names);
     hoist_visitor.hoist(stmts);
 
@@ -629,12 +625,7 @@ public:
     match_expr->else_arm->accept(this);
   }
 
-  void visit_import_stmt(ImportStmt *import_stmt)
-  {
-    // add import item to global namespace
-    
-    // figure out how to import interpreter import items
-  };
+  void visit_import_stmt(ImportStmt *import_stmt) {};
 
   void visit_method(Method *method) {
     // register the function with the class

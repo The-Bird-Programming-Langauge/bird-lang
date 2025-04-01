@@ -3,8 +3,7 @@
 #include "../../../include/visitors/static_visitor.h"
 #include <fstream>
 
-void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts, ImportEnvironment& standard_library) {
-  this->standard_library = standard_library;
+void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   this->init_std_lib();
   this->init_array_constructor();
 
@@ -49,6 +48,12 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts, ImportEnvironm
     if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get())) {
       struct_decl->accept(this);
       // no stack push here, only type table
+      continue;
+    }
+
+    if (auto import_stmt = dynamic_cast<ImportStmt *>(stmt.get())) {
+      import_stmt->accept(this);
+      // no stack push here
       continue;
     }
 

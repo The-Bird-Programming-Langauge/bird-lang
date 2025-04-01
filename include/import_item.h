@@ -20,10 +20,7 @@ class ImportNamespace : public ImportItem
 public:
   std::unordered_map<std::string, ImportItem*> import_items;
 
-  ImportNamespace()
-  {
-    this->import_items.emplace();
-  }
+  ImportNamespace() = default;
 
   ImportNamespace(std::unordered_map<std::string, ImportItem*> import_items)
   {
@@ -37,15 +34,4 @@ class ImportType : public ImportItem {};
 
 class ImportStruct : public ImportItem {};
 
-class ImportFunction : public ImportItem
-{
-public:
-  std::tuple<BinaryenType, BinaryenType> codegen_import;
-
-  ImportFunction() = default;
-
-  ImportFunction(std::tuple<BinaryenType, BinaryenType> codegen_function_import)
-  {
-    this->codegen_import = codegen_function_import;
-  }
-};
+class ImportFunction : public ImportItem {};

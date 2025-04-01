@@ -1,0 +1,6 @@
+print "TODO: Fix arccos so that it doesn't use arcsin.";
+
+fn arccos(x: float) -> float
+{
+  return 3.1415926 / 2.0 - arcsin(x);
+}

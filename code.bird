@@ -1,2 +1,3 @@
-import Print::print_endline
-print_endline();
+import Math::Trig
+
+var x = Triangle{a=1.0,b=1.0,c=1.0};

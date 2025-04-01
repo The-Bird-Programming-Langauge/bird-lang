@@ -1,0 +1,4 @@
+fn cos(b: float, c: float) -> float
+{
+  return b / c;
+}

@@ -2,6 +2,12 @@
 #include <binaryen-c.h>
 
 void CodeGen::init_std_lib() {
+  BinaryenAddFunctionImport(this->mod, "print_i32", "env", "print_i32", BinaryenTypeInt32(), BinaryenTypeNone());
+  BinaryenAddFunctionImport(this->mod, "print_f64", "env", "print_f64", BinaryenTypeFloat64(), BinaryenTypeNone());
+  BinaryenAddFunctionImport(this->mod, "print_bool", "env", "print_bool", BinaryenTypeInt32(), BinaryenTypeNone());
+  BinaryenAddFunctionImport(this->mod, "print_str", "env", "print_str", BinaryenTypeInt32(), BinaryenTypeNone());
+  BinaryenAddFunctionImport(this->mod, "print_endline", "env", "print_endline", BinaryenTypeNone(), BinaryenTypeNone());
+
   BinaryenType args[2] = {BinaryenTypeInt32(),
                           BinaryenTypeInt32()}; // pointer and index
   BinaryenType args_type = BinaryenTypeCreate(args, 2);

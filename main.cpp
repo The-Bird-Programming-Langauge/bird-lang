@@ -7,55 +7,39 @@
 #include "include/visitors/ast_printer.h"
 #include "include/visitors/code_gen.h"
 #include "include/visitors/interpreter.h"
+#include "include/visitors/import_visitor.h"
 #include "include/visitors/semantic_analyzer.h"
 #include "include/visitors/type_checker.h"
 
 extern int bird_parse(const char *input);
 
-void repl(ImportEnvironment& standard_library);
-void compile(std::string filename, ImportEnvironment& standard_library);
-void interpret(std::string filename, ImportEnvironment& standard_library);
+void repl();
+void compile(std::string filename);
+void interpret(std::string filename);
 std::string read_file(std::string filename);
 
 int main(int argc, char *argv[]) {
-  // find a better spot to initalize the standard library for visitors
-  ImportEnvironment standard_library;
-  standard_library.add_item(
-    ImportPath("Print::print_i32"),
-    new ImportFunction(std::make_tuple(BinaryenTypeInt32(), BinaryenTypeNone())));
-  standard_library.add_item(
-    ImportPath("Print::print_f64"),
-    new ImportFunction(std::make_tuple(BinaryenTypeFloat64(), BinaryenTypeNone())));
-  standard_library.add_item(
-    ImportPath("Print::print_bool"),
-    new ImportFunction(std::make_tuple(BinaryenTypeInt32(), BinaryenTypeNone())));
-  standard_library.add_item(
-    ImportPath("Print::print_str"),
-    new ImportFunction(std::make_tuple(BinaryenTypeInt32(), BinaryenTypeNone())));
-  standard_library.add_item(
-    ImportPath("Print::print_endline"),
-    new ImportFunction(std::make_tuple(BinaryenTypeNone(), BinaryenTypeNone())));
-
   if (argc == 1) {
-    repl(standard_library);
+    repl();
   } else if (argc == 2) {
     std::string filename = argv[1];
-    compile(filename, standard_library);
+    compile(filename);
   } else {
     if (!strcmp(argv[1], "-i")) {
-      interpret(std::string(argv[2]), standard_library);
+      interpret(std::string(argv[2]));
     } else if (!strcmp(argv[2], "-i")) {
-      interpret(std::string(argv[1]), standard_library);
+      interpret(std::string(argv[1]));
     }
   }
 
   return 0;
 }
 
-void repl(ImportEnvironment& standard_library) {
+void repl() {
   Interpreter interpreter;
   std::string code;
   UserErrorTracker error_tracker(code);
+  ImportVisitor import_visitor(error_tracker);
   SemanticAnalyzer semantic_analyzer(error_tracker);
   TypeChecker type_checker(error_tracker);
   while (true) {
@@ -76,7 +60,12 @@ void repl(ImportEnvironment& standard_library) {
     printer.print_ast(&ast);
 #endif
 
-    semantic_analyzer.analyze_semantics(&ast, standard_library);
+    import_visitor.import(&ast);
+    if (error_tracker.has_errors()) {
+      error_tracker.print_errors_and_exit();
+    }
+
+    semantic_analyzer.analyze_semantics(&ast);
     if (error_tracker.has_errors()) {
       error_tracker.print_errors_and_exit();
     }
@@ -87,14 +76,14 @@ void repl(ImportEnvironment& standard_library) {
     }
 
     try {
-      interpreter.evaluate(&ast, standard_library);
+      interpreter.evaluate(&ast);
     } catch (std::runtime_error e) {
       std::cout << e.what() << std::endl;
     }
   }
 }
 
-void compile(std::string filename, ImportEnvironment& standard_library) {
+void compile(std::string filename) {
   const auto code = read_file(filename);
   UserErrorTracker error_tracker(code);
 
@@ -110,8 +99,15 @@ void compile(std::string filename, ImportEnvironment& standard_library) {
   printer.print_ast(&ast);
 #endif
 
+  ImportVisitor import_visitor(error_tracker);
+  import_visitor.import(&ast);
+
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
+
   SemanticAnalyzer semantic_analyzer(error_tracker);
-  semantic_analyzer.analyze_semantics(&ast, standard_library);
+  semantic_analyzer.analyze_semantics(&ast);
 
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
@@ -125,10 +121,10 @@ void compile(std::string filename, ImportEnvironment& standard_library) {
   }
 
   CodeGen codegen;
-  codegen.generate(&ast, standard_library);
+  codegen.generate(&ast);
 }
 
-void interpret(std::string filename, ImportEnvironment& standard_library) {
+void interpret(std::string filename) {
   auto code = read_file(filename);
   UserErrorTracker error_tracker(code);
 
@@ -144,8 +140,15 @@ void interpret(std::string filename, ImportEnvironment& standard_library) {
   printer.print_ast(&ast);
 #endif
 
+  ImportVisitor import_visitor(error_tracker);
+  import_visitor.import(&ast);
+
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
+
   SemanticAnalyzer semantic_analyzer(error_tracker);
-  semantic_analyzer.analyze_semantics(&ast, standard_library);
+  semantic_analyzer.analyze_semantics(&ast);
 
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
@@ -161,7 +164,7 @@ void interpret(std::string filename, ImportEnvironment& standard_library) {
   Interpreter interpreter;
 
   try {
-    interpreter.evaluate(&ast, standard_library);
+    interpreter.evaluate(&ast);
   } catch (std::runtime_error e) {
     std::cout << e.what() << std::endl;
   }

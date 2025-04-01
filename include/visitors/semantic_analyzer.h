@@ -14,7 +14,6 @@
 #include "../exceptions/continue_exception.h"
 #include "../exceptions/return_exception.h"
 #include "../exceptions/user_error_tracker.h"
-#include "../import_environment.h"
 #include "../semantic_value.h"
 #include "../sym_table.h"
 #include "../type.h"
@@ -26,9 +25,7 @@
 class SemanticAnalyzer : public Visitor {
 
 public:
-  ImportEnvironment standard_library;
   CoreCallTable core_call_table;
-
   Environment<SemanticValue> env;
   Environment<SemanticCallable> call_table;
   Environment<SemanticType> type_table;
@@ -46,9 +43,7 @@ public:
     this->function_depth = 0;
   }
 
-  void analyze_semantics(std::vector<std::unique_ptr<Stmt>> *stmts, ImportEnvironment& standard_library) {
-    this->standard_library = standard_library;
-
+  void analyze_semantics(std::vector<std::unique_ptr<Stmt>> *stmts) {
     for (auto &stmt : *stmts) {
       stmt->accept(this);
     }
@@ -347,21 +342,7 @@ public:
     match_expr->else_arm->accept(this);
   }
 
-  void visit_import_stmt(ImportStmt *import_stmt)
-  {
-    for (int i = 0; i < import_stmt->import_paths.size(); i += 1)
-    {
-      if (!this->standard_library.contains_item(import_stmt->import_paths[i]))
-      {
-        this->user_error_tracker.semantic_error("Item does not exist in the standard library.", import_stmt->import_paths[i].back());
-        continue;
-      }
-
-      // error if import item already exists in global namespace
-
-      // add import item to global namespace
-    }
-  }
+  void visit_import_stmt(ImportStmt *import_stmt) {}
 
   void visit_method(Method *method) {
     this->in_method = true;
