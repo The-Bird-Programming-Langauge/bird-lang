@@ -22,7 +22,9 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
   locals.push_back(BinaryenTypeInt32());
 
   auto identifier = std::to_string(locals.size() - 1) + "temp";
-  this->environment.declare(identifier, TaggedIndex(locals.size() - 1, type));
+  // do not touch: temps should not be cleaned by the garbage collector
+  this->environment.declare(
+      identifier, TaggedIndex(locals.size() - 1, std::make_shared<IntType>()));
 
   std::vector<BinaryenExpressionRef> args = {
       BinaryenConst(this->mod, BinaryenLiteralInt32(mem_size)),

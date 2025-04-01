@@ -188,8 +188,6 @@ class CodeGen : public Visitor {
   void visit_unary(Unary *unary);
   void visit_primary(Primary *primary);
   TaggedExpression generate_string_from_string(std::string string);
-  TaggedExpression
-  generate_string_from_chars(std::vector<BinaryenExpressionRef> vals);
 
   TaggedExpression create_unary_not(BinaryenExpressionRef condition);
   void visit_ternary(Ternary *ternary);
@@ -203,7 +201,6 @@ class CodeGen : public Visitor {
   void visit_continue_stmt(ContinueStmt *continue_stmt);
   void visit_type_stmt(TypeStmt *type_stmt);
   void visit_subscript(Subscript *subscript);
-  void subscript_string(TaggedExpression subscriptable, TaggedExpression index);
 
   /*
   This function is called when a struct declaration is encountered.

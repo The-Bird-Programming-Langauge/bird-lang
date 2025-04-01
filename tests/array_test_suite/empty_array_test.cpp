@@ -85,3 +85,7 @@ TEST(EmptyArrayTest, VoidArray) {
 
   ASSERT_FALSE(BirdTest::compile(options));
 }
+
+TEST(EmtpyArrayTest, ReturnEmptyArray) {}
+
+TEST(EmptyArrayTest, PassEmptyArray) {}

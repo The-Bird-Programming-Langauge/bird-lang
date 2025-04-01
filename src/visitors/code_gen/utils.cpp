@@ -84,6 +84,8 @@ BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type) {
     return BinaryenTypeInt32();
   else if (bird_type->get_tag() == TypeTag::FUNCTION)
     return BinaryenTypeInt32();
+  else if (bird_type->get_tag() == TypeTag::CHAR)
+    return BinaryenTypeInt32();
   else if (bird_type->get_tag() == TypeTag::ERROR)
     throw BirdException("found error type");
 

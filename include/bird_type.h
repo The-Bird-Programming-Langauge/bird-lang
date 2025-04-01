@@ -21,6 +21,7 @@ enum class TypeTag {
   ARRAY,
   FUNCTION,
   PLACEHOLDER,
+  CHAR,
   GENERIC // TODO: figure out a way to remove this
 };
 
@@ -44,6 +45,17 @@ struct IntType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::INT; }
   std::string to_string() const { return "int"; }
+};
+
+struct CharType : BirdType {
+  CharType() {}
+  ~CharType() {}
+  bool operator==(BirdType &other) const {
+    return other.get_tag() == TypeTag::CHAR;
+  }
+  bool operator!=(BirdType &other) const { return !(*this == other); }
+  TypeTag get_tag() const { return TypeTag::CHAR; }
+  std::string to_string() const { return "char"; }
 };
 
 struct FloatType : BirdType {

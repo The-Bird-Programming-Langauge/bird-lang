@@ -7,6 +7,11 @@ class Printer {
         process.stdout.write(value.toString());
         fs.appendFileSync(outputPath, value.toString());
     }
+    print_char(value) {
+        const char = String.fromCharCode(value);
+        process.stdout.write(char);
+        fs.appendFileSync(outputPath, char);
+    }
     print_f64(value) {
         process.stdout.write(value.toString());
         fs.appendFileSync(outputPath, value.toString());
@@ -143,6 +148,7 @@ class Memory {
     }
 
     alloc(byte_size, num_ptrs) {
+        // console.log("===ALLOC===")
         // find the first fitting free node in the free list
         // if its too big, split it
         // then add that ptr to the allocated list
@@ -180,7 +186,8 @@ class Memory {
                 node.set_next_address(this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0));
                 this.memory.setUint32(Memory.ALLOCATED_LIST_HEAD_PTR, node.get_address());
                 node.set_num_ptrs(num_ptrs);
-
+                // console.log("allocated: ", node.get_address());
+                // console.log("===DONE ALLOC===")
                 return node.get_address();
             }
         }
@@ -218,6 +225,7 @@ class Memory {
         stack.push(this.get(ptr));
         while (stack.length > 0) {
             const block = stack.pop();
+            // console.log("marking", block.get_address());
 
             if (block.get_address() === 0) {
                 continue;
@@ -237,6 +245,7 @@ class Memory {
     }
 
     sweep() {
+        // console.log("=== SWEEP ===")
         // go through allocated list
         // if block isn't marked, free it
         // this.print_free_list();
@@ -246,7 +255,9 @@ class Memory {
         let prev;
 
         while (node.get_address() != Memory.NULL) {
+            // console.log("sweep:", node.get_address());
             if (!node.get_marked()) {
+                // console.log("freeing: ", node.get_address());
                 if (prev) {
                     prev.set_next_address(node.get_next_address());
                     node.set_next_address(this.get(Memory.FREE_LIST_HEAD_PTR).get_32(0));
@@ -266,7 +277,7 @@ class Memory {
                 node = this.get(node.get_next_address());
             }
         }
-
+        // console.log("====DONE SWEEP====")
     }
 }
 
@@ -284,6 +295,7 @@ const moduleOptions = {
         strcat,
         strcmp,
         print_i32: value => printer.print_i32(value),
+        print_char: value => printer.print_char(value),
         print_f64: value => printer.print_f64(value),
         print_bool: value => printer.print_bool(value),
         print_str: ptr => printer.print_str(ptr),
@@ -318,9 +330,13 @@ function push_ptr(arr_ptr, value) {
 }
 
 function push_32(arr_ptr, value) {
+    // console.log("=====PUSH 32=====")
     const array = mem.get(arr_ptr);
     let data = mem.get(array.get_32(0));
     const length = array.get_32(4);
+    // console.log(arr_ptr);
+    // console.log("length", length);
+    // console.log("data", data.get_address());
     const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 4;
 
     if (length + 1 >= capacity) {
@@ -339,6 +355,7 @@ function push_32(arr_ptr, value) {
     array.set_32(4, length + 1);
 
     array.set_num_ptrs(1);
+    // console.log("==== DONE PUSH 32 ====")
 }
 
 function push_64(arr_ptr, value) {
@@ -348,7 +365,7 @@ function push_64(arr_ptr, value) {
     const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 8;
 
     if (capacity + 1 >= length) {
-        const new_data = mem.get(mem.alloc(length * 2 * 8, 0));
+        const new_data = mem.get(mem.alloc(Math.max(length * 2 * 8, Block.BLOCK_HEADER_SIZE * 4), 0));
         for (let i = 0; i < length; i++) {
             new_data.set_64(i * 8, data.get_64(i * 8));
         }

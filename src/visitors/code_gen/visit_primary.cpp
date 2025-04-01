@@ -62,8 +62,12 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 }
 
-TaggedExpression
-CodeGen::generate_string_from_chars(std::vector<BinaryenExpressionRef> vals) {
+TaggedExpression CodeGen::generate_string_from_string(std::string string) {
+  std::vector<BinaryenExpressionRef> vals;
+
+  for (auto &element : string) {
+    vals.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(element)));
+  }
   unsigned int mem_size =
       vals.size() * bird_type_byte_size(std::make_shared<IntType>());
   std::shared_ptr<BirdType> type =
@@ -73,13 +77,14 @@ CodeGen::generate_string_from_chars(std::vector<BinaryenExpressionRef> vals) {
   locals.push_back(BinaryenTypeInt32());
 
   auto identifier = std::to_string(locals.size() - 1) + "temp";
-  this->environment.declare(identifier, TaggedIndex(locals.size() - 1, type));
+  // do not touch: temp values should not be cleaned by the garbage collector,
+  // so value should be int
+  this->environment.declare(
+      identifier, TaggedIndex(locals.size() - 1, std::make_shared<IntType>()));
 
   std::vector<BinaryenExpressionRef> args = {
       BinaryenConst(this->mod, BinaryenLiteralInt32(mem_size)),
-      type_is_on_heap(type->get_tag())
-          ? BinaryenConst(this->mod, BinaryenLiteralInt32(vals.size()))
-          : BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+      BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
 
   TaggedExpression local_set = this->binaryen_set(
       identifier, BinaryenCall(this->mod, "mem_alloc", args.data(), args.size(),
@@ -110,14 +115,4 @@ CodeGen::generate_string_from_chars(std::vector<BinaryenExpressionRef> vals) {
                              binaryen_calls.size(), BinaryenTypeInt32());
 
   return TaggedExpression(block, std::make_shared<StringType>());
-}
-
-TaggedExpression CodeGen::generate_string_from_string(std::string string) {
-  std::vector<BinaryenExpressionRef> vals;
-
-  for (auto &element : string) {
-    vals.push_back(BinaryenConst(this->mod, BinaryenLiteralInt32(element)));
-  }
-
-  return this->generate_string_from_chars(vals);
 }

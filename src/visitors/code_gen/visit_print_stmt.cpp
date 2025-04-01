@@ -21,6 +21,9 @@ void CodeGen::visit_print_stmt(PrintStmt *print_stmt) {
     } else if (result.type->get_tag() == TypeTag::STRING) {
       calls.push_back(BinaryenExpressionRef(BinaryenCall(
           this->mod, "print_str", &result.value, 1, BinaryenTypeNone())));
+    } else if (result.type->get_tag() == TypeTag::CHAR) {
+      calls.push_back(BinaryenExpressionRef(BinaryenCall(
+          this->mod, "print_char", &result.value, 1, BinaryenTypeNone())));
     } else if (result.type->get_tag() == TypeTag::STRUCT) {
       throw BirdException("unsupported print type");
     } else {

@@ -19,8 +19,7 @@ void CodeGen::visit_subscript(Subscript *subscript) {
     type =
         safe_dynamic_pointer_cast<ArrayType>(subscriptable.type)->element_type;
   } else if (subscriptable.type->get_tag() == TypeTag::STRING) {
-    this->subscript_string(subscriptable, index);
-    return;
+    type = std::make_shared<CharType>();
   } else {
     throw BirdException("Cannot subscript into non array or string type");
   }
@@ -57,30 +56,4 @@ CodeGen::get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
 
   return BinaryenCall(mod, get_mem_get_for_type(type->get_tag()), mem_get_args,
                       2, bird_type_to_binaryen_type(type));
-}
-
-void CodeGen::subscript_string(TaggedExpression subscriptable,
-                               TaggedExpression index) {
-  auto array_length = BinaryenCall(this->mod, "length", &subscriptable.value, 1,
-                                   BinaryenTypeInt32());
-  BinaryenExpressionRef mem_position = BinaryenBinary(
-      mod, BinaryenMulInt32(), index.value,
-      BinaryenConst(mod, BinaryenLiteralInt32(bird_type_byte_size(
-                             std::make_shared<IntType>()))));
-
-  BinaryenExpressionRef mem_get_args[2] = {get_array_data(subscriptable),
-                                           mem_position};
-
-  BinaryenExpressionRef bounds_checked_access = BinaryenIf(
-      this->mod,
-      BinaryenBinary(this->mod, BinaryenLtSInt32(), index.value, array_length),
-      this
-          ->generate_string_from_chars({BinaryenCall(
-              mod, "mem_get_32", mem_get_args, 2,
-              bird_type_to_binaryen_type(std::make_shared<IntType>()))})
-          .value,
-      BinaryenThrow(this->mod, "RuntimeBirdError", nullptr, 0));
-
-  this->stack.push(
-      TaggedExpression(bounds_checked_access, std::make_shared<StringType>()));
 }

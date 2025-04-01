@@ -11,6 +11,9 @@ void CodeGen::init_std_lib() {
   BinaryenAddFunctionImport(this->mod, "print_bool", "env", "print_bool",
                             BinaryenTypeInt32(), BinaryenTypeNone());
 
+  BinaryenAddFunctionImport(this->mod, "print_char", "env", "print_char",
+                            BinaryenTypeInt32(), BinaryenTypeNone());
+
   BinaryenAddFunctionImport(this->mod, "print_str", "env", "print_str",
                             BinaryenTypeInt32(), BinaryenTypeNone());
 
