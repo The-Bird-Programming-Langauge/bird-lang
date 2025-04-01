@@ -72,18 +72,17 @@ void CodeGen::visit_primary(Primary *primary) {
 TaggedExpression
 CodeGen::generate_string_from_exprs(std::vector<BinaryenExpressionRef> vals) {
   unsigned int mem_size =
-      vals.size() * bird_type_byte_size(std::make_shared<IntType>());
+      vals.size() * bird_type_byte_size(std::make_shared<CharType>());
   std::shared_ptr<BirdType> type =
-      std::make_shared<IntType>(); // do not touch this: this will not work when
-                                   // set to void type
+      std::make_shared<CharType>(); // do not touch this: this will not work
+                                    // when set to void type
   auto &locals = this->function_locals[this->current_function_name];
   locals.push_back(BinaryenTypeInt32());
 
   auto identifier = std::to_string(locals.size() - 1) + "temp";
-  // do not touch: temp values should not be cleaned by the garbage collector,
-  // so value should be int
   this->environment.declare(
-      identifier, TaggedIndex(locals.size() - 1, std::make_shared<IntType>()));
+      identifier,
+      TaggedIndex(locals.size() - 1, std::make_shared<StringType>()));
 
   std::vector<BinaryenExpressionRef> args = {
       BinaryenConst(this->mod, BinaryenLiteralInt32(mem_size)),

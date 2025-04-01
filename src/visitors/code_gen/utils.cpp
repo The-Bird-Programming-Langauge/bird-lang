@@ -54,6 +54,8 @@ unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) {
     return 0;
   case TypeTag::STRING:
     return 4;
+  case TypeTag::CHAR:
+    return 4;
   case TypeTag::STRUCT:
     return 4;
   case TypeTag::ARRAY:

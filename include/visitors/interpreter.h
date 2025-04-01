@@ -367,7 +367,7 @@ public:
       this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
       break;
     case Token::Type::CHAR_LITERAL:
-      this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
+      this->stack.push(Value(variant(primary->value.lexeme)));
       break;
     case Token::Type::IDENTIFIER:
       this->stack.push(this->env.get(primary->value.lexeme));

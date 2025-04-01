@@ -1,0 +1,11 @@
+
+fn foobar(string: str) -> void  {
+    for var i = 0; i < length(string); i += 1 {
+        print length('c' as str);
+        print length('c' as str);
+    }
+}
+
+var x = "hello";
+foobar("hello");
+print x;

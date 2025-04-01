@@ -225,7 +225,6 @@ class Memory {
         stack.push(this.get(ptr));
         while (stack.length > 0) {
             const block = stack.pop();
-            // console.log("marking", block.get_address());
 
             if (block.get_address() === 0) {
                 continue;
@@ -236,7 +235,9 @@ class Memory {
             }
 
             block.set_marked(1);
+            // console.log("marking", block.get_address());
             const num_ptrs = block.get_num_ptrs();
+            // console.log("num_ptrs", num_ptrs);
             for (let i = 0; i < num_ptrs; i++) {
                 const child = this.get(block.get_32(i * 4));
                 stack.push(child);
