@@ -17,7 +17,17 @@ class Printer {
         fs.appendFileSync(outputPath, bool_str);
     }
     print_str(ptr) {
-        // TODO: implement
+        const array_ptr = mem.get(ptr);
+        const data = mem.get(array_ptr.get_32(0));
+        const length = array_ptr.get_32(4);
+
+        let str = "";
+        for (let i = 0; i < length; i++) {
+            str += String.fromCharCode(data.get_32(i * 4));
+        }
+
+        process.stdout.write(str);
+        fs.appendFileSync(outputPath, str);
     }
     print_endline() {
         console.log();
@@ -303,8 +313,57 @@ WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
 });
 
 function push_ptr(arr_ptr, value) { }
+
 function push_32(arr_ptr, value) { }
+
 function push_64(arr_ptr, value) { }
-function strcat(left, right) { }
-function strcmp(left, right) { }
+
+function strcat(left, right) {
+    const left_array = mem.get(left);
+    const right_array = mem.get(right);
+    const left_data = mem.get(left_array.get_32(0));
+    const left_length = left_array.get_32(4);
+    const right_data = mem.get(right_array.get_32(0));
+    const right_length = right_array.get_32(4);
+
+    const new_array = mem.get(mem.alloc(8, 1));
+    const data = mem.get(mem.alloc(left_length * 4 + right_length * 4));
+
+    const new_length = left_length + right_length;
+    new_array.set_32(0, data.get_address());
+    new_array.set_32(4, new_length);
+
+    for (let i = 0; i < left_length; i++) {
+        const char = left_data.get_32(i * 4);
+        data.set_32(i * 4, char);
+    }
+
+    for (let i = 0; i < right_length; i++) {
+        const char = right_data.get_32(i * 4);
+        data.set_32((i + left_length) * 4, char);
+    }
+
+    return new_array.get_address();
+}
+
+function strcmp(left, right) {
+    const left_array = mem.get(left);
+    const right_array = mem.get(right);
+    const left_data = mem.get(left_array.get_32(0));
+    const left_length = left_array.get_32(4);
+    const right_data = mem.get(right_array.get_32(0));
+    const right_length = right_array.get_32(4);
+
+    if (left_length != right_length) {
+        return false;
+    }
+
+    for (let i = 0; i < left_length; i++) {
+        if (left_data.get_32(i * 4) != right_data.get_32(i * 4)) {
+            return false;
+        }
+    }
+
+    return true;
+}
 

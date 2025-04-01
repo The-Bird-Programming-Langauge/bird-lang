@@ -16,3 +16,13 @@ foo();
 
 const shoebar: int[] = [1,2,3,4,5,6,7,8,9,10];
 print shoebar[9];
+
+const string = "foobar";
+print length(string);
+print string + "!";
+
+print "foo" == "bar";
+print "foo" == "foo";
+print "foo" + "bar" == "foobar";
+
+print string[0] == "0";
