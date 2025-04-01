@@ -123,17 +123,21 @@ class Memory {
     }
 
     print_free_list() {
+        console.log("printing free list");
         const free_list_head_ptr = this.get(Memory.FREE_LIST_HEAD_PTR).get_32(0);
         let node = this.get(free_list_head_ptr);
         while (node.get_address() != Memory.NULL) {
+            console.log("free: ", node.get_address());
             node = this.get(node.get_next_address());
         }
     }
 
     print_allocated_list() {
+        console.log("printing allocated list");
         const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
         let node = this.get(allocated_list_head_ptr);
         while (node.get_address() != Memory.NULL) {
+            console.log("alloced: ", node.get_address());
             node = this.get(node.get_next_address());
         }
     }
@@ -143,8 +147,6 @@ class Memory {
         // if its too big, split it
         // then add that ptr to the allocated list
         // finally, return the ptr to the user
-        this.print_allocated_list()
-        this.print_free_list()
 
         const free_list_head_ptr = this.get(Memory.FREE_LIST_HEAD_PTR).get_32(0);
         let node = this.get(free_list_head_ptr);
@@ -179,8 +181,6 @@ class Memory {
                 this.memory.setUint32(Memory.ALLOCATED_LIST_HEAD_PTR, node.get_address());
                 node.set_num_ptrs(num_ptrs);
 
-                this.print_allocated_list();
-                this.print_free_list();
                 return node.get_address();
             }
         }
@@ -191,7 +191,6 @@ class Memory {
     free(ptr) {
         // search through allocated list to find the ptr
         // remove the ptr from the list and add it to the free list
-
         const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
         let node = this.get(allocated_list_head_ptr);
         let prev;
@@ -266,11 +265,8 @@ class Memory {
                 node.set_marked(0);
                 node = this.get(node.get_next_address());
             }
-
         }
 
-        this.print_free_list();
-        this.print_allocated_list();
     }
 }
 
@@ -309,14 +305,62 @@ WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
     wasmMemory = instance.exports.memory;
     mem = new Memory(memory);
     instance.exports.main();
-
 });
 
-function push_ptr(arr_ptr, value) { }
+function push_ptr(arr_ptr, value) {
+    const array = mem.get(arr_ptr);
+    const length = array.get_32(4);
+    push_32(arr_ptr, value);
+    const after_data_ptr = array.get_32(0);
 
-function push_32(arr_ptr, value) { }
+    mem.get(after_data_ptr).set_num_ptrs(length + 1);
+    array.set_num_ptrs(1);
+}
 
-function push_64(arr_ptr, value) { }
+function push_32(arr_ptr, value) {
+    const array = mem.get(arr_ptr);
+    let data = mem.get(array.get_32(0));
+    const length = array.get_32(4);
+    const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 4;
+
+    if (length + 1 >= capacity) {
+        const new_data = mem.get(mem.alloc(Math.max(length * 2 * 4, Block.BLOCK_HEADER_SIZE * 2), 0));
+        for (let i = 0; i < length; i++) {
+            new_data.set_32(i * 4, data.get_32(i * 4));
+        }
+
+        data = new_data;
+    }
+
+    data.set_32(length * 4, value);
+    data.set_num_ptrs(0);
+
+    array.set_32(0, data.get_address());
+    array.set_32(4, length + 1);
+
+    array.set_num_ptrs(1);
+}
+
+function push_64(arr_ptr, value) {
+    const array = mem.get(arr_ptr);
+    let data = mem.get(array.get_32(0));
+    const length = array.get_32(4);
+    const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 8;
+
+    if (capacity + 1 >= length) {
+        const new_data = mem.get(mem.alloc(length * 2 * 8, 0));
+        for (let i = 0; i < length; i++) {
+            new_data.set_64(i * 8, data.get_64(i * 8));
+        }
+
+        data = new_data;
+    }
+
+    data.set_64(length * 8, value);
+
+    array.set_32(0, data.get_address());
+    array.set_32(4, length + 1);
+}
 
 function strcat(left, right) {
     const left_array = mem.get(left);

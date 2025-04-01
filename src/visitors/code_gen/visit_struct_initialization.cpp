@@ -29,6 +29,8 @@ void CodeGen::visit_struct_initialization(
       auto default_value =
           field.second->get_tag() == TypeTag::FLOAT
               ? BinaryenConst(this->mod, BinaryenLiteralFloat64(0.0))
+          : field.second->get_tag() == TypeTag::STRING
+              ? this->generate_string_from_string("").value
               : BinaryenConst(this->mod, BinaryenLiteralInt32(0));
       args.push_back(default_value);
     }
