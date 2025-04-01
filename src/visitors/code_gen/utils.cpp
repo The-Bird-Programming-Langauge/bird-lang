@@ -28,11 +28,6 @@ const char *get_mem_set_for_type(const TypeTag type) {
   switch (type) {
   case TypeTag::FLOAT:
     return "mem_set_64";
-    break;
-  case TypeTag::STRUCT:
-  case TypeTag::ARRAY:
-  case TypeTag::PLACEHOLDER:
-    return "mem_set_ptr";
   default:
     return "mem_set_32";
   }

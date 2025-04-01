@@ -19,9 +19,6 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   this->function_locals[this->current_function_name] =
       std::vector<BinaryenType>();
 
-  main_function_body.push_back(BinaryenCall(this->mod, "initialize_memory",
-                                            nullptr, 0, BinaryenTypeNone()));
-
   for (auto &stmt : *stmts) {
     if (auto func_stmt = dynamic_cast<Func *>(stmt.get())) {
       func_stmt->accept(this);

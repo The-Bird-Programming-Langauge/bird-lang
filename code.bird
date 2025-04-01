@@ -1,1 +1,18 @@
+struct Data {
+    val: int;
+};
 
+fn foo() {
+    const a = Data { val = 1 };
+}
+
+const c = Data { val = 1 };
+
+print c.val;
+
+print 123;
+
+foo();
+
+const shoebar: int[] = [1,2,3,4,5,6,7,8,9,10];
+print shoebar[9];

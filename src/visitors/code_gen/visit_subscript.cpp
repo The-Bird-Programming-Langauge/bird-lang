@@ -55,9 +55,8 @@ CodeGen::get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
   BinaryenExpressionRef mem_get_args[2] = {get_array_data(subscriptable),
                                            mem_position};
 
-  return BinaryenCall(
-      mod, type->get_tag() == TypeTag::FLOAT ? "mem_get_64" : "mem_get_32",
-      mem_get_args, 2, bird_type_to_binaryen_type(type));
+  return BinaryenCall(mod, get_mem_get_for_type(type->get_tag()), mem_get_args,
+                      2, bird_type_to_binaryen_type(type));
 }
 
 void CodeGen::subscript_string(TaggedExpression subscriptable,
