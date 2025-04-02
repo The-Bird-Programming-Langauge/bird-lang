@@ -80,7 +80,7 @@ class Block {
     }
 
     get_marked() {
-        return this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET) & 0b1;
+        return this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET) & 0b01;
     }
 
     get_root() {
@@ -105,7 +105,7 @@ class Block {
 
     set_root(root) {
         if (root) {
-            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_root() | 0b11);
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_root() | 0b10);
         } else {
             // console.log("UNREGISTERING", this.ptr);
             this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_root() & 0b01);
@@ -244,8 +244,22 @@ class Memory {
 
     mark() {
         // console.log("==== MARK ====")
+        this.print_registered_blocks();
+        const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
+        let node = this.get(allocated_list_head_ptr);
+        while (node.get_address() != Memory.NULL) {
+            if (node.get_root()) {
+                // console.log("found root");
+                this.mark_helper(node.get_address());
+            }
+            node = this.get(node.get_next_address());
+        }
+        // console.log("===== DONE MARK ======")
+    }
+
+    mark_helper(ptr) {
         const stack = [];
-        // stack.push(this.get(ptr));
+        stack.push(this.get(ptr));
         while (stack.length > 0) {
             const block = stack.pop();
 
@@ -256,6 +270,7 @@ class Memory {
             if (block.get_marked()) {
                 continue;
             }
+            // console.log("found block", block.get_address());
 
             block.set_marked(1);
             // console.log("marking", block.get_address());
@@ -266,15 +281,12 @@ class Memory {
                 stack.push(child);
             }
         }
-        // console.log("===== DONE MARK ======")
     }
 
     sweep() {
         // console.log("=== SWEEP ===")
         // go through allocated list
         // if block isn't marked, free it
-        // this.print_free_list();
-        // this.print_allocated_list();
         const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
         let node = this.get(allocated_list_head_ptr);
         let prev;
@@ -283,6 +295,9 @@ class Memory {
             // console.log("sweep:", node.get_address());
             if (!node.get_marked()) {
                 // console.log("freeing: ", node.get_address());
+                // for (let i = 0; i < (node.get_size() - Block.BLOCK_HEADER_SIZE) / 4; i++) {
+                //     node.set_32(i * 4, 0);
+                // }
                 if (prev) {
                     prev.set_next_address(node.get_next_address());
                     node.set_next_address(this.get(Memory.FREE_LIST_HEAD_PTR).get_32(0));
@@ -302,6 +317,9 @@ class Memory {
                 node = this.get(node.get_next_address());
             }
         }
+
+        // this.print_free_list();
+        // this.print_allocated_list();
         // console.log("====DONE SWEEP====")
     }
 }
@@ -330,6 +348,7 @@ const moduleOptions = {
         mem_set_32: (ptr, offset, value) => mem.get(ptr).set_32(offset, value),
         mem_set_64: (ptr, offset, value) => mem.get(ptr).set_64(offset, value),
         mem_alloc: (ptr, num_ptrs) => mem.alloc(ptr, num_ptrs),
+        gc: () => { mem.mark(); mem.sweep(); },
         register_root: (ptr) => mem.get(ptr).set_root(1),
         unregister_root: (ptr) => mem.get(ptr).set_root(0)
     }

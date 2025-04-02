@@ -1,16 +1,17 @@
 
-fn foobar(end: int) -> int[]  {
-    const foo: int[] =  [1,2,3,4];
+fn foobar(end: int) -> int[] {
+    var y: int[] = [1,2,3];
     for var i = 0; i < end; i += 1 {
-        'c' as str;
+        var x = [1,2,3,4,5,6,7,8];
     }
-    return foo;
+
+    return y;
 }
 
-const foo = foobar(100000);
+const result = foobar(50000);
 
-print length(foo);
-for var i = 0; i < length(foo); i += 1
-{
-    print foo[i];
+print length(result);
+
+for var i = 0; i < length(result); i += 1 {
+    print result[i];
 }
