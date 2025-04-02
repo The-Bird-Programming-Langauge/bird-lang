@@ -45,11 +45,12 @@ void CodeGen::init_std_lib() {
   BinaryenAddFunctionImport(this->mod, "mem_alloc", "env", "mem_alloc",
                             args_type, BinaryenTypeInt32());
 
-  BinaryenAddFunctionImport(this->mod, "mark", "env", "mark",
+  BinaryenAddFunctionImport(this->mod, "register_root", "env", "register_root",
                             BinaryenTypeInt32(), BinaryenTypeNone());
 
-  BinaryenAddFunctionImport(this->mod, "sweep", "env", "sweep",
-                            BinaryenTypeNone(), BinaryenTypeNone());
+  BinaryenAddFunctionImport(this->mod, "unregister_root", "env",
+                            "unregister_root", BinaryenTypeInt32(),
+                            BinaryenTypeNone());
 
   generate_array_length_fn();
   BinaryenAddFunctionImport(this->mod, "strcmp", "env", "strcmp", args_type,

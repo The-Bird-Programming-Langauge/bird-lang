@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 #include <memory>
 
 void CodeGen::visit_func(Func *func) {
@@ -61,11 +62,14 @@ void CodeGen::add_func_with_name(Func *func, std::string func_name) {
     } else {
       current_function_body.push_back(result.value);
     }
+  }
 
-    if (this->must_garbage_collect) {
-      this->garbage_collect();
-      current_function_body.push_back(this->stack.pop().value);
-      this->must_garbage_collect = false;
+  for (auto &[string, env_index] : this->environment.envs.back()) {
+    auto get_result = this->binaryen_get(string);
+    if (type_is_on_heap(get_result.type->get_tag())) {
+      auto unregister = BinaryenCall(this->mod, "unregister_root",
+                                     &get_result.value, 1, BinaryenTypeNone());
+      current_function_body.push_back(unregister);
     }
   }
 

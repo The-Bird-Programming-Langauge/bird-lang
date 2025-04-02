@@ -36,8 +36,12 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
   TaggedExpression local_set = this->binaryen_set(
       identifier, BinaryenCall(this->mod, "mem_alloc", args.data(), args.size(),
                                BinaryenTypeInt32()));
+  auto register_root_arg = this->binaryen_get(identifier).value;
+  auto register_root = BinaryenCall(this->mod, "register_root",
+                                    &register_root_arg, 1, BinaryenTypeNone());
 
-  std::vector<BinaryenExpressionRef> binaryen_calls = {local_set.value};
+  std::vector<BinaryenExpressionRef> binaryen_calls = {local_set.value,
+                                                       register_root};
 
   unsigned int offset = 0;
   for (auto val : vals) {

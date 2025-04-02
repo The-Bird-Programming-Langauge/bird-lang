@@ -80,7 +80,11 @@ class Block {
     }
 
     get_marked() {
-        return this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET);
+        return this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET) & 0b1;
+    }
+
+    get_root() {
+        return this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET) & 0b10;
     }
 
     get_next_address() {
@@ -92,7 +96,22 @@ class Block {
     }
 
     set_marked(marked) {
-        this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, marked);
+        if (marked) {
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_marked() | 0b1);
+        } else {
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_marked() & 0b0);
+        }
+    }
+
+    set_root(root) {
+        if (root) {
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_root() | 0b11);
+        } else {
+            // console.log("UNREGISTERING", this.ptr);
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_root() & 0b01);
+        }
+
+        // mem.print_registered_blocks();
     }
 
     set_num_ptrs(num_ptrs) {
@@ -117,7 +136,8 @@ class Memory {
         const first_block = new Block(first_initial_free, memory);
         first_block.set_next_address(Memory.NULL);
         first_block.set_marked(0);
-        first_block.set_size(memory.byteLength);
+        // 12 accounting for null, free list head ptr, and allocated list head ptr
+        first_block.set_size(memory.byteLength - 12);
         first_block.set_num_ptrs(0);
 
         this.memory = memory;
@@ -147,13 +167,35 @@ class Memory {
         }
     }
 
-    alloc(byte_size, num_ptrs) {
-        // console.log("===ALLOC===")
-        // find the first fitting free node in the free list
-        // if its too big, split it
-        // then add that ptr to the allocated list
-        // finally, return the ptr to the user
+    print_registered_blocks() {
+        console.log("printing registered blocks");
+        const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
+        let node = this.get(allocated_list_head_ptr);
+        while (node.get_address() != Memory.NULL) {
+            if (node.get_root()) {
+                console.log("registerd: ", node.get_address());
+            }
+            node = this.get(node.get_next_address());
+        }
 
+    }
+
+    alloc(byte_size, num_ptrs) {
+        let result = this.alloc_helper(byte_size, num_ptrs);
+        // console.log(result);
+        if (result == Memory.NULL) {
+            this.mark();
+            this.sweep();
+            result = this.alloc_helper(byte_size, num_ptrs);
+            if (result == Memory.NULL) {
+                throw Error("Could not find block big enough");
+            }
+        }
+
+        return result;
+    }
+
+    alloc_helper(byte_size, num_ptrs) {
         const free_list_head_ptr = this.get(Memory.FREE_LIST_HEAD_PTR).get_32(0);
         let node = this.get(free_list_head_ptr);
         let prev;
@@ -168,7 +210,10 @@ class Memory {
                     const new_block_ptr = node.get_address() + byte_size + Block.BLOCK_HEADER_SIZE;
                     const new_block = this.get(new_block_ptr);
 
-                    new_block.set_size(current_size - byte_size + Block.BLOCK_HEADER_SIZE);
+                    // console.log("splitting", current_size, current_size - (byte_size + Block.BLOCK_HEADER_SIZE));
+                    // console.log("new block ptr: ", new_block.get_address());
+                    // console.log(memory.byteLength)
+                    new_block.set_size(current_size - (byte_size + Block.BLOCK_HEADER_SIZE));
                     new_block.set_next_address(node.get_next_address());
                     new_block.set_marked(0);
                     new_block.set_num_ptrs(0);
@@ -187,42 +232,20 @@ class Memory {
                 this.memory.setUint32(Memory.ALLOCATED_LIST_HEAD_PTR, node.get_address());
                 node.set_num_ptrs(num_ptrs);
                 // console.log("allocated: ", node.get_address());
+
+                // this.print_registered_blocks();
                 // console.log("===DONE ALLOC===")
                 return node.get_address();
             }
         }
 
-        throw Error("Could not find block big enough");
+        return Memory.NULL;
     }
 
-    free(ptr) {
-        // search through allocated list to find the ptr
-        // remove the ptr from the list and add it to the free list
-        const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
-        let node = this.get(allocated_list_head_ptr);
-        let prev;
-        while (node.get_address() != Memory.NULL) {
-            if (ptr == node.get_address()) {
-                if (prev) {
-                    prev.set_next_address(node.get_next_address());
-                } else {
-                    this.memory.setUint32(Memory.ALLOCATED_LIST_HEAD_PTR, node.get_next_address());
-                }
-
-                const free_list_head_ptr = this.get(Memory.FREE_LIST_HEAD_PTR).get_32(0);
-                this.memory.setUint32(Memory.FREE_LIST_HEAD_PTR, node.get_address());
-                node.set_next_address(free_list_head_ptr);
-                return;
-            } else {
-                prev = node;
-                node = this.get(node.get_next_address());
-            }
-        }
-    }
-
-    mark(ptr) {
+    mark() {
+        // console.log("==== MARK ====")
         const stack = [];
-        stack.push(this.get(ptr));
+        // stack.push(this.get(ptr));
         while (stack.length > 0) {
             const block = stack.pop();
 
@@ -243,6 +266,7 @@ class Memory {
                 stack.push(child);
             }
         }
+        // console.log("===== DONE MARK ======")
     }
 
     sweep() {
@@ -306,8 +330,8 @@ const moduleOptions = {
         mem_set_32: (ptr, offset, value) => mem.get(ptr).set_32(offset, value),
         mem_set_64: (ptr, offset, value) => mem.get(ptr).set_64(offset, value),
         mem_alloc: (ptr, num_ptrs) => mem.alloc(ptr, num_ptrs),
-        mark: ptr => mem.mark(ptr),
-        sweep: () => mem.sweep(),
+        register_root: (ptr) => mem.get(ptr).set_root(1),
+        unregister_root: (ptr) => mem.get(ptr).set_root(0)
     }
 };
 

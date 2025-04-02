@@ -35,7 +35,6 @@ CodeGen::create_call_with(std::string func_name,
 
   auto children = std::vector<BinaryenExpressionRef>();
 
-  this->must_garbage_collect = true;
   return TaggedExpression(BinaryenCall(this->mod, func_name.c_str(),
                                        args.data(), args.size(),
                                        return_type.value),

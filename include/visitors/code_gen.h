@@ -151,8 +151,6 @@ class CodeGen : public Visitor {
   std::set<std::string> struct_names;
   std::unordered_map<std::string, int> struct_name_to_num_pointers;
 
-  bool must_garbage_collect = false;
-
   std::unordered_map<std::string, uint32_t> str_offsets;
 
   // we need the function return types when calling functions
@@ -168,7 +166,6 @@ class CodeGen : public Visitor {
   void init_std_lib();
   void init_static_memory();
 
-  void garbage_collect();
   void visit_block(Block *block);
   void visit_decl_stmt(DeclStmt *decl_stmt);
   void visit_assign_expr(AssignExpr *assign_expr);

@@ -60,13 +60,8 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
     if (result.type->get_tag() != TypeTag::VOID) {
       result = TaggedExpression(BinaryenDrop(this->mod, result.value));
     }
-    main_function_body.push_back(result.value);
 
-    if (this->must_garbage_collect) {
-      this->garbage_collect();
-      main_function_body.push_back(stack.pop().value);
-      this->must_garbage_collect = false;
-    }
+    main_function_body.push_back(result.value);
   }
 
   auto count = 0;

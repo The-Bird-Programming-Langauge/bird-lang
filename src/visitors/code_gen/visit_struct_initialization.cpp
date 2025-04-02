@@ -68,6 +68,13 @@ void CodeGen::create_struct_constructor(
   constructor_body.push_back(
       BinaryenLocalSet(this->mod, param_types.size(), call));
 
+  auto register_root_arg =
+      BinaryenLocalGet(this->mod, param_types.size(), BinaryenTypeInt32());
+  auto register_root = BinaryenCall(this->mod, "register_root",
+                                    &register_root_arg, 1, BinaryenTypeNone());
+
+  constructor_body.push_back(register_root);
+
   int count = 0;
   for (auto &field : struct_type->fields) {
     auto type = field.second;
