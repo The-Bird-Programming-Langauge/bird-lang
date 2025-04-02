@@ -6,6 +6,7 @@
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   this->init_std_lib();
   this->init_array_constructor();
+  this->init_ref_constructor();
   BinaryenAddTag(this->mod, "RuntimeBirdError", BinaryenTypeNone(),
                  BinaryenTypeNone());
 

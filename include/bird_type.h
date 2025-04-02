@@ -22,6 +22,7 @@ enum class TypeTag {
   FUNCTION,
   PLACEHOLDER,
   CHAR,
+  REF,
   GENERIC // TODO: figure out a way to remove this
 };
 
@@ -56,6 +57,20 @@ struct CharType : BirdType {
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::CHAR; }
   std::string to_string() const { return "char"; }
+};
+
+struct RefType : BirdType {
+  std::shared_ptr<BirdType> ref_to;
+  RefType(std::shared_ptr<BirdType> ref_to) : ref_to(ref_to) {}
+  ~RefType() {}
+  bool operator==(BirdType &other) const {
+    if (other.get_tag() != TypeTag::REF) {
+      return false;
+    }
+
+    const auto other_ref = dynamic_cast<RefType *>(&other);
+    return *other_ref->ref_to == *this->ref_to;
+  }
 };
 
 struct FloatType : BirdType {

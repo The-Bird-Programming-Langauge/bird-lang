@@ -232,6 +232,7 @@ class CodeGen : public Visitor {
   void generate_array_length_fn();
   void create_struct_constructor(std::shared_ptr<StructType> type);
   void init_array_constructor();
+  void init_ref_constructor();
   BinaryenExpressionRef
   get_array_data(Tagged<BinaryenExpressionRef> &subscriptable);
   BinaryenExpressionRef
