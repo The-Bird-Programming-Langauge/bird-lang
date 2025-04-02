@@ -97,21 +97,18 @@ class Block {
 
     set_marked(marked) {
         if (marked) {
-            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_marked() | 0b1);
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET) | 0b01);
         } else {
-            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_marked() & 0b0);
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET) & 0b10);
         }
     }
 
     set_root(root) {
         if (root) {
-            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_root() | 0b10);
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET) | 0b10);
         } else {
-            // console.log("UNREGISTERING", this.ptr);
-            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.get_root() & 0b01);
+            this.memory.setUint32(this.ptr - Block.MARKED_BIT_OFFSET, this.memory.getUint32(this.ptr - Block.MARKED_BIT_OFFSET) & 0b01);
         }
-
-        // mem.print_registered_blocks();
     }
 
     set_num_ptrs(num_ptrs) {
@@ -182,7 +179,6 @@ class Memory {
 
     alloc(byte_size, num_ptrs) {
         let result = this.alloc_helper(byte_size, num_ptrs);
-        // console.log(result);
         if (result == Memory.NULL) {
             this.mark();
             this.sweep();
@@ -210,9 +206,6 @@ class Memory {
                     const new_block_ptr = node.get_address() + byte_size + Block.BLOCK_HEADER_SIZE;
                     const new_block = this.get(new_block_ptr);
 
-                    // console.log("splitting", current_size, current_size - (byte_size + Block.BLOCK_HEADER_SIZE));
-                    // console.log("new block ptr: ", new_block.get_address());
-                    // console.log(memory.byteLength)
                     new_block.set_size(current_size - (byte_size + Block.BLOCK_HEADER_SIZE));
                     new_block.set_next_address(node.get_next_address());
                     new_block.set_marked(0);
@@ -232,8 +225,6 @@ class Memory {
                 this.memory.setUint32(Memory.ALLOCATED_LIST_HEAD_PTR, node.get_address());
                 node.set_num_ptrs(num_ptrs);
                 // console.log("allocated: ", node.get_address());
-
-                // this.print_registered_blocks();
                 // console.log("===DONE ALLOC===")
                 return node.get_address();
             }
@@ -244,16 +235,15 @@ class Memory {
 
     mark() {
         // console.log("==== MARK ====")
-        this.print_registered_blocks();
         const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
         let node = this.get(allocated_list_head_ptr);
         while (node.get_address() != Memory.NULL) {
             if (node.get_root()) {
-                // console.log("found root");
                 this.mark_helper(node.get_address());
             }
             node = this.get(node.get_next_address());
         }
+
         // console.log("===== DONE MARK ======")
     }
 
@@ -270,7 +260,6 @@ class Memory {
             if (block.get_marked()) {
                 continue;
             }
-            // console.log("found block", block.get_address());
 
             block.set_marked(1);
             // console.log("marking", block.get_address());
@@ -292,12 +281,10 @@ class Memory {
         let prev;
 
         while (node.get_address() != Memory.NULL) {
-            // console.log("sweep:", node.get_address());
             if (!node.get_marked()) {
-                // console.log("freeing: ", node.get_address());
-                // for (let i = 0; i < (node.get_size() - Block.BLOCK_HEADER_SIZE) / 4; i++) {
-                //     node.set_32(i * 4, 0);
-                // }
+                for (let i = 0; i < (node.get_size() - Block.BLOCK_HEADER_SIZE) / 4; i++) {
+                    node.set_32(i * 4, 0);
+                }
                 if (prev) {
                     prev.set_next_address(node.get_next_address());
                     node.set_next_address(this.get(Memory.FREE_LIST_HEAD_PTR).get_32(0));
@@ -320,6 +307,7 @@ class Memory {
 
         // this.print_free_list();
         // this.print_allocated_list();
+        // this.print_registered_blocks();
         // console.log("====DONE SWEEP====")
     }
 }
@@ -374,13 +362,9 @@ function push_ptr(arr_ptr, value) {
 }
 
 function push_32(arr_ptr, value) {
-    // console.log("=====PUSH 32=====")
     const array = mem.get(arr_ptr);
     let data = mem.get(array.get_32(0));
     const length = array.get_32(4);
-    // console.log(arr_ptr);
-    // console.log("length", length);
-    // console.log("data", data.get_address());
     const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 4;
 
     if (length + 1 >= capacity) {
@@ -399,7 +383,6 @@ function push_32(arr_ptr, value) {
     array.set_32(4, length + 1);
 
     array.set_num_ptrs(1);
-    // console.log("==== DONE PUSH 32 ====")
 }
 
 function push_64(arr_ptr, value) {

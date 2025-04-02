@@ -5,13 +5,14 @@ fn foobar(end: int) -> int[] {
         var x = [1,2,3,4,5,6,7,8];
     }
 
+    gc();
+    gc();
     return y;
 }
 
-const result = foobar(50000);
+const result = foobar(1000);
 
 print length(result);
-
 for var i = 0; i < length(result); i += 1 {
     print result[i];
 }
