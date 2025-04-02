@@ -4,17 +4,17 @@ struct Data {
 };
 
 fn foobar() -> Data {
-    var y: Data = Data { val = 3 };
+    var y: Data = Data { val = 3 }; 
     for var i = 0; i < 1; i += 1 {
-        var x: Data = Data { val = 1 };
-    }
+        var x: Data = Data { val = 1 }; 
+    } 
 
     return y;
-}
+} 
 
-const result = foobar();
+var result = foobar(); 
+gc();
 print result.val;
-
 
 
 fn shoebar() -> int[] {
@@ -27,9 +27,13 @@ fn shoebar() -> int[] {
     return y;
 }
 
-const arr = shoebar();
 
-for var i = 0; i < length(arr); i += 1 {
-    print arr[i];
+const r = shoebar();
+
+for var i = 0; i < length(r); i += 1 {
+    print r[i];
 }
+
+
+
 

@@ -2,14 +2,15 @@
 #include <binaryen-c.h>
 #include <memory>
 
-BinaryenExpressionRef
-get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
-                     Tagged<BinaryenExpressionRef> &index,
-                     std::shared_ptr<BirdType> type);
-
 void CodeGen::visit_subscript(Subscript *subscript) {
   subscript->subscriptable->accept(this);
-  auto subscriptable = this->stack.pop();
+  auto tagged_ref = this->stack.pop();
+  auto ref = tagged_ref.value;
+  BinaryenExpressionRef mem_get_array_args[2]{
+      ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+  auto array = BinaryenCall(this->mod, "mem_get_32", mem_get_array_args, 2,
+                            BinaryenTypeInt32());
+  auto subscriptable = TaggedExpression(array, tagged_ref.type);
 
   subscript->index->accept(this);
   auto index = this->stack.pop();
@@ -24,8 +25,8 @@ void CodeGen::visit_subscript(Subscript *subscript) {
     throw BirdException("Cannot subscript into non array or string type");
   }
 
-  auto array_length = BinaryenCall(this->mod, "length", &subscriptable.value, 1,
-                                   BinaryenTypeInt32());
+  auto array_length =
+      BinaryenCall(this->mod, "length", &ref, 1, BinaryenTypeInt32());
 
   BinaryenExpressionRef bounds_checked_access = BinaryenIf(
       this->mod,
