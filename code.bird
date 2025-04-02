@@ -1,48 +1,5 @@
 
-struct Data {
-    val: int;
-};
-
-fn foobar() -> Data {
-    var y: Data = Data { val = 3 }; 
-    for var i = 0; i < 1; i += 1 {
-        var x: Data = Data { val = 1 }; 
-    } 
-
-    return y;
-} 
-
-var result = foobar(); 
-gc();
-print result.val;
-
-
-fn shoebar() -> int[] {
-    var y: int[] = [1,2,3,4];
-    for var i = 0; i < 1; i += 1 {
-        var x: int[] = [5,6,7];
-        y = x;
-    }
-
-    return y;
-}
-
-
-const r = shoebar();
-
-for var i = 0; i < length(r); i += 1 {
-    print r[i];
-}
-
-fn barbaz() -> str {
-    var y = "hello";
-    for var i = 0; i < 1; i += 1 {
-        var x = ", world!";
-    }
-
-    return y;
-}
-
-const s = barbaz();
-print s;
-
+var data: int[] = [[1,2,3]];
+data[0] = [4,5,6,7];
+const result = data[0];
+print data[0][0];
