@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_print_stmt(PrintStmt *print_stmt) {
   std::vector<BinaryenExpressionRef> calls;
@@ -19,8 +20,12 @@ void CodeGen::visit_print_stmt(PrintStmt *print_stmt) {
       calls.push_back(BinaryenExpressionRef(BinaryenCall(
           this->mod, "print_f64", &result.value, 1, BinaryenTypeNone())));
     } else if (result.type->get_tag() == TypeTag::STRING) {
+      std::vector<BinaryenExpressionRef> operands = {
+          result.value, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+      auto string = BinaryenCall(this->mod, "mem_get_32", operands.data(),
+                                 operands.size(), BinaryenTypeInt32());
       calls.push_back(BinaryenExpressionRef(BinaryenCall(
-          this->mod, "print_str", &result.value, 1, BinaryenTypeNone())));
+          this->mod, "print_str", &string, 1, BinaryenTypeNone())));
     } else if (result.type->get_tag() == TypeTag::CHAR) {
       calls.push_back(BinaryenExpressionRef(BinaryenCall(
           this->mod, "print_char", &result.value, 1, BinaryenTypeNone())));
