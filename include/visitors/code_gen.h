@@ -157,6 +157,7 @@ class CodeGen : public Visitor {
   std::unordered_map<std::string, TaggedType> function_return_types;
   // allows us to track the local variables of a function
   std::unordered_map<std::string, std::vector<BinaryenType>> function_locals;
+  std::unordered_map<std::string, int> function_param_count;
   std::string current_function_name; // for indexing into maps
 
   TypeConverter type_converter;

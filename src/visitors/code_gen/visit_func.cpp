@@ -20,6 +20,8 @@ void CodeGen::add_func_with_name(Func *func, std::string func_name) {
         BinaryenTypeNone(), std::shared_ptr<BirdType>(new VoidType()));
   }
 
+  this->function_param_count[func_name] = func->param_list.size();
+
   auto old_function_name = this->current_function_name;
 
   this->current_function_name = func_name;
@@ -66,7 +68,8 @@ void CodeGen::add_func_with_name(Func *func, std::string func_name) {
 
   for (auto &[string, env_index] : this->environment.envs.back()) {
     auto get_result = this->binaryen_get(string);
-    if (type_is_on_heap(get_result.type->get_tag())) {
+    if (env_index.value >= index &&
+        type_is_on_heap(get_result.type->get_tag())) {
       auto unregister = BinaryenCall(this->mod, "unregister_root",
                                      &get_result.value, 1, BinaryenTypeNone());
       current_function_body.push_back(unregister);

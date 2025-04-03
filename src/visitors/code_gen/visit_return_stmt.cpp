@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_return_stmt(ReturnStmt *return_stmt) {
   TaggedType func_return_type =
@@ -7,7 +8,9 @@ void CodeGen::visit_return_stmt(ReturnStmt *return_stmt) {
   std::vector<BinaryenExpressionRef> children{};
   for (auto &[string, env_index] : this->environment.envs.back()) {
     auto get_result = this->binaryen_get(string);
-    if (type_is_on_heap(get_result.type->get_tag())) {
+    if (env_index.value >=
+            this->function_param_count[this->current_function_name] &&
+        type_is_on_heap(get_result.type->get_tag())) {
       auto unregister = BinaryenCall(this->mod, "unregister_root",
                                      &get_result.value, 1, BinaryenTypeNone());
       children.push_back(unregister);
