@@ -27,9 +27,6 @@ public:
   }
 
   std::string resolve_identifier(std::string &identifier) {
-    if (this->seen[identifier])
-      return identifier;
-
     // check local namespace for a scoped variable
     auto from_local = this->get_current_namespace_prefix() +
                       this->get_current_scope_resolution_prefix() + identifier;
