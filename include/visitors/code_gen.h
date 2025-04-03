@@ -12,6 +12,7 @@
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type);
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type);
 const char *get_mem_set_for_type(const TypeTag type);
+const char *get_mem_get_for_type(const TypeTag type);
 bool type_is_on_heap(const TypeTag type);
 
 template <typename T> struct Tagged {
@@ -48,12 +49,17 @@ class CodeGen : public Visitor {
           {Token::Type::PLUS,
            {{{TypeTag::INT, TypeTag::INT},
              TaggedBinaryOpFn(BinaryenAddInt32, std::make_shared<IntType>())},
+            {{TypeTag::UINT, TypeTag::UINT},
+             TaggedBinaryOpFn(BinaryenAddInt32, std::make_shared<UintType>())},
             {{TypeTag::FLOAT, TypeTag::FLOAT},
              TaggedBinaryOpFn(BinaryenAddFloat64,
                               std::make_shared<FloatType>())}}},
           {Token::Type::MINUS,
            {
                {{TypeTag::INT, TypeTag::INT},
+                TaggedBinaryOpFn(BinaryenSubInt32,
+                                 std::make_shared<IntType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
                 TaggedBinaryOpFn(BinaryenSubInt32,
                                  std::make_shared<IntType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
@@ -65,6 +71,9 @@ class CodeGen : public Visitor {
                {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenMulInt32,
                                  std::make_shared<IntType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
+                TaggedBinaryOpFn(BinaryenMulInt32,
+                                 std::make_shared<UintType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenMulFloat64,
                                  std::make_shared<FloatType>())},
@@ -74,6 +83,9 @@ class CodeGen : public Visitor {
                {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenDivSInt32,
                                  std::make_shared<IntType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
+                TaggedBinaryOpFn(BinaryenDivUInt32,
+                                 std::make_shared<UintType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenDivFloat64,
                                  std::make_shared<FloatType>())},
@@ -81,6 +93,9 @@ class CodeGen : public Visitor {
           {Token::Type::EQUAL_EQUAL,
            {
                {{TypeTag::INT, TypeTag::INT},
+                TaggedBinaryOpFn(BinaryenEqInt32,
+                                 std::make_shared<BoolType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
                 TaggedBinaryOpFn(BinaryenEqInt32,
                                  std::make_shared<BoolType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
@@ -95,6 +110,9 @@ class CodeGen : public Visitor {
                {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenNeInt32,
                                  std::make_shared<BoolType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
+                TaggedBinaryOpFn(BinaryenNeInt32,
+                                 std::make_shared<BoolType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenNeFloat64,
                                  std::make_shared<BoolType>())},
@@ -107,6 +125,9 @@ class CodeGen : public Visitor {
                {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenGtSInt32,
                                  std::make_shared<BoolType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
+                TaggedBinaryOpFn(BinaryenGtUInt32,
+                                 std::make_shared<BoolType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenGtFloat64,
                                  std::make_shared<BoolType>())},
@@ -115,6 +136,9 @@ class CodeGen : public Visitor {
            {
                {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenGeSInt32,
+                                 std::make_shared<BoolType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
+                TaggedBinaryOpFn(BinaryenGeUInt32,
                                  std::make_shared<BoolType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenGeFloat64,
@@ -125,6 +149,9 @@ class CodeGen : public Visitor {
                {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenLtSInt32,
                                  std::make_shared<BoolType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
+                TaggedBinaryOpFn(BinaryenLtUInt32,
+                                 std::make_shared<BoolType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenLtFloat64,
                                  std::make_shared<BoolType>())},
@@ -133,6 +160,9 @@ class CodeGen : public Visitor {
            {
                {{TypeTag::INT, TypeTag::INT},
                 TaggedBinaryOpFn(BinaryenLeSInt32,
+                                 std::make_shared<BoolType>())},
+               {{TypeTag::UINT, TypeTag::UINT},
+                TaggedBinaryOpFn(BinaryenLeUInt32,
                                  std::make_shared<BoolType>())},
                {{TypeTag::FLOAT, TypeTag::FLOAT},
                 TaggedBinaryOpFn(BinaryenLeFloat64,
@@ -145,12 +175,28 @@ class CodeGen : public Visitor {
                                  std::make_shared<BoolType>())},
            }},
           {Token::Type::PERCENT,
+           {{{TypeTag::INT, TypeTag::INT},
+             TaggedBinaryOpFn(BinaryenRemSInt32, std::make_shared<IntType>())},
+            {{TypeTag::UINT, TypeTag::UINT},
+             TaggedBinaryOpFn(BinaryenRemUInt32,
+                              std::make_shared<UintType>())}}},
+          {Token::Type::AS,
            {
-               {{TypeTag::INT, TypeTag::INT},
-                TaggedBinaryOpFn(BinaryenRemSInt32,
+               {{TypeTag::INT, TypeTag::FLOAT},
+                TaggedBinaryOpFn(BinaryenConvertSInt32ToFloat64,
+                                 std::make_shared<FloatType>())},
+               {{TypeTag::UINT, TypeTag::FLOAT},
+                TaggedBinaryOpFn(BinaryenConvertUInt32ToFloat64,
+                                 std::make_shared<FloatType>())},
+               {{TypeTag::FLOAT, TypeTag::INT},
+                TaggedBinaryOpFn(BinaryenTruncSatSFloat64ToInt32,
                                  std::make_shared<IntType>())},
-           }},
-      };
+               {{TypeTag::FLOAT, TypeTag::UINT},
+                TaggedBinaryOpFn(BinaryenTruncSatUFloat64ToInt32,
+                                 std::make_shared<UintType>())},
+
+               // TODO: figure out what to do when casting between int and uint
+           }}};
 
   Environment<TaggedIndex> environment; // tracks the index of local variables
   Environment<std::shared_ptr<BirdType>> type_table;

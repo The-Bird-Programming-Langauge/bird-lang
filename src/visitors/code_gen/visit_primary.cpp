@@ -12,7 +12,12 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 
   case Token::Type::UINT_LITERAL: {
-    throw BirdException("TODO: Implement UINT_LITERAL for codegen");
+    // throw BirdException("TODO: Implement UINT_LITERAL for codegen");
+    int value = std::stoi(primary->value.lexeme);
+    BinaryenExpressionRef uint_literal =
+        BinaryenConst(this->mod, BinaryenLiteralInt32(value));
+    this->stack.push(TaggedExpression(
+        uint_literal, std::shared_ptr<BirdType>(new UintType())));
   }
 
   case Token::Type::FLOAT_LITERAL: {

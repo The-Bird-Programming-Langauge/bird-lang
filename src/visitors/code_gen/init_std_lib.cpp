@@ -5,6 +5,9 @@ void CodeGen::init_std_lib() {
   BinaryenAddFunctionImport(this->mod, "print_i32", "env", "print_i32",
                             BinaryenTypeInt32(), BinaryenTypeNone());
 
+  BinaryenAddFunctionImport(this->mod, "print_u32", "env", "print_u32",
+                            BinaryenTypeInt32(), BinaryenTypeNone());
+
   BinaryenAddFunctionImport(this->mod, "print_f64", "env", "print_f64",
                             BinaryenTypeFloat64(), BinaryenTypeNone());
 

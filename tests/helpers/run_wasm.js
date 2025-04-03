@@ -178,6 +178,10 @@ const moduleOptions = {
             process.stdout.write(value.toString());
             fs.appendFileSync(outputPath, value.toString());
         },
+        print_u32: (value) => {
+            process.stdout.write(value.toString());
+            fs.appendFileSync(outputPath, value.toString());
+        },
         print_f64: (value) => {
             process.stdout.write(value.toString());
             fs.appendFileSync(outputPath, value.toString());

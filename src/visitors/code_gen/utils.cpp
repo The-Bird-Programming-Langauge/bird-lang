@@ -19,9 +19,23 @@ const char *get_mem_set_for_type(const TypeTag type) {
   }
 }
 
+const char *get_mem_get_for_type(const TypeTag type) {
+  // something in the array member access breaks if we use the
+  // same sizes for mem_get as we do for mem_set
+
+  switch (type) {
+  case TypeTag::FLOAT:
+    return "mem_get_64";
+  default:
+    return "mem_get_32";
+  }
+}
+
 unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) {
   switch (type->get_tag()) {
   case TypeTag::INT:
+    return 4;
+  case TypeTag::UINT:
     return 4;
   case TypeTag::FLOAT:
     return 8;
@@ -43,26 +57,30 @@ unsigned int bird_type_byte_size(std::shared_ptr<BirdType> type) {
 }
 
 BinaryenType bird_type_to_binaryen_type(std::shared_ptr<BirdType> bird_type) {
-  if (bird_type->get_tag() == TypeTag::BOOL)
+  switch (bird_type->get_tag()) {
+  case TypeTag::BOOL:
     return BinaryenTypeInt32();
-  else if (bird_type->get_tag() == TypeTag::INT)
+  case TypeTag::INT:
     return BinaryenTypeInt32();
-  else if (bird_type->get_tag() == TypeTag::FLOAT)
+  case TypeTag::UINT:
+    return BinaryenTypeInt32();
+  case TypeTag::FLOAT:
     return BinaryenTypeFloat64();
-  else if (bird_type->get_tag() == TypeTag::VOID)
+  case TypeTag::VOID:
     return BinaryenTypeNone();
-  else if (bird_type->get_tag() == TypeTag::STRING)
+  case TypeTag::STRING:
     return BinaryenTypeInt32();
-  else if (bird_type->get_tag() == TypeTag::STRUCT)
+  case TypeTag::STRUCT:
     return BinaryenTypeInt32(); // ptr
-  else if (bird_type->get_tag() == TypeTag::PLACEHOLDER)
+  case TypeTag::PLACEHOLDER:
     return BinaryenTypeInt32();
-  else if (bird_type->get_tag() == TypeTag::ARRAY)
+  case TypeTag::ARRAY:
     return BinaryenTypeInt32();
-  else if (bird_type->get_tag() == TypeTag::FUNCTION)
+  case TypeTag::FUNCTION:
     return BinaryenTypeInt32();
-  else if (bird_type->get_tag() == TypeTag::ERROR)
+  case TypeTag::ERROR:
     throw BirdException("found error type");
-
-  throw BirdException("invalid type");
+  default:
+    throw BirdException("invalid type");
+  }
 }

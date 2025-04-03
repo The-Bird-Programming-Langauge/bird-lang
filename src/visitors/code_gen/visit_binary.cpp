@@ -44,10 +44,10 @@ void CodeGen::visit_binary_short_circuit(Binary *binary) {
 
 void CodeGen::visit_binary_normal(Binary *binary) {
   binary->left->accept(this);
-  binary->right->accept(this);
-
-  auto right = this->stack.pop();
   auto left = this->stack.pop();
+
+  binary->right->accept(this);
+  auto right = this->stack.pop();
 
   if (right.type->get_tag() == TypeTag::STRING &&
       left.type->get_tag() == TypeTag::STRING) {
@@ -65,7 +65,9 @@ void CodeGen::visit_binary_normal(Binary *binary) {
                                         left.value, right.value),
                          binary_op_fn.type));
   } catch (std::out_of_range &e) {
-    throw BirdException("unsupported binary operation: " + binary->op.lexeme);
+    throw BirdException("unsupported binary operation: " + binary->op.lexeme +
+                        " on types " + left.type->to_string() + " and " +
+                        right.type->to_string());
   }
 }
 

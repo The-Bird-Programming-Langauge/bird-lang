@@ -70,7 +70,7 @@ public:
           {Token::Type::MINUS,
            {
                {{TypeTag::INT, TypeTag::INT}, TypeTag::INT},
-               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::INT},
+               {{TypeTag::UINT, TypeTag::UINT}, TypeTag::UINT},
                {{TypeTag::FLOAT, TypeTag::FLOAT}, TypeTag::FLOAT},
            }},
           {Token::Type::STAR,
@@ -647,6 +647,15 @@ public:
       this->stack.push(std::make_shared<ErrorType>());
       return;
     }
+
+    // TODO: require subscript indices to be of the uint type
+    // This would require changing a lot of our tests
+    // if (index->get_tag() != TypeTag::UINT) {
+    //   this->user_error_tracker.type_error("expected uint in subscript index",
+    //                                       subscript->subscript_token);
+    //   this->stack.push(std::make_shared<ErrorType>());
+    //   return;
+    // }
 
     if (subscriptable->get_tag() == TypeTag::STRING) {
       this->stack.push(std::make_shared<StringType>());
