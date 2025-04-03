@@ -38,9 +38,9 @@ void CodeGen::visit_subscript(Subscript *subscript) {
 }
 
 BinaryenExpressionRef
-CodeGen::get_array_data(Tagged<BinaryenExpressionRef> &subscriptable) {
+CodeGen::get_array_data(BinaryenExpressionRef &subscriptable) {
   BinaryenExpressionRef mem_get_args[2] = {
-      subscriptable.value, BinaryenConst(mod, BinaryenLiteralInt32(0))};
+      subscriptable, BinaryenConst(mod, BinaryenLiteralInt32(0))};
   return BinaryenCall(mod, "mem_get_32", mem_get_args, 2, BinaryenTypeInt32());
 }
 
@@ -52,7 +52,7 @@ CodeGen::get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
       mod, BinaryenMulInt32(), index.value,
       BinaryenConst(mod, BinaryenLiteralInt32(bird_type_byte_size(type))));
 
-  BinaryenExpressionRef mem_get_args[2] = {get_array_data(subscriptable),
+  BinaryenExpressionRef mem_get_args[2] = {get_array_data(subscriptable.value),
                                            mem_position};
 
   return BinaryenCall(mod, get_mem_get_for_type(type->get_tag()), mem_get_args,

@@ -72,3 +72,10 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
 
   this->stack.push(TaggedExpression(block, std::make_shared<ArrayType>(type)));
 }
+
+BinaryenExpressionRef CodeGen::deref(BinaryenExpressionRef &ref) {
+  std::vector<BinaryenExpressionRef> operands = {
+      ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+  return BinaryenCall(this->mod, "mem_get_32", operands.data(), operands.size(),
+                      BinaryenTypeInt32());
+}

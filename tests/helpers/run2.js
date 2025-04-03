@@ -22,7 +22,8 @@ class Printer {
         fs.appendFileSync(outputPath, bool_str);
     }
     print_str(ptr) {
-        const array_ptr = mem.get(ptr);
+        const ref = mem.get(ptr);
+        const array_ptr = mem.get(ref.get_32(0));
         const data = mem.get(array_ptr.get_32(0));
         const length = array_ptr.get_32(4);
 
@@ -52,6 +53,7 @@ class Block {
     }
 
     get_64(offset) {
+        console.log("getting offset: ", offset, "from pointer,", this.ptr);
         return this.memory.getFloat64(this.ptr + offset);
     }
 
@@ -363,7 +365,8 @@ WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
 });
 
 function push_ptr(arr_ptr, value) {
-    const array = mem.get(arr_ptr);
+    const ref = mem.get(arr_ptr);
+    const array = mem.get(ref.get_32(0));
     const length = array.get_32(4);
     push_32(arr_ptr, value);
     const after_data_ptr = array.get_32(0);
@@ -373,7 +376,8 @@ function push_ptr(arr_ptr, value) {
 }
 
 function push_32(arr_ptr, value) {
-    const array = mem.get(arr_ptr);
+    const ref = mem.get(arr_ptr);
+    const array = mem.get(ref.get_32(0));
     let data = mem.get(array.get_32(0));
     const length = array.get_32(4);
     const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 4;
@@ -397,7 +401,8 @@ function push_32(arr_ptr, value) {
 }
 
 function push_64(arr_ptr, value) {
-    const array = mem.get(arr_ptr);
+    const ref = mem.get(arr_ptr);
+    const array = mem.get(ref.get_32(0));
     let data = mem.get(array.get_32(0));
     const length = array.get_32(4);
     const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 8;

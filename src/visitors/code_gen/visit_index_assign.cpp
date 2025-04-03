@@ -75,7 +75,22 @@ void CodeGen::visit_index_assign(IndexAssign *index_assign) {
     break;
   }
 
-  BinaryenExpressionRef args[3] = {this->get_array_data(lhs),
+  if (type_is_on_heap(rhs_val.type->get_tag())) {
+    std::vector<BinaryenExpressionRef> get_operands = {
+        result, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+    auto get_data = BinaryenCall(this->mod, "mem_get_32", get_operands.data(),
+                                 get_operands.size(), BinaryenTypeInt32());
+    std::vector<BinaryenExpressionRef> set_operands = {
+        lhs_val.value, mem_offset_literal, get_data};
+    auto set_data = BinaryenCall(this->mod, "mem_set_32", set_operands.data(),
+                                 set_operands.size(), BinaryenTypeNone());
+
+    this->stack.push(TaggedExpression(set_data, rhs_val.type));
+    return;
+  }
+
+  auto array = this->deref(lhs.value);
+  BinaryenExpressionRef args[3] = {this->get_array_data(array),
                                    mem_offset_literal, result};
 
   this->stack.push(BinaryenCall(this->mod,

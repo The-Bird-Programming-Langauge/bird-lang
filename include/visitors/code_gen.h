@@ -233,8 +233,8 @@ class CodeGen : public Visitor {
   void create_struct_constructor(std::shared_ptr<StructType> type);
   void init_array_constructor();
   void init_ref_constructor();
-  BinaryenExpressionRef
-  get_array_data(Tagged<BinaryenExpressionRef> &subscriptable);
+  BinaryenExpressionRef get_array_data(BinaryenExpressionRef &subscriptable);
+  BinaryenExpressionRef deref(BinaryenExpressionRef &ref);
   BinaryenExpressionRef
   get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
                        Tagged<BinaryenExpressionRef> &index,
