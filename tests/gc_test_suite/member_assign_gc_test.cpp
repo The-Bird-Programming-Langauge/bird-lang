@@ -56,14 +56,14 @@ TEST(GcTest, MemberAssignStruct) {
             };\
             var node: Node = Node { val = 1, next = Node {val = 2} };\
             {\
-                node.next = Node {val = 2};\
+                node.next = Node {val = 3};\
             }\
             gc();\
             const result = node.next;\
             print result.val;";
 
   options.after_compile = [&](auto output, auto &code_gen) {
-    ASSERT_EQ(output, "2\n\n");
+    ASSERT_EQ(output, "3\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));

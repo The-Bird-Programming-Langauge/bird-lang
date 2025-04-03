@@ -1,12 +1,9 @@
-struct Node {
-    next: Node;
-    val: int;
-};
 
-var node: Node = Node { val = 1, next = Node {val = 1} };
-{
-    node.next = Node {val = 2};
+const chars: str[] = [];
+const string: str = "hello, world!";
+for var i = 0; i < length(string); i += 1 {
+    push(chars, string[i] as str);
 }
-
-const result = node.next;
-print result.val;
+for var i = 0; i < length(chars); i += 1 {
+    print chars[i];
+}
