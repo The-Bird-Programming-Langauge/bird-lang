@@ -34,6 +34,7 @@ public:
     FLOAT,
     BOOL,
     STR,
+    CHAR,
     VOID,
 
     // single character
@@ -80,6 +81,7 @@ public:
     INT_LITERAL,
     NUMBER,
     STR_LITERAL,
+    CHAR_LITERAL,
 
     // end
     END

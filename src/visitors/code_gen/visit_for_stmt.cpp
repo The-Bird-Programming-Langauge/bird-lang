@@ -67,6 +67,14 @@ void CodeGen::visit_for_stmt(ForStmt *for_stmt) {
   }
 
   initializer_and_loop.push_back(block);
+  for (auto &[string, env_index] : this->environment.envs.back()) {
+    auto get_result = this->binaryen_get(string);
+    if (type_is_on_heap(get_result.type->get_tag())) {
+      auto unregister = BinaryenCall(this->mod, "unregister_root",
+                                     &get_result.value, 1, BinaryenTypeNone());
+      initializer_and_loop.push_back(unregister);
+    }
+  }
 
   auto exit_block =
       BinaryenBlock(this->mod, "EXIT", initializer_and_loop.data(),

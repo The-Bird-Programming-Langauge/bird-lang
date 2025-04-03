@@ -31,17 +31,6 @@ using TaggedIndex = Tagged<BinaryenIndex>;
 using TaggedType = Tagged<BinaryenType>;
 using TaggedBinaryOpFn = Tagged<std::function<BinaryenOp(void)>>;
 
-/*
- * used to avoid multiple BinaryenMemorySet calls
- * which somehow retain the information but overwrite
- * the page bounds
- */
-struct MemorySegment {
-  const char *data;
-  BinaryenIndex size;
-  BinaryenExpressionRef offset;
-};
-
 class CodeGen : public Visitor {
   // and, or, and string operations are handled separately
   // differently
@@ -162,28 +151,22 @@ class CodeGen : public Visitor {
   std::set<std::string> struct_names;
   std::unordered_map<std::string, int> struct_name_to_num_pointers;
 
-  bool must_garbage_collect = false;
-
   std::unordered_map<std::string, uint32_t> str_offsets;
 
   // we need the function return types when calling functions
   std::unordered_map<std::string, TaggedType> function_return_types;
   // allows us to track the local variables of a function
   std::unordered_map<std::string, std::vector<BinaryenType>> function_locals;
+  std::unordered_map<std::string, int> function_param_count;
   std::string current_function_name; // for indexing into maps
-  std::vector<MemorySegment>
-      memory_segments; // store memory segments to add at once
 
   TypeConverter type_converter;
 
-  uint32_t current_offset = 0;
   BinaryenModuleRef mod;
 
   void init_std_lib();
-  void add_memory_segment(const std::string &str);
-  void init_static_memory(std::vector<std::string> &strings);
+  void init_static_memory();
 
-  void garbage_collect();
   void visit_block(Block *block);
   void visit_decl_stmt(DeclStmt *decl_stmt);
   void visit_assign_expr(AssignExpr *assign_expr);
@@ -202,6 +185,10 @@ class CodeGen : public Visitor {
                                        TaggedExpression right);
   void visit_unary(Unary *unary);
   void visit_primary(Primary *primary);
+  TaggedExpression generate_string_from_string(std::string string);
+  TaggedExpression
+  generate_string_from_exprs(std::vector<BinaryenExpressionRef> vals);
+
   TaggedExpression create_unary_not(BinaryenExpressionRef condition);
   void visit_ternary(Ternary *ternary);
   void visit_const_stmt(ConstStmt *const_stmt);
@@ -248,8 +235,9 @@ class CodeGen : public Visitor {
   void generate_array_length_fn();
   void create_struct_constructor(std::shared_ptr<StructType> type);
   void init_array_constructor();
-  BinaryenExpressionRef
-  get_array_data(Tagged<BinaryenExpressionRef> &subscriptable);
+  void init_ref_constructor();
+  BinaryenExpressionRef get_array_data(BinaryenExpressionRef &subscriptable);
+  BinaryenExpressionRef deref(BinaryenExpressionRef &ref);
   BinaryenExpressionRef
   get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
                        Tagged<BinaryenExpressionRef> &index,

@@ -4,15 +4,15 @@
 TEST(Namespaces, ReturnGlobalType) {
   BirdTest::TestOptions options;
   options.code = "namespace A {"
-                 "  struct Char { char: str; };"
+                 "  struct Char { c: str; };"
                  "}"
                  "namespace B {"
                  "  fn write() -> A::Char {"
-                 "    return A::Char { char = \"A\" };"
+                 "    return A::Char { c = \"A\" };"
                  "  }"
                  "  var i = write();"
                  "}"
-                 "print B::i.char;";
+                 "print B::i.c;";
 
   options.after_compile = [&](std::string &output, CodeGen &codegen) {
     ASSERT_EQ(output, "A\n\n");

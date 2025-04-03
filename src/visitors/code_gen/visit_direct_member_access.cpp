@@ -33,7 +33,8 @@ void CodeGen::visit_direct_member_access(
   }
 
   BinaryenExpressionRef args[2] = {
-      accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
+      this->deref(accessable.value),
+      BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
 
   auto func_name =
       member_type->get_tag() == TypeTag::FLOAT ? "mem_get_64" : "mem_get_32";

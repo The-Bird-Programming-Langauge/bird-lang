@@ -36,6 +36,8 @@ public:
         return std::make_shared<BoolType>();
       } else if (type_name == "str") {
         return std::make_shared<StringType>();
+      } else if (type_name == "char") {
+        return std::make_shared<CharType>();
       } else if (type_name == "void") {
         return std::make_shared<VoidType>();
       }

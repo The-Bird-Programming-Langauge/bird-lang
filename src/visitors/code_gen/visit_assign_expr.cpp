@@ -17,6 +17,18 @@ void CodeGen::visit_assign_expr(AssignExpr *assign_expr) {
     result = stack.pop();
   }
 
+  if (type_is_on_heap(result.type->get_tag())) {
+    auto get_data = this->deref(result.value);
+    std::vector<BinaryenExpressionRef> set_operands = {
+        lhs_val.value, BinaryenConst(this->mod, BinaryenLiteralInt32(0)),
+        get_data};
+    auto set_data = BinaryenCall(this->mod, "mem_set_32", set_operands.data(),
+                                 set_operands.size(), BinaryenTypeNone());
+
+    this->stack.push(TaggedExpression(set_data, result.type));
+    return;
+  }
+
   TaggedExpression assign_stmt =
       this->binaryen_set(assign_expr->identifier.lexeme, result.value);
 

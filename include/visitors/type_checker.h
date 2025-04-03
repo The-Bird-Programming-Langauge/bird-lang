@@ -173,6 +173,22 @@ public:
     if (decl_stmt->type.has_value()) {
       std::shared_ptr<BirdType> type =
           this->type_converter.convert(decl_stmt->type.value());
+      if (type->get_tag() == TypeTag::ARRAY &&
+          result->get_tag() == TypeTag::ARRAY) {
+        auto result_array = std::dynamic_pointer_cast<ArrayType>(result);
+        auto type_array = std::dynamic_pointer_cast<ArrayType>(type);
+        if (type_array->element_type->get_tag() == TypeTag::VOID) {
+          this->user_error_tracker.type_error("cannot declare void type",
+                                              decl_stmt->identifier);
+          this->env.declare(decl_stmt->identifier.lexeme,
+                            std::make_shared<ErrorType>());
+          return;
+        }
+        if (result_array->element_type->get_tag() == TypeTag::VOID) {
+          result_array->element_type = type_array->element_type;
+        }
+      }
+
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
             "in declaration", decl_stmt->type.value()->get_token());
@@ -247,6 +263,7 @@ public:
       arg->accept(this);
       auto result = this->stack.pop();
 
+      // TODO: change this to a switch
       if (result->get_tag() == TypeTag::VOID) {
         this->user_error_tracker.type_error("cannot print void type",
                                             print_stmt->print_token);
@@ -264,6 +281,11 @@ public:
 
       if (result->get_tag() == TypeTag::FUNCTION) {
         this->user_error_tracker.type_error("cannot print function type",
+                                            print_stmt->print_token);
+      }
+
+      if (result->get_tag() == TypeTag::ARRAY) {
+        this->user_error_tracker.type_error("cannot print array type",
                                             print_stmt->print_token);
       }
 
@@ -288,6 +310,21 @@ public:
     if (const_stmt->type.has_value()) {
       std::shared_ptr<BirdType> type =
           this->type_converter.convert(const_stmt->type.value());
+      if (type->get_tag() == TypeTag::ARRAY &&
+          result->get_tag() == TypeTag::ARRAY) {
+        auto result_array = std::dynamic_pointer_cast<ArrayType>(result);
+        auto type_array = std::dynamic_pointer_cast<ArrayType>(type);
+        if (type_array->element_type->get_tag() == TypeTag::VOID) {
+          this->user_error_tracker.type_error("cannot declare void type",
+                                              const_stmt->identifier);
+          this->env.declare(const_stmt->identifier.lexeme,
+                            std::make_shared<ErrorType>());
+          return;
+        }
+        if (result_array->element_type->get_tag() == TypeTag::VOID) {
+          result_array->element_type = type_array->element_type;
+        }
+      }
 
       if (*type != *result) {
         this->user_error_tracker.type_mismatch(
@@ -334,6 +371,8 @@ public:
     if (for_stmt->increment.has_value()) {
       for_stmt->increment.value()->accept(this);
     }
+
+    for_stmt->body->accept(this);
 
     this->env.pop_env();
   }
@@ -424,6 +463,10 @@ public:
     }
     case Token::Type::STR_LITERAL: {
       this->stack.push(std::make_shared<StringType>());
+      break;
+    }
+    case Token::Type::CHAR_LITERAL: {
+      this->stack.push(std::make_shared<CharType>());
       break;
     }
     case Token::Type::IDENTIFIER: {
@@ -601,9 +644,64 @@ public:
   }
 
   void visit_call(Call *call) {
+    if (core_call_table.table.contains(call->identifier.lexeme)) {
+      check_core_call(call);
+      return;
+    }
     auto function = this->call_table.get(call->identifier.lexeme);
     compare_args_and_params(call->identifier, call->args, function->params);
     this->stack.push(function->ret);
+  }
+
+  void check_core_call(Call *call) {
+    auto fn = core_call_table.table.get(call->identifier.lexeme);
+    const auto function_name = call->identifier.lexeme;
+
+    if (!correct_arity(fn->params, call->args)) {
+      this->user_error_tracker.type_error("Invalid number of arguments to " +
+                                              call->identifier.lexeme,
+                                          call->identifier);
+
+      this->stack.push(std::make_shared<ErrorType>());
+      return;
+    }
+    if (function_name == "length") {
+      call->args[0]->accept(this);
+      auto value = this->stack.pop();
+      if (value->get_tag() != TypeTag::ARRAY &&
+          value->get_tag() != TypeTag::STRING) {
+        this->user_error_tracker.type_error(
+            "expected array or string type in length function",
+            call->identifier);
+        this->stack.push(std::make_shared<ErrorType>());
+        return;
+      }
+      this->stack.push(std::make_shared<IntType>());
+    } else if (function_name == "push") {
+      call->args[0]->accept(this);
+      auto arr_type = this->stack.pop();
+      if (arr_type->get_tag() != TypeTag::ARRAY) {
+        this->user_error_tracker.type_error(
+            "expected array type in push function", call->identifier);
+        this->stack.push(std::make_shared<ErrorType>());
+        return;
+      }
+
+      auto arr = std::dynamic_pointer_cast<ArrayType>(arr_type);
+      call->args[1]->accept(this);
+      auto el_type = this->stack.pop();
+
+      if (*arr->element_type != *el_type) {
+        this->user_error_tracker.type_mismatch(
+            "expected " + arr->element_type->to_string() + ", found " +
+                el_type->to_string(),
+            call->identifier);
+        this->stack.push(std::make_shared<ErrorType>());
+        return;
+      }
+
+      this->stack.push(std::make_shared<VoidType>());
+    }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
@@ -676,7 +774,7 @@ public:
     }
 
     if (subscriptable->get_tag() == TypeTag::STRING) {
-      this->stack.push(std::make_shared<StringType>());
+      this->stack.push(std::make_shared<CharType>());
       return;
     }
 
@@ -902,6 +1000,18 @@ public:
 
     if (to_type->get_tag() == TypeTag::INT &&
         expr->get_tag() == TypeTag::FLOAT) {
+      this->stack.push(to_type);
+      return;
+    }
+
+    if (to_type->get_tag() == TypeTag::INT &&
+        expr->get_tag() == TypeTag::CHAR) {
+      this->stack.push(to_type);
+      return;
+    }
+
+    if (to_type->get_tag() == TypeTag::STRING &&
+        expr->get_tag() == TypeTag::CHAR) {
       this->stack.push(to_type);
       return;
     }

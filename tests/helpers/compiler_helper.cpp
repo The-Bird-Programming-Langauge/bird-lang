@@ -1,4 +1,5 @@
 #include "compile_helper.hpp"
+#include <cstdlib>
 #include <fstream>
 
 bool BirdTest::compile(const TestOptions options) {
