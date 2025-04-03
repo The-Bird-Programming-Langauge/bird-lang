@@ -85,7 +85,6 @@ public:
         }
 
         // Parse the import item and insert it at the top of the AST.
-        // TODO: Must create nested namespace statements to hold the import items.
         std::string import_file_path = "../standard_library/"+import_paths[j].get_file_path()+".bird";
         auto import_code = "\n" + this->read_file(import_file_path);
         UserErrorTracker import_error_tracker(import_code);
@@ -97,7 +96,34 @@ public:
           std::cout << "Standard Library Parser Errors at Path '"+import_file_path+"':" << std::endl;
           import_error_tracker.print_errors_and_exit();
         } else {
-          this->stmts->insert(this->stmts->begin(), std::move(import_ast[0]));
+          std::unique_ptr<Stmt> import_stmt = std::move(import_ast[0]);
+
+          auto constant_stmt = dynamic_cast<ConstStmt*>(import_stmt.get());
+          if (constant_stmt) {
+            constant_stmt->identifier.lexeme = import_paths[j].string_path;
+          }
+
+          auto variable_stmt = dynamic_cast<DeclStmt*>(import_stmt.get());
+          if (variable_stmt) {
+            variable_stmt->identifier.lexeme = import_paths[j].string_path;
+          }
+
+          auto type_stmt = dynamic_cast<TypeStmt*>(import_stmt.get());
+          if (type_stmt) {
+            type_stmt->identifier.lexeme = import_paths[j].string_path;
+          }
+
+          auto struct_stmt = dynamic_cast<StructDecl*>(import_stmt.get());
+          if (struct_stmt) {
+            struct_stmt->identifier.lexeme = import_paths[j].string_path;
+          }
+
+          auto function_stmt = dynamic_cast<Func*>(import_stmt.get());
+          if (function_stmt) {
+            function_stmt->identifier.lexeme = import_paths[j].string_path;
+          }
+
+          this->stmts->insert(this->stmts->begin(), std::move(import_stmt));
           this->stmt_idx += 1;
         }
       }

@@ -30,6 +30,8 @@ public:
 
 class ImportVariable : public ImportItem {};
 
+class ImportConstant : public ImportItem {};
+
 class ImportType : public ImportItem {};
 
 class ImportStruct : public ImportItem {};
