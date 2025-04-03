@@ -8,61 +8,51 @@ void CodeGen::visit_assign_expr(AssignExpr *assign_expr) {
   assign_expr->value->accept(this);
   TaggedExpression rhs_val = this->stack.pop();
 
-  bool float_flag = (index.type->get_tag() == TypeTag::FLOAT &&
-                     rhs_val.type->get_tag() == TypeTag::FLOAT);
-
   BinaryenExpressionRef result;
-  switch (assign_expr->assign_operator.token_type) {
-  case Token::Type::EQUAL: {
+
+  if (assign_expr->assign_operator.token_type == Token::Type::EQUAL) {
     result = rhs_val.value;
-    break;
-  }
-  case Token::Type::PLUS_EQUAL: {
-    // TODO: figure out string conatenation
-    result = (float_flag) ? BinaryenBinary(this->mod, BinaryenAddFloat64(),
-                                           lhs_val, rhs_val.value)
-                          : BinaryenBinary(this->mod, BinaryenAddInt32(),
-                                           lhs_val, rhs_val.value);
+  } else {
 
-    break;
-  }
-  case Token::Type::MINUS_EQUAL: {
-    result = (float_flag) ? BinaryenBinary(this->mod, BinaryenSubFloat64(),
-                                           lhs_val, rhs_val.value)
-                          : BinaryenBinary(this->mod, BinaryenSubInt32(),
-                                           lhs_val, rhs_val.value);
+    // TODO: refactor binary and assign types to hold an operation type
+    // instead of a token type to avoid repetition of this sort of thing
+    Token::Type assign_op_token_as_binary_op_token;
+    switch (assign_expr->assign_operator.token_type) {
+    case Token::Type::PLUS_EQUAL:
+      assign_op_token_as_binary_op_token = Token::Type::PLUS;
+      break;
+    case Token::Type::MINUS_EQUAL:
+      assign_op_token_as_binary_op_token = Token::Type::MINUS;
+      break;
+    case Token::Type::STAR_EQUAL:
+      assign_op_token_as_binary_op_token = Token::Type::STAR;
+      break;
+    case Token::Type::SLASH_EQUAL:
+      assign_op_token_as_binary_op_token = Token::Type::SLASH;
+      break;
+    case Token::Type::PERCENT_EQUAL:
+      assign_op_token_as_binary_op_token = Token::Type::PERCENT;
+      break;
+    default:
+      throw BirdException("Unidentified assignment operator " +
+                          assign_expr->assign_operator.lexeme);
+      break;
+    }
 
-    break;
-  }
-  case Token::Type::STAR_EQUAL: {
-    result = (float_flag) ? BinaryenBinary(this->mod, BinaryenMulFloat64(),
-                                           lhs_val, rhs_val.value)
-                          : BinaryenBinary(this->mod, BinaryenMulInt32(),
-                                           lhs_val, rhs_val.value);
+    try {
+      auto binary_op =
+          this->binary_operations.at(assign_op_token_as_binary_op_token);
+      auto binary_op_fn =
+          binary_op.at({index.type->get_tag(), rhs_val.type->get_tag()});
 
-    break;
-  }
-  case Token::Type::SLASH_EQUAL: {
-    result = (float_flag) ? BinaryenBinary(this->mod, BinaryenDivFloat64(),
-                                           lhs_val, rhs_val.value)
-                          : BinaryenBinary(this->mod, BinaryenDivSInt32(),
-                                           lhs_val, rhs_val.value);
-
-    break;
-  }
-  case Token::Type::PERCENT_EQUAL: {
-    result =
-        (float_flag)
-            ? throw BirdException("Modular operation requires integer values")
-            : BinaryenBinary(this->mod, BinaryenRemSInt32(), lhs_val,
-                             rhs_val.value);
-
-    break;
-  }
-  default:
-    throw BirdException("Unidentified assignment operator " +
-                        assign_expr->assign_operator.lexeme);
-    break;
+      result = BinaryenBinary(this->mod, binary_op_fn.value(), lhs_val,
+                              rhs_val.value);
+    } catch (std::out_of_range &e) {
+      throw BirdException("unsupported assign operation: " +
+                          assign_expr->assign_operator.lexeme + " on types " +
+                          index.type->to_string() + " and " +
+                          rhs_val.type->to_string());
+    }
   }
 
   BinaryenExpressionRef assign_stmt =
