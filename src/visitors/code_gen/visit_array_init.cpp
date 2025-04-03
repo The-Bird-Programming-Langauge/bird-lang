@@ -36,12 +36,8 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
   TaggedExpression local_set = this->binaryen_set(
       identifier, BinaryenCall(this->mod, "mem_alloc", args.data(), args.size(),
                                BinaryenTypeInt32()));
-  auto register_root_arg = this->binaryen_get(identifier).value;
-  auto register_root = BinaryenCall(this->mod, "register_root",
-                                    &register_root_arg, 1, BinaryenTypeNone());
 
-  std::vector<BinaryenExpressionRef> binaryen_calls = {local_set.value,
-                                                       register_root};
+  std::vector<BinaryenExpressionRef> binaryen_calls = {local_set.value};
 
   unsigned int offset = 0;
   for (auto val : vals) {
@@ -59,12 +55,27 @@ void CodeGen::visit_array_init(ArrayInit *array_init) {
       BinaryenConst(this->mod,
                     BinaryenLiteralInt32(array_init->elements.size()))};
 
-  binaryen_calls.push_back(BinaryenCall(
-      this->mod, struct_constructors["0array"].c_str(),
-      array_struct_args.data(), array_struct_args.size(), BinaryenTypeInt32()));
+  auto call = BinaryenCall(this->mod, struct_constructors["0array"].c_str(),
+                           array_struct_args.data(), array_struct_args.size(),
+                           BinaryenTypeInt32());
+  auto create_ref = BinaryenCall(this->mod, struct_constructors["0ref"].c_str(),
+                                 &call, 1, BinaryenTypeInt32());
+  binaryen_calls.push_back(this->binaryen_set(identifier, create_ref).value);
+  auto get_ref = this->binaryen_get(identifier);
+  auto register_root = BinaryenCall(this->mod, "register_root", &get_ref.value,
+                                    1, BinaryenTypeNone());
 
+  binaryen_calls.push_back(register_root);
+  binaryen_calls.push_back(this->binaryen_get(identifier).value);
   auto block = BinaryenBlock(this->mod, nullptr, binaryen_calls.data(),
                              binaryen_calls.size(), BinaryenTypeInt32());
 
   this->stack.push(TaggedExpression(block, std::make_shared<ArrayType>(type)));
+}
+
+BinaryenExpressionRef CodeGen::deref(BinaryenExpressionRef &ref) {
+  std::vector<BinaryenExpressionRef> operands = {
+      ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+  return BinaryenCall(this->mod, "mem_get_32", operands.data(), operands.size(),
+                      BinaryenTypeInt32());
 }

@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_const_stmt(ConstStmt *const_stmt) {
   const_stmt->value->accept(this);
@@ -27,6 +28,16 @@ void CodeGen::visit_const_stmt(ConstStmt *const_stmt) {
 
   TaggedExpression set_local =
       this->binaryen_set(const_stmt->identifier.lexeme, initializer.value);
+  if (type_is_on_heap(initializer.type->get_tag())) {
+    auto block = BinaryenBlock(this->mod, nullptr, &set_local.value, 1,
+                               BinaryenTypeNone());
+    auto get_ref = this->binaryen_get(const_stmt->identifier.lexeme);
+    auto register_root = BinaryenCall(this->mod, "register_root",
+                                      &get_ref.value, 1, BinaryenTypeNone());
+    BinaryenBlockInsertChildAt(block, 1, register_root);
+    this->stack.push(TaggedExpression(block, type));
+    return;
+  }
 
   this->stack.push(TaggedExpression(set_local.value, type));
 }

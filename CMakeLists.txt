@@ -34,7 +34,7 @@ if (DEBUG)
   target_compile_definitions(compiler PRIVATE DEBUG)
 endif()
 
-set(RUN_WASM_FILE_LOCATION ${PROJECT_SOURCE_DIR}/tests/helpers/run2.js)
+set(RUN_WASM_FILE_LOCATION ${PROJECT_SOURCE_DIR}/tests/helpers/run_wasm.js)
 target_compile_definitions(compiler PRIVATE RUN_WASM_FILE_LOCATION)
 
 target_link_libraries(compiler binaryen)

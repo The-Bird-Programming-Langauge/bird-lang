@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 
 void CodeGen::visit_print_stmt(PrintStmt *print_stmt) {
   std::vector<BinaryenExpressionRef> calls;

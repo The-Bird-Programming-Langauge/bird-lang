@@ -157,6 +157,7 @@ class CodeGen : public Visitor {
   std::unordered_map<std::string, TaggedType> function_return_types;
   // allows us to track the local variables of a function
   std::unordered_map<std::string, std::vector<BinaryenType>> function_locals;
+  std::unordered_map<std::string, int> function_param_count;
   std::string current_function_name; // for indexing into maps
 
   TypeConverter type_converter;
@@ -200,6 +201,8 @@ class CodeGen : public Visitor {
   void visit_continue_stmt(ContinueStmt *continue_stmt);
   void visit_type_stmt(TypeStmt *type_stmt);
   void visit_subscript(Subscript *subscript);
+  void visit_namespace(NamespaceStmt *_namespace);
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution);
   void visit_for_in_stmt(ForInStmt *for_in);
 
   /*
@@ -234,8 +237,8 @@ class CodeGen : public Visitor {
   void create_struct_constructor(std::shared_ptr<StructType> type);
   void init_array_constructor();
   void init_ref_constructor();
-  BinaryenExpressionRef
-  get_array_data(Tagged<BinaryenExpressionRef> &subscriptable);
+  BinaryenExpressionRef get_array_data(BinaryenExpressionRef &subscriptable);
+  BinaryenExpressionRef deref(BinaryenExpressionRef &ref);
   BinaryenExpressionRef
   get_subscript_result(Tagged<BinaryenExpressionRef> &subscriptable,
                        Tagged<BinaryenExpressionRef> &index,

@@ -31,6 +31,8 @@ class IndexAssign;
 class MatchExpr;
 class Method;
 class MethodCall;
+class NamespaceStmt;
+class ScopeResolutionExpr;
 class ForInStmt;
 
 /*
@@ -70,5 +72,7 @@ public:
   virtual void visit_match_expr(MatchExpr *) = 0;
   virtual void visit_method(Method *) = 0;
   virtual void visit_method_call(MethodCall *) = 0;
+  virtual void visit_namespace(NamespaceStmt *) = 0;
+  virtual void visit_scope_resolution(ScopeResolutionExpr *) = 0;
   virtual void visit_for_in_stmt(ForInStmt *) = 0;
 };

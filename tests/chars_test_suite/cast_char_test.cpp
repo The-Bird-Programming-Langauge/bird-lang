@@ -62,9 +62,8 @@ TEST(CastCharTest, CastCharToStrPushToArray) {
                  "  print chars[i];"
                  "}";
 
-  options.after_interpret = [&](Interpreter &interpreter) {};
   options.after_compile = [&](std::string output, CodeGen &code_gen) {
-    ASSERT_EQ(output, "h\ne\nl\nl\no\n \n,\n \nw\no\nr\nl\nd\n!\n\n");
+    ASSERT_EQ(output, "h\ne\nl\nl\no\n,\n \nw\no\nr\nl\nd\n!\n\n");
   };
 
   ASSERT_TRUE(BirdTest::compile(options));

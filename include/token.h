@@ -28,6 +28,7 @@ public:
     NOT,
     MATCH,
     IN,
+    NAMESPACE,
 
     // types
     INT,
@@ -71,6 +72,7 @@ public:
     PLUS_EQUAL,
     SLASH_EQUAL,
     STAR_EQUAL,
+    COLON_COLON,
 
     // values
     TRUE,

@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 #include <memory>
 
 void CodeGen::visit_index_assign(IndexAssign *index_assign) {
@@ -75,7 +76,24 @@ void CodeGen::visit_index_assign(IndexAssign *index_assign) {
     break;
   }
 
-  BinaryenExpressionRef args[3] = {this->get_array_data(lhs),
+  auto array = this->deref(lhs.value);
+  if (type_is_on_heap(rhs_val.type->get_tag())) {
+    auto new_ref = this->deref(result);
+    BinaryenExpressionRef args[2] = {this->get_array_data(array),
+                                     mem_offset_literal};
+    auto index_ref =
+        BinaryenCall(this->mod, "mem_get_32", args, 2, BinaryenTypeInt32());
+
+    BinaryenExpressionRef set_args[3] = {
+        index_ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0)), new_ref};
+    auto replace_ref =
+        BinaryenCall(this->mod, "mem_set_32", set_args, 3, BinaryenTypeNone());
+
+    this->stack.push(TaggedExpression(replace_ref, rhs_val.type));
+    return;
+  }
+
+  BinaryenExpressionRef args[3] = {this->get_array_data(array),
                                    mem_offset_literal, result};
 
   this->stack.push(BinaryenCall(this->mod,

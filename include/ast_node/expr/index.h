@@ -12,6 +12,7 @@
 #include "member_assign.h"
 #include "method_call.h"
 #include "primary.h"
+#include "scope_resolution_expr.h"
 #include "struct_initialization.h"
 #include "subscript.h"
 #include "ternary.h"

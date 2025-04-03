@@ -341,6 +341,16 @@ public:
     }
   }
 
+  void visit_namespace(NamespaceStmt *_namespace) {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    scope_resolution->identifier->accept(this);
+  }
+
   void visit_for_in_stmt(ForInStmt *for_in) {
     this->loop_depth += 1;
     this->env.push_env();

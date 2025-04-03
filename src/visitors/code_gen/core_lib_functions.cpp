@@ -19,7 +19,12 @@ void CodeGen::generate_array_length_fn() {
 
   std::vector<BinaryenExpressionRef> function_body;
 
-  auto array = BinaryenLocalGet(this->mod, 0, BinaryenTypeInt32());
+  auto ref = BinaryenLocalGet(this->mod, 0, BinaryenTypeInt32());
+  BinaryenExpressionRef mem_get_array_args[2]{
+      ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+
+  auto array = BinaryenCall(this->mod, "mem_get_32", mem_get_array_args, 2,
+                            BinaryenTypeInt32());
 
   BinaryenExpressionRef mem_get_args[2]{
       array, BinaryenConst(this->mod, BinaryenLiteralInt32(bird_type_byte_size(

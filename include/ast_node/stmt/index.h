@@ -11,6 +11,7 @@
 #include "func.h"
 #include "if_stmt.h"
 #include "method.h"
+#include "namespace_stmt.h"
 #include "print_stmt.h"
 #include "return_stmt.h"
 #include "stmt.h"
