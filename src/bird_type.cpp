@@ -5,6 +5,8 @@ std::shared_ptr<BirdType> bird_type_type_to_bird_type(TypeTag type) {
   switch (type) {
   case TypeTag::INT:
     return std::make_shared<IntType>();
+  case TypeTag::UINT:
+    return std::make_shared<UintType>();
   case TypeTag::FLOAT:
     return std::make_shared<FloatType>();
   case TypeTag::STRING:
@@ -22,19 +24,21 @@ std::shared_ptr<BirdType> bird_type_type_to_bird_type(TypeTag type) {
 }
 
 std::shared_ptr<BirdType> token_to_bird_type(Token token) {
-  std::string type_name = token.lexeme;
-  if (type_name == "int") {
+  switch (token.token_type) {
+  case Token::Type::INT:
     return std::make_shared<IntType>();
-  } else if (type_name == "float") {
+  case Token::Type::UINT:
+    return std::make_shared<UintType>();
+  case Token::Type::FLOAT:
     return std::make_shared<FloatType>();
-  } else if (type_name == "bool") {
+  case Token::Type::BOOL:
     return std::make_shared<BoolType>();
-  } else if (type_name == "str") {
+  case Token::Type::STR:
     return std::make_shared<StringType>();
-  } else if (type_name == "void") {
+  case Token::Type::VOID:
     return std::make_shared<VoidType>();
-  } else {
-    // type_name is not primitive
+  default:
+    // token_type is not primitive
     return std::make_shared<ErrorType>();
   }
 }

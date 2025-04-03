@@ -651,7 +651,8 @@ public:
     // TODO: require subscript indices to be of the uint type
     // This would require changing a lot of our tests
     // if (index->get_tag() != TypeTag::UINT) {
-    //   this->user_error_tracker.type_error("expected uint in subscript index",
+    //   this->user_error_tracker.type_error("expected uint in subscript
+    //   index",
     //                                       subscript->subscript_token);
     //   this->stack.push(std::make_shared<ErrorType>());
     //   return;

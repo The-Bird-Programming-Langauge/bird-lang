@@ -42,7 +42,6 @@ struct MemorySegment {
 
 class CodeGen : public Visitor {
   // and, or, and string operations are handled separately
-  // differently
   const std::map<Token::Type,
                  std::map<std::pair<TypeTag, TypeTag>, TaggedBinaryOpFn>>
       binary_operations = {
