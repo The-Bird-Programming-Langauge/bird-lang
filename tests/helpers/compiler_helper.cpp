@@ -19,6 +19,9 @@ bool BirdTest::compile(const TestOptions options) {
     }
   }
 
+  NameDecorator name_decorator;
+  name_decorator.decorate(&ast);
+
   if (options.semantic_analyze) {
     SemanticAnalyzer analyze_semantics(error_tracker);
     analyze_semantics.analyze_semantics(&ast);
