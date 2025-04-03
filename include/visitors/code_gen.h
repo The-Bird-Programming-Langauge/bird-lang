@@ -214,6 +214,8 @@ class CodeGen : public Visitor {
   void visit_continue_stmt(ContinueStmt *continue_stmt);
   void visit_type_stmt(TypeStmt *type_stmt);
   void visit_subscript(Subscript *subscript);
+  void visit_namespace(NamespaceStmt *_namespace);
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution);
 
   /*
   This function is called when a struct declaration is encountered.

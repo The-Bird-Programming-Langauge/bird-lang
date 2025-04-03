@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../ast_node/expr/method_call.h"
 #include "../bird_type.h"
 #include "../core_call_table.h"
 #include "../exceptions/bird_exception.h"
@@ -16,7 +17,6 @@
 #include "../stack.h"
 #include "../sym_table.h"
 #include "../type_converter.h"
-#include "ast_node/expr/method_call.h"
 #include "hoist_visitor.h"
 
 /*
@@ -1059,5 +1059,15 @@ public:
                                   new_params);
 
     this->stack.push(method->ret);
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    scope_resolution->identifier->accept(this);
   }
 };

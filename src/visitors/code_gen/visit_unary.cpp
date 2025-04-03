@@ -26,7 +26,7 @@ void CodeGen::visit_unary(Unary *unary) {
     if (expr_type == BinaryenTypeFloat64()) {
       this->stack.push(
           TaggedExpression(BinaryenUnary(mod, BinaryenNegFloat64(), expr.value),
-                           std::shared_ptr<BirdType>(new BoolType())));
+                           std::shared_ptr<BirdType>(new FloatType())));
     } else if (expr_type == BinaryenTypeInt32()) {
       BinaryenExpressionRef zero = BinaryenConst(mod, BinaryenLiteralInt32(0));
 
