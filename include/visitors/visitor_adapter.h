@@ -33,4 +33,5 @@ public:
   void visit_match_expr(MatchExpr *) override {}
   void visit_method(Method *) override {}
   void visit_method_call(MethodCall *) override {}
+  void visit_for_in_stmt(ForInStmt *) override {}
 };

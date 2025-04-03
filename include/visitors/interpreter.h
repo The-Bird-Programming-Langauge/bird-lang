@@ -45,6 +45,8 @@ public:
   }
 
   void evaluate(std::vector<std::unique_ptr<Stmt>> *stmts) {
+    std::cout << "[interpreter] begin" << std::endl;
+
     HoistVisitor hoist_visitor(this->struct_names);
     hoist_visitor.hoist(stmts);
 
@@ -55,6 +57,8 @@ public:
     while (!this->stack.empty()) {
       this->stack.pop();
     }
+
+    std::cout << "[interpreter] end" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -662,4 +666,6 @@ public:
     this->v_table[struct_val.name][method_call->identifier.lexeme].call(this,
                                                                         args);
   }
+
+  void visit_for_in_stmt(ForInStmt *for_in) {}
 };

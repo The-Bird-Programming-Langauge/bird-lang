@@ -31,6 +31,7 @@ class IndexAssign;
 class MatchExpr;
 class Method;
 class MethodCall;
+class ForInStmt;
 
 /*
  * the interface for all visitors,
@@ -69,4 +70,5 @@ public:
   virtual void visit_match_expr(MatchExpr *) = 0;
   virtual void visit_method(Method *) = 0;
   virtual void visit_method_call(MethodCall *) = 0;
+  virtual void visit_for_in_stmt(ForInStmt *) = 0;
 };

@@ -13,11 +13,14 @@
 class AstPrinter : public Visitor {
 public:
   void print_ast(std::vector<std::unique_ptr<Stmt>> *stmts) {
+    std::cout << "[ast printer] begin" << std::endl;
 
     for (auto &stmt : *stmts) {
       stmt->accept(this);
       std::cout << std::endl;
     }
+
+    std::cout << "[ast printer] end" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -298,5 +301,12 @@ public:
 
   void visit_method_call(MethodCall *method_call) {
     this->visit_call(method_call);
+  }
+
+  void visit_for_in_stmt(ForInStmt *for_in) {
+    std::cout << "for " << for_in->identifier.lexeme << " in ";
+    for_in->iterable->accept(this);
+    std::cout << " ";
+    for_in->body->accept(this);
   }
 };

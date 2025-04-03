@@ -4,6 +4,7 @@
 #include <fstream>
 
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
+  std::cout << "[code gen] begin" << std::endl;
   this->init_std_lib();
   this->init_array_constructor();
   this->init_ref_constructor();
@@ -114,4 +115,6 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   }
 
   free(result.binary);
+
+  std::cout << "[codegen] end" << std::endl;
 }

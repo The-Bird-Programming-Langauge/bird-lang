@@ -75,6 +75,7 @@ XOR "xor"
 OR "or"
 NOT "not"
 MATCH "match"
+IN "in"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -356,6 +357,12 @@ for_stmt:
             std::move($3), 
             std::move($5), 
             std::move($6)); }
+   | FOR IDENTIFIER IN expr block 
+      { $$ = std::make_unique<ForInStmt>(
+         $1,
+         $2,
+         std::move($4),
+         std::move($5)); }
 
 print_stmt: 
    PRINT arg_list 

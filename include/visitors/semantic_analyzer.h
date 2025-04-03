@@ -42,9 +42,13 @@ public:
   }
 
   void analyze_semantics(std::vector<std::unique_ptr<Stmt>> *stmts) {
+    std::cout << "[semantic analyzer] begin" << std::endl;
+
     for (auto &stmt : *stmts) {
       stmt->accept(this);
     }
+
+    std::cout << "[semantic analyzer] end" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -335,5 +339,19 @@ public:
     for (auto &arg : method_call->args) {
       arg->accept(this);
     }
+  }
+
+  void visit_for_in_stmt(ForInStmt *for_in) {
+    this->loop_depth += 1;
+    this->env.push_env();
+
+    for_in->iterable->accept(this);
+
+    this->env.declare(for_in->identifier.lexeme, SemanticValue(true));
+
+    for_in->body->accept(this);
+
+    this->env.pop_env();
+    this->loop_depth -= 1;
   }
 };

@@ -1,35 +1,4 @@
-
-struct Data {
-    val: int;
-};
-
-fn foobar() -> Data {
-    var y: Data = Data { val = 3 };
-    for var i = 0; i < 1; i += 1 {
-        var x: Data = Data { val = 1 };
-    }
-
-    return y;
+var arr = [ 1, 2, 3 ];
+for x in iter(arr) {
+    print x;
 }
-
-const result = foobar();
-print result.val;
-
-
-
-fn shoebar() -> int[] {
-    var y: int[] = [1,2,3,4];
-    for var i = 0; i < 1; i += 1 {
-        var x: int[] = [5,6,7];
-        y = x;
-    }
-
-    return y;
-}
-
-const arr = shoebar();
-
-for var i = 0; i < length(arr); i += 1 {
-    print arr[i];
-}
-
