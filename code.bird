@@ -2,3 +2,31 @@ var arr = [ 1, 2, 3 ];
 for x in iter(arr) {
     print x;
 }
+
+var s = "hi";
+for x in iter(s) {
+    print x;
+}
+
+for x in iter("bye") {
+    print x;
+}
+
+var str_arr = [ "hello", "goodbye" ];
+for x in iter(str_arr) {
+    print x;
+}
+
+struct Person {
+    name: str;
+    age: int;
+};
+
+var p: Person = Person {
+    name = "luffy",
+    age = 19
+};
+
+for x in iter(p) {
+    print x;
+}

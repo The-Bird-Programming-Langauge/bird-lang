@@ -42,13 +42,9 @@ public:
   }
 
   void analyze_semantics(std::vector<std::unique_ptr<Stmt>> *stmts) {
-    std::cout << "[semantic analyzer] begin" << std::endl;
-
     for (auto &stmt : *stmts) {
       stmt->accept(this);
     }
-
-    std::cout << "[semantic analyzer] end" << std::endl;
   }
 
   void visit_block(Block *block) {

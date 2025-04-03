@@ -137,8 +137,6 @@ public:
       };
 
   void check_types(std::vector<std::unique_ptr<Stmt>> *stmts) {
-    std::cout << "[type checker] begin" << std::endl;
-
     HoistVisitor hoist_visitor(this->struct_names);
     hoist_visitor.hoist(stmts);
     for (auto &stmt : *stmts) {
@@ -148,8 +146,6 @@ public:
     while (!this->stack.empty()) {
       this->stack.pop();
     }
-
-    std::cout << "[type checker] end" << std::endl;
   }
 
   void visit_block(Block *block) {
@@ -705,6 +701,25 @@ public:
       }
 
       this->stack.push(std::make_shared<VoidType>());
+    } else if (function_name == "iter") {
+      call->args[0]->accept(this);
+      auto iter_type = this->stack.pop();
+
+      if (iter_type->get_tag() == TypeTag::ARRAY) {
+        auto array = std::dynamic_pointer_cast<ArrayType>(iter_type);
+        this->stack.push(std::make_shared<IteratorType>(array->element_type));
+      } else if (iter_type->get_tag() == TypeTag::STRING) {
+        this->stack.push(
+            std::make_shared<IteratorType>(std::make_shared<CharType>()));
+      } else if (iter_type->get_tag() == TypeTag::STRUCT) {
+        this->stack.push(
+            std::make_shared<IteratorType>(std::make_shared<Generic>()));
+      } else {
+        this->user_error_tracker.type_error(
+            "expected array, struct or string in iter function",
+            call->identifier);
+        this->stack.push(std::make_shared<ErrorType>());
+      }
     }
   }
 
@@ -1191,13 +1206,13 @@ public:
     auto iterable_type = this->stack.pop();
     if (iterable_type->get_tag() != TypeTag::ITERATOR) {
       this->user_error_tracker.type_error(
-          "expected iterator type in for-in loop, found: " +
+          "expected iterable type in for-in loop, found: " +
               bird_type_to_string(iterable_type),
           for_in->for_token);
       this->env.pop_env();
       return;
     }
-    auto iterator = std::dynamic_pointer_cast<IteratorType>(iterable_type);
+    auto iterator = safe_dynamic_pointer_cast<IteratorType>(iterable_type);
     auto element_type = iterator->element_type;
     this->env.declare(for_in->identifier.lexeme, element_type);
     for_in->body->accept(this);
