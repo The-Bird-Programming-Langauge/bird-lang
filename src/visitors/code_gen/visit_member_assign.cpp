@@ -29,7 +29,8 @@ void CodeGen::visit_member_assign(MemberAssign *member_assign) {
   }
 
   BinaryenExpressionRef get_args[2] = {
-      accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
+      this->deref(accessable.value),
+      BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
 
   auto original_value = BinaryenCall(
       this->mod, get_mem_get_for_type(original_value_type->get_tag()), get_args,

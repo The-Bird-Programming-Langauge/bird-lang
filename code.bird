@@ -1,9 +1,45 @@
 
-const chars: str[] = [];
-const string: str = "hello, world!";
-for var i = 0; i < length(string); i += 1 {
-    push(chars, string[i] as str);
+
+namespace Loop {
+    struct Counter {
+        val: int;
+        fn count_down() {
+            if self.val <= 0 { return; }
+            self.val -= 1;
+            print self.val;
+            // self.count_down();
+        }
+    };
+
+    var c = Counter { val = 3 };
 }
-for var i = 0; i < length(chars); i += 1 {
-    print chars[i];
-}
+
+Loop::c.count_down();
+
+struct Foo {
+    val: int;
+};
+
+const foo = Foo {
+    val = 1
+};
+
+print foo.val;
+foo.val += 1;
+print foo.val;
+
+
+struct Data {
+    val: int[];
+    fn increment() {
+        self.val[0] += 1;
+    }
+};
+
+const bar = Data {
+    val = [1,2,3],
+};
+
+print bar.val[0];
+bar.increment();
+print bar.val[0];

@@ -1,5 +1,6 @@
 
 #pragma once
+#include "../core_call_table.h"
 #include "../stack.h"
 #include "visitor.h"
 #include "visitor_adapter.h"
@@ -9,6 +10,8 @@
 #include <vector>
 
 class NameDecorator : public VisitorAdapter {
+  CoreCallTable core_call_table;
+
   std::unordered_map<std::string, bool> seen;
   std::unordered_map<std::string, std::string> function_names;
   Stack<std::string> ns_stack;
@@ -171,11 +174,13 @@ public:
   }
 
   void visit_call(Call *call) {
-    call->identifier.lexeme = this->function_names[call->identifier.lexeme];
-
     for (auto arg : call->args) {
       arg->accept(this);
     }
+    if (core_call_table.table.contains(call->identifier.lexeme)) {
+      return;
+    }
+    call->identifier.lexeme = this->function_names[call->identifier.lexeme];
   }
 
   void visit_method(Method *method) {
