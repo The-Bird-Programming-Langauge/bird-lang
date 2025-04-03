@@ -344,12 +344,17 @@ const moduleOptions = {
         mem_alloc: (ptr, num_ptrs) => mem.alloc(ptr, num_ptrs),
         gc: () => { mem.mark(); mem.sweep(); },
         register_root: (ptr) => {
+            if (ptr == 0) {
+                return;
+            }
             console.log("registering root", ptr);
-            console.log("DATA:", mem.get(ptr).get_32(0));
             mem.get(ptr).set_root(1)
         },
         unregister_root: (ptr) => {
-            console.log("unregistering root");
+            if (ptr == 0) {
+                return;
+            }
+            console.log("unregistering root", ptr);
             mem.get(ptr).set_root(0)
         }
     }

@@ -32,12 +32,9 @@ void CodeGen::visit_direct_member_access(
     offset += bird_type_byte_size(field.second);
   }
 
-  std::vector<BinaryenExpressionRef> get_operands = {
-      accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
-  auto get_data = BinaryenCall(this->mod, "mem_get_32", get_operands.data(),
-                               get_operands.size(), BinaryenTypeInt32());
   BinaryenExpressionRef args[2] = {
-      get_data, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
+      this->deref(accessable.value),
+      BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
 
   auto func_name =
       member_type->get_tag() == TypeTag::FLOAT ? "mem_get_64" : "mem_get_32";

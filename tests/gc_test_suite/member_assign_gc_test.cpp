@@ -32,7 +32,7 @@ TEST(GcTest, MemberAssignString) {
             struct String {\
                 string: str;\
             };\
-            var string: String = String { str = \"foo\" };\
+            var string: String = String { string = \"foo\" };\
             {\
                 string.string = \"bar\";\
             }\
@@ -54,13 +54,13 @@ TEST(GcTest, MemberAssignStruct) {
                 next: Node;\
                 val: int;\
             };\
-            var node: Node = Node { val = 1 };\
+            var node: Node = Node { val = 1, next = Node {val = 2} };\
             {\
                 node.next = Node {val = 2};\
             }\
             gc();\
             const result = node.next;\
-            print result;";
+            print result.val;";
 
   options.after_compile = [&](auto output, auto &code_gen) {
     ASSERT_EQ(output, "2\n\n");

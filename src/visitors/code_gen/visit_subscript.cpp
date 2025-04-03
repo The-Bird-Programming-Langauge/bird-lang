@@ -6,11 +6,7 @@ void CodeGen::visit_subscript(Subscript *subscript) {
   subscript->subscriptable->accept(this);
   auto tagged_ref = this->stack.pop();
   auto ref = tagged_ref.value;
-  BinaryenExpressionRef mem_get_array_args[2]{
-      ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
-  auto array = BinaryenCall(this->mod, "mem_get_32", mem_get_array_args, 2,
-                            BinaryenTypeInt32());
-  auto subscriptable = TaggedExpression(array, tagged_ref.type);
+  auto subscriptable = TaggedExpression(this->deref(ref), tagged_ref.type);
 
   subscript->index->accept(this);
   auto index = this->stack.pop();

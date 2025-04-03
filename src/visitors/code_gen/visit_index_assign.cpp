@@ -1,4 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 #include <memory>
 
 void CodeGen::visit_index_assign(IndexAssign *index_assign) {
@@ -75,21 +76,23 @@ void CodeGen::visit_index_assign(IndexAssign *index_assign) {
     break;
   }
 
+  auto array = this->deref(lhs.value);
   if (type_is_on_heap(rhs_val.type->get_tag())) {
-    std::vector<BinaryenExpressionRef> get_operands = {
-        result, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
-    auto get_data = BinaryenCall(this->mod, "mem_get_32", get_operands.data(),
-                                 get_operands.size(), BinaryenTypeInt32());
-    std::vector<BinaryenExpressionRef> set_operands = {
-        lhs_val.value, mem_offset_literal, get_data};
-    auto set_data = BinaryenCall(this->mod, "mem_set_32", set_operands.data(),
-                                 set_operands.size(), BinaryenTypeNone());
+    auto new_ref = this->deref(result);
+    BinaryenExpressionRef args[2] = {this->get_array_data(array),
+                                     mem_offset_literal};
+    auto index_ref =
+        BinaryenCall(this->mod, "mem_get_32", args, 2, BinaryenTypeInt32());
 
-    this->stack.push(TaggedExpression(set_data, rhs_val.type));
+    BinaryenExpressionRef set_args[3] = {
+        index_ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0)), new_ref};
+    auto replace_ref =
+        BinaryenCall(this->mod, "mem_set_32", set_args, 3, BinaryenTypeNone());
+
+    this->stack.push(TaggedExpression(replace_ref, rhs_val.type));
     return;
   }
 
-  auto array = this->deref(lhs.value);
   BinaryenExpressionRef args[3] = {this->get_array_data(array),
                                    mem_offset_literal, result};
 

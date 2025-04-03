@@ -1,9 +1,12 @@
-fn init_array() -> str[] {
-    var second: str = ", world!";
-    var data: str[] = ["hello", second];
-    return data;
+struct Node {
+    next: Node;
+    val: int;
+};
+
+var node: Node = Node { val = 1, next = Node {val = 1} };
+{
+    node.next = Node {val = 2};
 }
-const result = init_array();
-gc();
-print result[0] + result[1];
-print result[1];
+
+const result = node.next;
+print result.val;

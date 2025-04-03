@@ -18,10 +18,7 @@ void CodeGen::visit_assign_expr(AssignExpr *assign_expr) {
   }
 
   if (type_is_on_heap(result.type->get_tag())) {
-    std::vector<BinaryenExpressionRef> get_operands = {
-        result.value, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
-    auto get_data = BinaryenCall(this->mod, "mem_get_32", get_operands.data(),
-                                 get_operands.size(), BinaryenTypeInt32());
+    auto get_data = this->deref(result.value);
     std::vector<BinaryenExpressionRef> set_operands = {
         lhs_val.value, BinaryenConst(this->mod, BinaryenLiteralInt32(0)),
         get_data};
