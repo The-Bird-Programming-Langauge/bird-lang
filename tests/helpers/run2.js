@@ -423,13 +423,16 @@ function push_64(arr_ptr, value) {
 }
 
 function strcat(left, right) {
-    const left_array = mem.get(left);
-    const right_array = mem.get(right);
+    const left_ref = mem.get(left);
+    const right_ref = mem.get(right);
+    const left_array = mem.get(left_ref.get_32(0));
+    const right_array = mem.get(right_ref.get_32(0));
     const left_data = mem.get(left_array.get_32(0));
     const left_length = left_array.get_32(4);
     const right_data = mem.get(right_array.get_32(0));
     const right_length = right_array.get_32(4);
 
+    const new_ref = mem.get(mem.alloc(4, 1));
     const new_array = mem.get(mem.alloc(8, 1));
     const data = mem.get(mem.alloc(left_length * 4 + right_length * 4));
 
@@ -447,12 +450,15 @@ function strcat(left, right) {
         data.set_32((i + left_length) * 4, char);
     }
 
-    return new_array.get_address();
+    new_ref.set_32(0, new_array.get_address());
+    return new_ref.get_address();
 }
 
 function strcmp(left, right) {
-    const left_array = mem.get(left);
-    const right_array = mem.get(right);
+    const left_ref = mem.get(left);
+    const right_ref = mem.get(right);
+    const left_array = mem.get(left_ref.get_32(0));
+    const right_array = mem.get(right_ref.get_32(0));
     const left_data = mem.get(left_array.get_32(0));
     const left_length = left_array.get_32(4);
     const right_data = mem.get(right_array.get_32(0));
