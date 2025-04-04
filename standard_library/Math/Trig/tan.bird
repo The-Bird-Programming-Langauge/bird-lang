@@ -1,4 +1,3 @@
-fn tan(a: float, b: float) -> float
-{
+fn tan(a: float, b: float) -> float {
   return a / b;
 }

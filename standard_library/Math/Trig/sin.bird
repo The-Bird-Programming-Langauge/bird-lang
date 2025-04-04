@@ -1,4 +1,3 @@
-fn sin(a: float, c: float) -> float
-{
+fn sin(a: float, c: float) -> float {
   return a / c;
 }

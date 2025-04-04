@@ -1,9 +1,7 @@
 print "TODO: Fix arctan.";
 
-fn arctan(x: float) -> float
-{
-  if x > 1.0
-  {
+fn arctan(x: float) -> float {
+  if x > 1.0 {
     return 3.14159 / 2.0 - arctan(1.0 / x);
   }
 
@@ -12,8 +10,7 @@ fn arctan(x: float) -> float
   var n: int = 1;
   var sign: float = -1.0;
 
-  while n < 10
-  {
+  while n < 10 {
     term *= x * x;
     sum += (sign * term) / (2 * n + 1) as float;
     sign *= -1.0;

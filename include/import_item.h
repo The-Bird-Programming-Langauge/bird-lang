@@ -9,21 +9,18 @@
 #include <unordered_map>
 #include <tuple>
 
-class ImportItem
-{
+class ImportItem {
 public:
   virtual ~ImportItem() {}
 };
 
-class ImportNamespace : public ImportItem
-{
+class ImportNamespace : public ImportItem {
 public:
   std::unordered_map<std::string, ImportItem*> import_items;
 
   ImportNamespace() = default;
 
-  ImportNamespace(std::unordered_map<std::string, ImportItem*> import_items)
-  {
+  ImportNamespace(std::unordered_map<std::string, ImportItem*> import_items) {
     this->import_items = import_items;
   }
 };

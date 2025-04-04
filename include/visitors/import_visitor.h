@@ -5,8 +5,7 @@
 /*
  * Visitor that semantically analyzes import statements and adds their import items to the AST.
  */
-class ImportVisitor : public Visitor
-{
+class ImportVisitor : public Visitor {
 public:
   ImportEnvironment standard_library;
   std::set<std::string> import_identifiers;
@@ -14,70 +13,45 @@ public:
   std::vector<std::unique_ptr<Stmt>> *stmts;
   int stmt_idx;
 
-  ImportVisitor(UserErrorTracker &user_error_tracker) : user_error_tracker(user_error_tracker)
-  {
+  ImportVisitor(UserErrorTracker &user_error_tracker) : user_error_tracker(user_error_tracker) {
     this->init_standard_library();
   }
 
-  void init_standard_library()
-  {
-    standard_library.add_item(
-      ImportPath("Math::Trig::arccos"),
-      new ImportFunction());
-    standard_library.add_item(
-      ImportPath("Math::Trig::arcsin"),
-      new ImportFunction());
-    standard_library.add_item(
-      ImportPath("Math::Trig::arctan"),
-      new ImportFunction());
-    standard_library.add_item(
-      ImportPath("Math::Trig::cos"),
-      new ImportFunction());
-    standard_library.add_item(
-      ImportPath("Math::Trig::sin"),
-      new ImportFunction());
-    standard_library.add_item(
-      ImportPath("Math::Trig::tan"),
-      new ImportFunction());
-    standard_library.add_item(
-      ImportPath("Math::Trig::to_degrees"),
-      new ImportFunction());
-    standard_library.add_item(
-      ImportPath("Math::Trig::Triangle"),
-      new ImportStruct());
+  void init_standard_library() {
+    standard_library.add_item(ImportPath("Math::Trig::arccos"));
+    standard_library.add_item(ImportPath("Math::Trig::arcsin"));
+    standard_library.add_item(ImportPath("Math::Trig::arctan"));
+    standard_library.add_item(ImportPath("Math::Trig::cos"));
+    standard_library.add_item(ImportPath("Math::Trig::sin"));
+    standard_library.add_item(ImportPath("Math::Trig::tan"));
+    standard_library.add_item(ImportPath("Math::Trig::to_degrees"));
+    standard_library.add_item(ImportPath("Math::Trig::Triangle"));
   }
 
-  void import(std::vector<std::unique_ptr<Stmt>> *stmts)
-  {
+  void import(std::vector<std::unique_ptr<Stmt>> *stmts) {
     this->stmts = stmts;
     this->stmt_idx = 0;
     
-    while (this->stmt_idx < stmts->size())
-    {
+    while (this->stmt_idx < stmts->size()) {
       (*stmts)[this->stmt_idx]->accept(this);
       this->stmt_idx += 1;
     }
   }
 
-  void visit_import_stmt(ImportStmt *import_stmt)
-  {
+  void visit_import_stmt(ImportStmt *import_stmt) {
     // Iterate over all of the individual import paths in the import statement.
-    for (int i = 0; i < import_stmt->import_paths.size(); i += 1)
-    {
+    for (int i = 0; i < import_stmt->import_paths.size(); i += 1) {
       // Perform semantic analysis to verify that the import path is a valid item in the standard library.
-      if (!this->standard_library.contains_item(import_stmt->import_paths[i]))
-      {
+      if (!this->standard_library.contains_item(import_stmt->import_paths[i])) {
         this->user_error_tracker.import_error("Import item with path '" + import_stmt->import_paths[i].string_path + "' does not exist in the standard library.", import_stmt->import_paths[i].token_path.back());
         continue;
       }
 
       // Iterate over all of the import items associated with each import path.
       auto [import_paths, import_items] = this->standard_library.get_items_recursively(import_stmt->import_paths[i]);
-      for (int j = 0; j < import_paths.size(); j += 1)
-      {
+      for (int j = 0; j < import_paths.size(); j += 1) {
         // Error if the import item was already imported previously.
-        if (this->import_identifiers.find(import_paths[j].string_path) != this->import_identifiers.end())
-        {
+        if (this->import_identifiers.find(import_paths[j].string_path) != this->import_identifiers.end()) {
           this->user_error_tracker.import_error("Import item with path '" + import_paths[j].string_path + "' already exists in the global namespace.", import_stmt->import_paths[i].token_path.back());
           continue;
         } else {
