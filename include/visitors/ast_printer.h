@@ -311,4 +311,18 @@ public:
   void visit_method_call(MethodCall *method_call) {
     this->visit_call(method_call);
   }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    std::cout << "namespace " << _namespace->identifier.lexeme << " { ";
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+      std::cout << " ";
+    }
+    std::cout << " }";
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    std::cout << scope_resolution->_namespace.lexeme << "::";
+    scope_resolution->identifier->accept(this);
+  }
 };

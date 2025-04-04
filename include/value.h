@@ -306,6 +306,11 @@ public:
       return Value((int)arr->size());
     }
 
+    if (is_type<std::string>(*this)) {
+      auto string = as_type<std::string>(*this);
+      return Value((int)string.size());
+    }
+
     throw BirdException("No length function for this argument");
   }
 

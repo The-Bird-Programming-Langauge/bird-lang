@@ -8,6 +8,7 @@
 #include "include/visitors/code_gen.h"
 #include "include/visitors/interpreter.h"
 #include "include/visitors/import_visitor.h"
+#include "include/visitors/name_decorator.h"
 #include "include/visitors/semantic_analyzer.h"
 #include "include/visitors/type_checker.h"
 
@@ -42,6 +43,8 @@ void repl() {
   ImportVisitor import_visitor(error_tracker);
   SemanticAnalyzer semantic_analyzer(error_tracker);
   TypeChecker type_checker(error_tracker);
+  NameDecorator name_decorator;
+
   while (true) {
     std::cout << ">";
     std::getline(std::cin, code);
@@ -64,6 +67,8 @@ void repl() {
     if (error_tracker.has_errors()) {
       error_tracker.print_errors_and_exit();
     }
+
+    name_decorator.decorate(&ast);
 
     semantic_analyzer.analyze_semantics(&ast);
     if (error_tracker.has_errors()) {
@@ -98,6 +103,8 @@ void compile(std::string filename) {
   AstPrinter printer;
   printer.print_ast(&ast);
 #endif
+  NameDecorator name_decorator;
+  name_decorator.decorate(&ast);
 
   ImportVisitor import_visitor(error_tracker);
   import_visitor.import(&ast);
@@ -146,6 +153,9 @@ void interpret(std::string filename) {
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
   }
+
+  NameDecorator name_decorator;
+  name_decorator.decorate(&ast);
 
   SemanticAnalyzer semantic_analyzer(error_tracker);
   semantic_analyzer.analyze_semantics(&ast);

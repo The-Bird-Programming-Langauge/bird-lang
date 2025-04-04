@@ -61,6 +61,10 @@ std::string bird_type_type_to_string(TypeTag type) {
     return "function";
   case TypeTag::ERROR:
     return "error";
+  case TypeTag::CHAR:
+    return "char";
+  case TypeTag::GENERIC:
+    return "generic";
   }
 }
 

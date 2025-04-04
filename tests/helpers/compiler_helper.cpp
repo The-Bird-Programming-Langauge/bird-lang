@@ -1,4 +1,5 @@
 #include "compile_helper.hpp"
+#include <cstdlib>
 #include <fstream>
 
 bool BirdTest::compile(const TestOptions options) {
@@ -17,6 +18,9 @@ bool BirdTest::compile(const TestOptions options) {
       options.after_parse.value()(error_tracker, parser, ast);
     }
   }
+
+  NameDecorator name_decorator;
+  name_decorator.decorate(&ast);
 
   if (options.semantic_analyze) {
     SemanticAnalyzer analyze_semantics(error_tracker);

@@ -29,12 +29,14 @@ public:
     MATCH,
     IMPORT,
     FROM,
+    NAMESPACE,
 
     // types
     INT,
     FLOAT,
     BOOL,
     STR,
+    CHAR,
     VOID,
 
     // single character
@@ -68,10 +70,10 @@ public:
     LESS_EQUAL,
     MINUS_EQUAL,
     PERCENT_EQUAL,
-    COLON_COLON,
     PLUS_EQUAL,
     SLASH_EQUAL,
     STAR_EQUAL,
+    COLON_COLON,
 
     // values
     TRUE,
@@ -81,6 +83,7 @@ public:
     INT_LITERAL,
     NUMBER,
     STR_LITERAL,
+    CHAR_LITERAL,
 
     // end
     END

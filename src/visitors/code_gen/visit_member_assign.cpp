@@ -1,5 +1,5 @@
 #include "../../../include/visitors/code_gen.h"
-#include "exceptions/bird_exception.h"
+#include <binaryen-c.h>
 #include <memory>
 
 void CodeGen::visit_member_assign(MemberAssign *member_assign) {
@@ -29,7 +29,8 @@ void CodeGen::visit_member_assign(MemberAssign *member_assign) {
   }
 
   BinaryenExpressionRef get_args[2] = {
-      accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
+      this->deref(accessable.value),
+      BinaryenConst(this->mod, BinaryenLiteralInt32(offset))};
 
   auto original_value = BinaryenCall(
       this->mod, get_mem_get_for_type(original_value_type->get_tag()), get_args,
@@ -45,10 +46,26 @@ void CodeGen::visit_member_assign(MemberAssign *member_assign) {
                                             original_value, value.value),
                              binary_op_fn.type);
   }
+  auto offset_expr = BinaryenConst(this->mod, BinaryenLiteralInt32(offset));
+  if (type_is_on_heap(value.type->get_tag())) {
+    auto new_ref = this->deref(value.value);
+    BinaryenExpressionRef args[2] = {this->deref(accessable.value),
+                                     offset_expr};
+    auto index_ref =
+        BinaryenCall(this->mod, "mem_get_32", args, 2, BinaryenTypeInt32());
 
-  BinaryenExpressionRef args[3] = {
-      accessable.value, BinaryenConst(this->mod, BinaryenLiteralInt32(offset)),
-      value.value};
+    BinaryenExpressionRef set_args[3] = {
+        index_ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0)), new_ref};
+    auto replace_ref =
+        BinaryenCall(this->mod, "mem_set_32", set_args, 3, BinaryenTypeNone());
+
+    this->stack.push(
+        TaggedExpression(replace_ref, std::make_shared<VoidType>()));
+    return;
+  }
+
+  BinaryenExpressionRef args[3] = {this->deref(accessable.value), offset_expr,
+                                   value.value};
 
   this->stack.push(TaggedExpression(
       BinaryenCall(this->mod, get_mem_set_for_type(value.type->get_tag()), args,

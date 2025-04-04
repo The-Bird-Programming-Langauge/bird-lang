@@ -10,6 +10,8 @@ static const std::map<Token::Type, std::string> token_strings = {
     {Token::Type::TRUE, "TRUE"},
     {Token::Type::FALSE, "FALSE"},
     {Token::Type::BREAK, "BREAK"},
+    {Token::Type::CHAR, "CHAR"},
+    {Token::Type::CHAR_LITERAL, "CHAR_LITERAL"},
     {Token::Type::COLON, "COLON"},
     {Token::Type::COMMA, "COMMA"},
     {Token::Type::CONST, "CONST"},

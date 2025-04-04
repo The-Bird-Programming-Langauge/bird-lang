@@ -27,7 +27,6 @@ class SemanticAnalyzer : public Visitor {
 public:
   CoreCallTable core_call_table;
   Environment<SemanticValue> env;
-  Environment<SemanticCallable> call_table;
   Environment<SemanticType> type_table;
   UserErrorTracker &user_error_tracker;
   int loop_depth;
@@ -37,7 +36,6 @@ public:
   SemanticAnalyzer(UserErrorTracker &user_error_tracker)
       : user_error_tracker(user_error_tracker) {
     this->env.push_env();
-    this->call_table.push_env();
     this->type_table.push_env();
     this->loop_depth = 0;
     this->function_depth = 0;
@@ -73,8 +71,7 @@ public:
   }
 
   void visit_assign_expr(AssignExpr *assign_expr) {
-    if (!this->env.contains(assign_expr->identifier.lexeme) &&
-        !this->call_table.contains(assign_expr->identifier.lexeme)) {
+    if (!this->env.contains(assign_expr->identifier.lexeme)) {
       this->user_error_tracker.semantic_error(
           "Variable '" + assign_expr->identifier.lexeme + "' does not exist.",
           assign_expr->identifier);
@@ -203,7 +200,7 @@ public:
       return;
     }
 
-    this->call_table.declare(func->identifier.lexeme, SemanticCallable());
+    this->env.declare(func->identifier.lexeme, SemanticValue());
     this->visit_func_helper(func);
   }
 
@@ -217,28 +214,14 @@ public:
   }
 
   void visit_call(Call *call) {
-    // if (!core_call_table.table.contains(call->identifier.lexeme) &&
-    //     !this->call_table.contains(call->identifier.lexeme)) {
-    //   this->user_error_tracker.semantic_error("Function call identifier '" +
-    //                                               call->identifier.lexeme +
-    //                                               "' is not declared.",
-    //                                           call->identifier);
-    //   return;
-    // }
-
-    // auto function = core_call_table.table.contains(call->identifier.lexeme)
-    //                     ? SemanticCallable(core_call_table.table
-    //                                            .get(call->identifier.lexeme)
-    //                                            ->params.size())
-    //                     : this->call_table.get(call->identifier.lexeme);
-
-    // if (function.param_count != call->args.size()) {
-    //   this->user_error_tracker.semantic_error(
-    //       "Function call identifer '" + call->identifier.lexeme +
-    //           "' does not use the correct number of arguments.",
-    //       call->identifier);
-    //   return;
-    // }
+    if (!core_call_table.table.contains(call->identifier.lexeme) &&
+        !this->env.contains(call->identifier.lexeme)) {
+      this->user_error_tracker.semantic_error("Function call identifier '" +
+                                                  call->identifier.lexeme +
+                                                  "' is not declared.",
+                                              call->identifier);
+      return;
+    }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
@@ -286,7 +269,6 @@ public:
 
   bool identifer_in_any_environment(std::string identifer) {
     return this->env.current_contains(identifer) ||
-           this->call_table.current_contains(identifer) ||
            this->type_table.current_contains(identifer);
   }
 
@@ -355,5 +337,15 @@ public:
     for (auto &arg : method_call->args) {
       arg->accept(this);
     }
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    scope_resolution->identifier->accept(this);
   }
 };

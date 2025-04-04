@@ -365,6 +365,9 @@ public:
     case Token::Type::INT_LITERAL:
       this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
       break;
+    case Token::Type::CHAR_LITERAL:
+      this->stack.push(Value(variant(primary->value.lexeme)));
+      break;
     case Token::Type::IDENTIFIER:
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
@@ -427,6 +430,14 @@ public:
       call->args[0]->accept(this);
       auto result = std::move(this->stack.pop());
       stack.push(result.length());
+    }
+    if (call->identifier.lexeme == "push") {
+      call->args[0]->accept(this);
+      auto result = std::move(this->stack.pop());
+      call->args[1]->accept(this);
+      auto new_value = std::move(this->stack.pop());
+      auto array = as_type<std::shared_ptr<std::vector<Value>>>(result);
+      array->push_back(new_value);
     }
   }
 
@@ -572,6 +583,11 @@ public:
         this->stack.push(Value((double)as_type<int>(expr)));
         return;
       }
+
+      if (token.lexeme == "int" && is_type<std::string>(expr)) {
+        this->stack.push(Value((int)as_type<std::string>(expr)[0]));
+        return;
+      }
     }
 
     this->stack.push(expr);
@@ -646,5 +662,15 @@ public:
 
     this->v_table[struct_val.name][method_call->identifier.lexeme].call(this,
                                                                         args);
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+    }
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    scope_resolution->identifier->accept(this);
   }
 };

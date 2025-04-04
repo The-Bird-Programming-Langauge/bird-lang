@@ -13,4 +13,6 @@ template <typename T> struct Stack {
   }
 
   bool empty() { return this->stack.empty(); }
+
+  T peek() const { return this->stack.back(); }
 };

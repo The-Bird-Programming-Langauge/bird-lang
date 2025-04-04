@@ -1,5 +1,4 @@
 #include "../../../include/visitors/code_gen.h"
-#include "bird_type.h"
 #include <algorithm>
 #include <binaryen-c.h>
 

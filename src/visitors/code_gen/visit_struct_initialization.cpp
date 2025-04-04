@@ -29,15 +29,35 @@ void CodeGen::visit_struct_initialization(
       auto default_value =
           field.second->get_tag() == TypeTag::FLOAT
               ? BinaryenConst(this->mod, BinaryenLiteralFloat64(0.0))
+          : field.second->get_tag() == TypeTag::STRING
+              ? this->generate_string_from_string("").value
               : BinaryenConst(this->mod, BinaryenLiteralInt32(0));
       args.push_back(default_value);
     }
   }
 
-  this->stack.push(TaggedExpression(
+  auto call =
       BinaryenCall(this->mod, struct_constructors[struct_type->name].c_str(),
-                   args.data(), args.size(), BinaryenTypeInt32()),
-      struct_type));
+                   args.data(), args.size(), BinaryenTypeInt32());
+  auto create_ref = BinaryenCall(this->mod, struct_constructors["0ref"].c_str(),
+                                 &call, 1, BinaryenTypeInt32());
+  auto &locals = this->function_locals[this->current_function_name];
+  locals.push_back(BinaryenTypeInt32());
+
+  auto identifier = std::to_string(locals.size() - 1) + "temp";
+  this->environment.declare(identifier,
+                            TaggedIndex(locals.size() - 1, struct_type));
+
+  auto set_ref = this->binaryen_set(identifier, create_ref);
+  auto block = BinaryenBlock(this->mod, nullptr, &set_ref.value, 1,
+                             bird_type_to_binaryen_type(type));
+  auto get_ref = this->binaryen_get(identifier);
+  auto register_root = BinaryenCall(this->mod, "register_root", &get_ref.value,
+                                    1, BinaryenTypeNone());
+  BinaryenBlockInsertChildAt(block, 1, register_root);
+  BinaryenBlockInsertChildAt(block, 1, this->binaryen_get(identifier).value);
+
+  this->stack.push(TaggedExpression(block, type));
 }
 
 void CodeGen::create_struct_constructor(
@@ -91,7 +111,6 @@ void CodeGen::create_struct_constructor(
   constructor_body.push_back(
       BinaryenReturn(this->mod, BinaryenLocalGet(this->mod, param_types.size(),
                                                  BinaryenTypeInt32())));
-
   auto constructor_var_types = BinaryenTypeInt32();
   BinaryenAddFunction(
       this->mod, struct_type->name.c_str(),

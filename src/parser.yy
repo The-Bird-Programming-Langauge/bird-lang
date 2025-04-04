@@ -48,12 +48,14 @@ IDENTIFIER _("identifier")
 INT_LITERAL _("int literal")
 FLOAT_LITERAL _("float literal")
 STR_LITERAL _("string literal")
+CHAR_LITERAL _("char literal")
 TRUE "true"
 FALSE "false"
 INT "int"
 FLOAT "float"
 BOOL "bool"
 STR "str"
+CHAR "char"
 VOID "void"
 IF "if"
 ELSE "else"
@@ -76,6 +78,7 @@ NOT "not"
 MATCH "match"
 IMPORT "import"
 FROM "from"
+NAMESPACE "namespace"
 
 EQUAL "="
 PLUS_EQUAL "+="
@@ -89,13 +92,13 @@ GREATER ">"
 GREATER_EQUAL ">="
 LESS "<"
 LESS_EQUAL "<="
+COLON_COLON "::"
 MINUS "-"
 PERCENT "%"
 PLUS "+"
 SLASH "/"
 STAR "*"
 QUESTION "?"
-COLON_COLON "::"
 SEMICOLON ";"
 COMMA ","
 RBRACE "}"
@@ -128,6 +131,8 @@ expr_stmt
 type_stmt
 struct_decl
 import_stmt
+namespace_stmt
+namespace_declaration_stmt
 
 %type <std::unique_ptr<Expr>> 
 expr
@@ -151,6 +156,7 @@ and_expr
 xor_expr
 or_expr
 match_else_arm
+scope_resolution
 
 %type <std::unique_ptr<Subscript>>
 subscript_expr
@@ -185,6 +191,8 @@ maybe_expr
 %type <std::vector<std::unique_ptr<Stmt>>>
 maybe_top_level_stmts
 top_level_stmts
+namespace_declaration_stmts
+maybe_namespace_stmts
 maybe_stmts
 stmts
 
@@ -259,6 +267,8 @@ import_path
    RBRACKET 
 %left MATCH_EXPR
    MATCH
+%left SCOPE_RESOLUTION_EXPR
+   COLON_COLON
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -298,10 +308,37 @@ stmt:
    | for_stmt { $$ = std::move($1); }
    | return_stmt SEMICOLON { $$ = std::move($1); }
    | break_stmt SEMICOLON { $$ = std::move($1); }
+   | namespace_stmt { $$ = std::move($1); }
    | continue_stmt SEMICOLON { $$ = std::move($1); }
    | expr_stmt SEMICOLON { $$ = std::move($1); }
    | type_stmt SEMICOLON { $$ = std::move($1); }
    | import_stmt { $$ = std::move($1); }
+
+maybe_namespace_stmts:
+   %empty { $$ = std::vector<std::unique_ptr<Stmt>>(); }
+   | namespace_declaration_stmts { $$ = std::move($1); }
+
+namespace_declaration_stmts:
+   namespace_declaration_stmt 
+      { $$ = std::vector<std::unique_ptr<Stmt>>(); $$.push_back(std::move($1)); }
+   | namespace_declaration_stmts namespace_declaration_stmt 
+      { $1.push_back(std::move($2)); $$ = std::move($1); }
+
+namespace_declaration_stmt:
+   namespace_stmt { $$ = std::move($1); }
+   | decl_stmt SEMICOLON { $$ = std::move($1); }
+   | const_stmt SEMICOLON { $$ = std::move($1); }
+   | struct_decl SEMICOLON { $$ = std::move($1); }
+   | type_stmt SEMICOLON { $$ = std::move($1); }
+   | func { $$ = std::move($1); }
+
+namespace_stmt:
+   NAMESPACE IDENTIFIER LBRACE maybe_namespace_stmts RBRACE
+      { $$ = std::make_unique<NamespaceStmt>($2, std::move($4)); }
+
+scope_resolution:
+    IDENTIFIER COLON_COLON expr %prec SCOPE_RESOLUTION_EXPR
+    { $$ = std::make_unique<ScopeResolutionExpr>($1, std::move($3)); }
 
 struct_decl:
    STRUCT IDENTIFIER LBRACE maybe_member_decls RBRACE 
@@ -493,6 +530,7 @@ expr:
    | struct_initialization { $$ = std::move($1); }
    | array_initialization { $$ = std::move($1); }
    | match { $$ = std::move($1); }
+   | scope_resolution { $$ = std::move($1); }
    | primary { $$ = std::make_unique<Primary>($1); }
    | grouping { $$ = std::move($1); }
 
@@ -623,6 +661,7 @@ primary:
    | TRUE
    | FALSE
    | STR_LITERAL
+   | CHAR_LITERAL
 
 grouping: 
    LPAREN expr RPAREN 
@@ -661,11 +700,20 @@ PREFIX_UNARY_OP:
 
 type_identifier:
    IDENTIFIER { $$ = std::make_shared<ParseType::UserDefined>($1); }
+   | type_identifier COLON_COLON IDENTIFIER { 
+       $$ = std::make_shared<ParseType::UserDefined>(
+           Token(Token::Type::IDENTIFIER,
+                 $1->get_token().lexeme + "::" + $3.lexeme, 
+                 $3.line_num, 
+                 $3.char_num)
+       ); 
+   }
    | INT { $$ = std::make_shared<ParseType::Primitive>($1); }
    | FLOAT { $$ = std::make_shared<ParseType::Primitive>($1); }
    | BOOL { $$ = std::make_shared<ParseType::Primitive>($1); }
    | STR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | VOID { $$ = std::make_shared<ParseType::Primitive>($1); }
+   | CHAR { $$ = std::make_shared<ParseType::Primitive>($1); }
    | type_identifier LBRACKET RBRACKET { $$ = std::make_shared<ParseType::Array>($1); }
 
 %%

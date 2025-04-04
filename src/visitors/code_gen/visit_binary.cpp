@@ -56,7 +56,7 @@ void CodeGen::visit_binary_normal(Token::Type op, TaggedExpression left,
                                   TaggedExpression right) {
   if (right.type->get_tag() == TypeTag::STRING &&
       left.type->get_tag() == TypeTag::STRING) {
-    this->handle_binary_string_operations(op, right, left);
+    this->handle_binary_string_operations(op, left, right);
     return;
   }
 
