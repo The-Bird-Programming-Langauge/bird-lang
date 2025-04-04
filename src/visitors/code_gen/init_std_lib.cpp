@@ -55,7 +55,13 @@ void CodeGen::init_std_lib() {
   BinaryenAddFunctionImport(this->mod, "gc", "env", "gc", BinaryenTypeNone(),
                             BinaryenTypeNone());
 
+  BinaryenAddFunctionImport(this->mod, "str_to_array", "env", "str_to_array",
+                            BinaryenTypeInt32(), BinaryenTypeInt32());
+
   generate_array_length_fn();
+
+  generate_iter_fn();
+
   BinaryenAddFunctionImport(this->mod, "strcmp", "env", "strcmp", args_type,
                             BinaryenTypeInt32());
 

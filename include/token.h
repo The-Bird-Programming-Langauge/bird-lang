@@ -27,6 +27,7 @@ public:
     OR,
     NOT,
     MATCH,
+    IN,
     NAMESPACE,
 
     // types

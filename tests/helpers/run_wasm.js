@@ -320,6 +320,7 @@ const moduleOptions = {
         push_64,
         strcat,
         strcmp,
+        str_to_array,
         print_i32: value => printer.print_i32(value),
         print_char: value => printer.print_char(value),
         print_f64: value => printer.print_f64(value),
@@ -355,6 +356,10 @@ WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
     mem = new Memory(memory);
     instance.exports.main();
 });
+
+function str_to_array(str_ptr) {
+    return str_ptr;
+}
 
 function push_ptr(arr_ptr, value) {
     const ref = mem.get(arr_ptr);

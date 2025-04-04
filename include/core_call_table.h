@@ -27,5 +27,11 @@ public:
     table.declare("gc", std::make_shared<BirdFunction>(
                             std::vector<std::shared_ptr<BirdType>>{},
                             std::make_shared<VoidType>()));
+
+    table.declare(
+        "iter",
+        std::make_shared<BirdFunction>(
+            std::vector<std::shared_ptr<BirdType>>{std::make_shared<Generic>()},
+            std::make_shared<IteratorType>(std::make_shared<Generic>())));
   }
 };

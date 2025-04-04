@@ -1,45 +1,26 @@
-
-
-namespace Loop {
-    struct Counter {
-        val: int;
-        fn count_down() {
-            if self.val <= 0 { return; }
-            self.val -= 1;
-            print self.val;
-            // self.count_down();
-        }
-    };
-
-    var c = Counter { val = 3 };
+var arr = [ 1, 2, 3 ];
+for x in iter(arr) {
+    print x;
 }
 
-Loop::c.count_down();
+for x in iter([ 1, 2, 3 ]) {
+    print x;
+}
 
-struct Foo {
-    val: int;
-};
+var s = "hi";
+for x in iter(s) {
+    print x;
+}
 
-const foo = Foo {
-    val = 1
-};
+for x in iter("bye") {
+    print x;
+}
 
-print foo.val;
-foo.val += 1;
-print foo.val;
+var str_arr = [ "hello", "goodbye" ];
+for x in iter(str_arr) {
+    print x;
+}
 
-
-struct Data {
-    val: int[];
-    fn increment() {
-        self.val[0] += 1;
-    }
-};
-
-const bar = Data {
-    val = [1,2,3],
-};
-
-print bar.val[0];
-bar.increment();
-print bar.val[0];
+for x in iter([ "hello", "goodbye" ]) {
+    print x;
+}
