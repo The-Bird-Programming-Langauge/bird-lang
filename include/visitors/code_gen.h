@@ -234,6 +234,9 @@ class CodeGen : public Visitor {
   TaggedExpression create_call_with(std::string function_name,
                                     std::vector<BinaryenExpressionRef> args);
   void generate_array_length_fn();
+  void generate_iter_fn();
+  TaggedExpression convert_string_to_array(BinaryenExpressionRef str_ptr);
+
   void create_struct_constructor(std::shared_ptr<StructType> type);
   void init_array_constructor();
   void init_ref_constructor();
