@@ -3,13 +3,30 @@
 #include "exceptions/bird_exception.h"
 #include "token.h"
 #include "import_path.h"
-#include "import_item.h"
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <tuple>
 #include <functional>
 #include <iostream>
+
+class ImportItem {
+  public:
+    virtual ~ImportItem() {}
+  };
+  
+class ImportNamespace : public ImportItem {
+public:
+  std::unordered_map<std::string, ImportItem*> import_items;
+
+  ImportNamespace() = default;
+
+  ImportNamespace(std::unordered_map<std::string, ImportItem*> import_items) {
+    this->import_items = import_items;
+  }
+};
+  
+class DefaultImportItem : public ImportItem {};
 
 class ImportEnvironment {
 public:
@@ -60,7 +77,7 @@ public:
   }
 
   void add_item(ImportPath import_path) {
-    this->add_item(import_path, NULL);
+    this->add_item(import_path, new DefaultImportItem());
   }
 
   ImportItem* get_item(ImportPath import_path) {

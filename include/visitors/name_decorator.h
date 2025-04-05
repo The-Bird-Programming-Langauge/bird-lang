@@ -19,9 +19,15 @@ class NameDecorator : public VisitorAdapter {
 
 public:
   void decorate(std::vector<std::unique_ptr<Stmt>> *stmts) {
+    std::cout << "2.1. " << std::endl;
+    std::cout << "2.2. " << stmts->size() << std::endl;
+    std::cout << "2.3. " << std::endl;
     for (auto &stmt : *stmts) {
+      std::cout << "2.4. " << std::endl;
       stmt->accept(this);
+      std::cout << "2.5. " << std::endl;
     }
+    std::cout << "2.6. " << std::endl;
   }
 
   bool is_primitive(const std::string &name) {
@@ -174,6 +180,7 @@ public:
   }
 
   void visit_call(Call *call) {
+    std::cout << "8.1. " << call->identifier.lexeme << std::endl;
     for (auto arg : call->args) {
       arg->accept(this);
     }
@@ -181,6 +188,7 @@ public:
       return;
     }
     call->identifier.lexeme = this->function_names[call->identifier.lexeme];
+    std::cout << "8.2. " << call->identifier.lexeme << std::endl;
   }
 
   void visit_method(Method *method) {
@@ -204,6 +212,8 @@ public:
 
     assign_expr->value->accept(this);
   }
+  
+  void visit_import_stmt(ImportStmt *import_stmt) {}
 
   void visit_namespace(NamespaceStmt *_namespace) {
     this->ns_stack.push(_namespace->identifier.lexeme + "::");

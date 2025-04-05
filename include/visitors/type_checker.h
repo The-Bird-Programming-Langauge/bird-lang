@@ -1127,9 +1127,6 @@ public:
     this->stack.push(else_arm_type);
   }
 
-
-  void visit_import_stmt(ImportStmt *import_stmt) {};
-
   void visit_method(Method *method) {
     this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
         create_func(method);
@@ -1173,6 +1170,8 @@ public:
 
     this->stack.push(method->ret);
   }
+
+  void visit_import_stmt(ImportStmt *import_stmt) {}
 
   void visit_namespace(NamespaceStmt *_namespace) {
     for (auto &member : _namespace->members) {

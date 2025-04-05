@@ -103,8 +103,6 @@ void compile(std::string filename) {
   AstPrinter printer;
   printer.print_ast(&ast);
 #endif
-  NameDecorator name_decorator;
-  name_decorator.decorate(&ast);
 
   ImportVisitor import_visitor(error_tracker);
   import_visitor.import(&ast);
@@ -112,6 +110,9 @@ void compile(std::string filename) {
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
   }
+  
+  NameDecorator name_decorator;
+  name_decorator.decorate(&ast);
 
   SemanticAnalyzer semantic_analyzer(error_tracker);
   semantic_analyzer.analyze_semantics(&ast);

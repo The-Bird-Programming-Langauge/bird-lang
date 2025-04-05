@@ -193,6 +193,7 @@ public:
   }
 
   void visit_func(Func *func) {
+    std::cout << "7.1. '" << func->identifier.lexeme << "'" << std::endl;
     if (this->identifer_in_any_environment(func->identifier.lexeme)) {
       this->user_error_tracker.semantic_error(
           "Identifier '" + func->identifier.lexeme + "' is already declared.",
@@ -214,6 +215,7 @@ public:
   }
 
   void visit_call(Call *call) {
+    std::cout << "6.1. '" << call->identifier.lexeme << "'" << std::endl;
     if (!core_call_table.table.contains(call->identifier.lexeme) &&
         !this->env.contains(call->identifier.lexeme)) {
       this->user_error_tracker.semantic_error("Function call identifier '" +
@@ -324,8 +326,6 @@ public:
     match_expr->else_arm->accept(this);
   }
 
-  void visit_import_stmt(ImportStmt *import_stmt) {}
-
   void visit_method(Method *method) {
     this->in_method = true;
     this->visit_func_helper(method);
@@ -338,6 +338,8 @@ public:
       arg->accept(this);
     }
   }
+
+  void visit_import_stmt(ImportStmt *import_stmt) {}
 
   void visit_namespace(NamespaceStmt *_namespace) {
     for (auto &member : _namespace->members) {

@@ -294,6 +294,12 @@ public:
     std::cout << "}";
   }
 
+  void visit_method(Method *method) { this->visit_func(method); }
+
+  void visit_method_call(MethodCall *method_call) {
+    this->visit_call(method_call);
+  }
+
   void visit_import_stmt(ImportStmt *import_stmt) {
     std::cout << "import ";
 
@@ -304,12 +310,6 @@ public:
         std::cout << ", ";
       }
     }
-  };
-
-  void visit_method(Method *method) { this->visit_func(method); }
-
-  void visit_method_call(MethodCall *method_call) {
-    this->visit_call(method_call);
   }
 
   void visit_namespace(NamespaceStmt *_namespace) {

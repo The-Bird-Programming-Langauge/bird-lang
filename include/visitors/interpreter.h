@@ -641,8 +641,6 @@ public:
     match_expr->else_arm->accept(this);
   }
 
-  void visit_import_stmt(ImportStmt *import_stmt) {};
-
   void visit_method(Method *method) {
     // register the function with the class
     this->v_table[method->class_identifier.lexeme][method->identifier.lexeme] =
@@ -663,6 +661,8 @@ public:
     this->v_table[struct_val.name][method_call->identifier.lexeme].call(this,
                                                                         args);
   }
+  
+  void visit_import_stmt(ImportStmt *import_stmt) {}
 
   void visit_namespace(NamespaceStmt *_namespace) {
     for (auto &member : _namespace->members) {

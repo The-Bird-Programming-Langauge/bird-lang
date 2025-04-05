@@ -128,6 +128,8 @@ public:
     }
   }
 
+  void visit_import_stmt(ImportStmt *import_stmt) override {}
+
   void visit_namespace(NamespaceStmt *_namespace) override {
     for (auto &member : _namespace->members) {
       member->accept(this);

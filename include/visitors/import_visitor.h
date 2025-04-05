@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../import_environment.h"
+#include "../import_env.h"
 
 /*
  * Visitor that semantically analyzes import statements and adds their import items to the AST.
@@ -94,6 +94,7 @@ public:
 
           auto function_stmt = dynamic_cast<Func*>(import_stmt.get());
           if (function_stmt) {
+            std::cout << "5.1. " << std::endl;
             function_stmt->identifier.lexeme = import_paths[j].string_path;
           }
 
@@ -179,4 +180,8 @@ public:
   void visit_method(Method *method) {}
 
   void visit_method_call(MethodCall *method_call) {}
+
+  void visit_namespace(NamespaceStmt *_namespace) {}
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {}
 };
