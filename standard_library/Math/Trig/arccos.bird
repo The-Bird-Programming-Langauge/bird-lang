@@ -1,4 +1,7 @@
-print "TODO: Fix arccos so that it doesn't use arcsin.";
+// TODO: Fix arccos so that it doesn't use arcsin.
+
+// Blocker statement.
+var blocker = 0;
 
 fn arccos(x: float) -> float {
   return 3.1415926 / 2.0 - arcsin(x);

@@ -19,6 +19,20 @@ bool BirdTest::compile(const TestOptions options) {
     }
   }
 
+  if (options.import) {
+    ImportVisitor import_visitor(error_tracker);
+    import_visitor.import(&ast);
+
+    if (options.after_import.has_value()) {
+      options.after_import.value()(error_tracker, import_visitor);
+    }
+
+    if (error_tracker.has_errors()) {
+      error_tracker.print_errors();
+      return false;
+    }
+  }
+
   NameDecorator name_decorator;
   name_decorator.decorate(&ast);
 

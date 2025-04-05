@@ -1,3 +1,2 @@
 import Math
-
-var x = Math::Trig::sin(1.0,2.0);
+print Math::Trig::sin(2.0,1.0);

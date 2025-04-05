@@ -16,7 +16,7 @@ public:
   std::unordered_map<std::string, ImportNamespaceItem*> namespace_items;
   NamespaceStmt* stmt;
 
-  NamespaceStmtItem() = default;
+  NamespaceStmtItem() : stmt(nullptr) {}
 
   NamespaceStmtItem(NamespaceStmt* stmt) : stmt(stmt) {}
 };
@@ -56,50 +56,16 @@ public:
 
     for (int i = 0; i < import_path.path.size() - 1; i += 1) {
       if (current->namespace_items.find(import_path.path[i]) == current->namespace_items.end()) {
-        // std::cout << "4.1. " << std::endl;
-        // NamespaceStmt* namespace_stmt = new NamespaceStmt(
-        //   Token(Token::Type::IDENTIFIER, import_path.path[i], 0, 0),
-        //   std::vector<std::unique_ptr<Stmt>>());
-        // NamespaceStmtItem* new_namespace_item = new NamespaceStmtItem(namespace_stmt);
+        NamespaceStmtItem* new_namespace_item = new NamespaceStmtItem(
+          new NamespaceStmt(
+            Token(Token::Type::IDENTIFIER, import_path.path[i], 0, 0),
+            std::vector<std::unique_ptr<Stmt>>()));
 
-        // std::cout << "4.2. " << std::endl;
-        // current->namespace_items[import_path.path[i]] = new_namespace_item;
-
-        // std::cout << "4.3. " << std::endl;
-        // if (current->stmt) {
-        //   std::cout << "4.4. " << std::endl;
-        //   current->stmt->members.push_back(std::unique_ptr<Stmt>(namespace_stmt));
-        //   std::cout << "4.5. " << std::endl;
-        // }
-        // std::cout << "4.6. " << std::endl;
-
-        std::cout << "4.1. " << std::endl;
-        auto new_namespace_stmt = std::make_unique<NamespaceStmt>(
-          Token(Token::Type::IDENTIFIER, import_path.path[i], 0, 0),
-          std::vector<std::unique_ptr<Stmt>>()
-        );
-        
-        std::cout << "4.2. " << std::endl;
-        // Get raw pointer BEFORE moving the unique_ptr
-        NamespaceStmt* raw_ptr = new_namespace_stmt.get();
-        
-        std::cout << "4.3. " << std::endl;
-        if (current) {
-          std::cout << "4.4. " << std::endl;
-          if (current->stmt) {
-            std::cout << "4.5. " << std::endl;
-            current->stmt->members.push_back(std::move(new_namespace_stmt));
-            std::cout << "4.65. " << std::endl;
-          }
-        } else {
-          std::cerr << "Error: current is null!" << std::endl;
-        }
-        
-        std::cout << "4.6. " << std::endl;
-        NamespaceStmtItem* new_namespace_item = new NamespaceStmtItem(raw_ptr);
-        std::cout << "4.7. " << std::endl;
         current->namespace_items[import_path.path[i]] = new_namespace_item;
-        std::cout << "4.8. " << std::endl;
+
+        if (current->stmt) {
+          current->stmt->members.push_back(std::unique_ptr<Stmt>(new_namespace_item->stmt));
+        }
       }
 
       NamespaceStmtItem* namespace_item = dynamic_cast<NamespaceStmtItem*>(current->namespace_items[import_path.path[i]]);
@@ -110,14 +76,10 @@ public:
     new_default_item->stmt = dynamic_cast<Stmt*>(stmt.get());
 
     if (current) {
-      NamespaceStmtItem* current_namespace_item = dynamic_cast<NamespaceStmtItem*>(current);
-      if (current_namespace_item) {
-        current_namespace_item->stmt->members.push_back(std::move(stmt));
-      }
+      current->stmt->members.push_back(std::move(stmt));
     }
 
     current->namespace_items[import_path.path.back()] = new_default_item;
-    debug();
   }
 
   void debug() {

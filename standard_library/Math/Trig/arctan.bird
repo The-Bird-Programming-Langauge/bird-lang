@@ -1,5 +1,3 @@
-print "TODO: Fix arctan.";
-
 fn arctan(x: float) -> float {
   if x > 1.0 {
     return 3.14159 / 2.0 - arctan(1.0 / x);
