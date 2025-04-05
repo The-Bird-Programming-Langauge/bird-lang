@@ -7,6 +7,7 @@
 #include "include/visitors/ast_printer.h"
 #include "include/visitors/code_gen.h"
 #include "include/visitors/interpreter.h"
+#include "include/visitors/import_visitor.h"
 #include "include/visitors/name_decorator.h"
 #include "include/visitors/semantic_analyzer.h"
 #include "include/visitors/type_checker.h"
@@ -39,6 +40,7 @@ void repl() {
   Interpreter interpreter;
   std::string code;
   UserErrorTracker error_tracker(code);
+  ImportVisitor import_visitor(error_tracker);
   SemanticAnalyzer semantic_analyzer(error_tracker);
   TypeChecker type_checker(error_tracker);
   NameDecorator name_decorator;
@@ -60,6 +62,11 @@ void repl() {
     AstPrinter printer;
     printer.print_ast(&ast);
 #endif
+
+    import_visitor.import(&ast);
+    if (error_tracker.has_errors()) {
+      error_tracker.print_errors_and_exit();
+    }
 
     name_decorator.decorate(&ast);
 
@@ -96,6 +103,14 @@ void compile(std::string filename) {
   AstPrinter printer;
   printer.print_ast(&ast);
 #endif
+
+  ImportVisitor import_visitor(error_tracker);
+  import_visitor.import(&ast);
+
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
+  
   NameDecorator name_decorator;
   name_decorator.decorate(&ast);
 
@@ -132,6 +147,13 @@ void interpret(std::string filename) {
   AstPrinter printer;
   printer.print_ast(&ast);
 #endif
+
+  ImportVisitor import_visitor(error_tracker);
+  import_visitor.import(&ast);
+
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
 
   NameDecorator name_decorator;
   name_decorator.decorate(&ast);

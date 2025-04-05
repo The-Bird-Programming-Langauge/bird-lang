@@ -204,6 +204,8 @@ public:
 
     assign_expr->value->accept(this);
   }
+  
+  void visit_import_stmt(ImportStmt *import_stmt) {}
 
   void visit_namespace(NamespaceStmt *_namespace) {
     this->ns_stack.push(_namespace->identifier.lexeme + "::");

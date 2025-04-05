@@ -28,7 +28,6 @@ class Interpreter : public Visitor {
 
 public:
   CoreCallTable core_call_table;
-
   Environment<Value> env;
   Environment<Callable> call_table;
   Environment<std::shared_ptr<BirdType>> type_table;
@@ -662,6 +661,8 @@ public:
     this->v_table[struct_val.name][method_call->identifier.lexeme].call(this,
                                                                         args);
   }
+  
+  void visit_import_stmt(ImportStmt *import_stmt) {}
 
   void visit_namespace(NamespaceStmt *_namespace) {
     for (auto &member : _namespace->members) {

@@ -108,6 +108,12 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 "match"                 {yylval->emplace<Token>() = make_token(T::MATCH);
                           return token::MATCH; }
 
+"import"                 {yylval->emplace<Token>() = make_token(T::IMPORT);
+                          return token::IMPORT; }
+
+"from"                 {yylval->emplace<Token>() = make_token(T::FROM);
+                          return token::FROM; }
+
 "int"                   { yylval->emplace<Token>() = make_token(T::INT);
                           return token::INT; }
 
@@ -209,7 +215,7 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
                           return token::PERCENT_EQUAL; } 
 
 "::"                    { yylval->emplace<Token>() = make_token(T::COLON_COLON);
-                          return token::COLON_COLON; }
+                          return token::COLON_COLON; } 
 
 ":"                     { yylval->emplace<Token>() = make_token(T::COLON);
                           return token::COLON; } 
