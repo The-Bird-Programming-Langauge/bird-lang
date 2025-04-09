@@ -2,7 +2,6 @@
 #include <binaryen-c.h>
 #include <vector>
 
-// TODO: get rid of magic numbers and accound for break and continue
 void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   environment.push_env();
 
@@ -29,6 +28,7 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
 
   auto iter = BinaryenLocalGet(this->mod, iter_local, BinaryenTypeInt32());
 
+  std::vector<BinaryenExpressionRef> body_and_children;
   // get pointer to arrray in iter at offset 0
   std::vector<BinaryenExpressionRef> mem_get_ref{
       iter, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
@@ -50,10 +50,6 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   auto get_index = BinaryenCall(this->mod, "mem_get_32", mem_get_idx.data(),
                                 mem_get_idx.size(), BinaryenTypeInt32());
 
-  // generate for loop condition with index and length
-  auto condition =
-      BinaryenBinary(this->mod, BinaryenLtUInt32(), get_index, get_length);
-
   auto offset = BinaryenBinary(
       this->mod, BinaryenMulInt32(), get_index,
       BinaryenConst(this->mod,
@@ -74,15 +70,18 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
                             TaggedIndex(var_index, type));
 
   // bind to identifier
-  auto set_loop_var = this->binaryen_set(for_in->identifier.lexeme, value);
-
-  loop_body.push_back(set_loop_var.value);
+  body_and_children.push_back(
+      this->binaryen_set(for_in->identifier.lexeme, value).value);
 
   for_in->body->accept(this);
+  auto block = stack.pop().value;
 
-  auto body = stack.pop().value;
+  body_and_children.push_back(block);
 
-  loop_body.push_back(body);
+  std::vector<BinaryenExpressionRef> body;
+
+  body.push_back(BinaryenBlock(this->mod, "BODY", body_and_children.data(),
+                               body_and_children.size(), BinaryenTypeNone()));
 
   // increment the index by 1
   std::vector<BinaryenExpressionRef> increment_args{
@@ -90,22 +89,22 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
       BinaryenBinary(this->mod, BinaryenAddInt32(), get_index,
                      BinaryenConst(this->mod, BinaryenLiteralInt32(1)))};
 
-  auto increment = BinaryenCall(this->mod, "mem_set_32", increment_args.data(),
-                                increment_args.size(), BinaryenTypeNone());
+  body.push_back(BinaryenCall(this->mod, "mem_set_32", increment_args.data(),
+                              increment_args.size(), BinaryenTypeNone()));
 
-  loop_body.push_back(increment);
+  auto condition =
+      BinaryenBinary(this->mod, BinaryenLtUInt32(), get_index, get_length);
 
-  loop_body.push_back(BinaryenBreak(this->mod, "loop", condition, nullptr));
+  body.push_back(BinaryenBreak(this->mod, "LOOP", condition, nullptr));
 
-  auto loop_block = BinaryenBlock(this->mod, nullptr, loop_body.data(),
-                                  loop_body.size(), BinaryenTypeNone());
+  auto loop_block = BinaryenBlock(this->mod, "for_body", body.data(),
+                                  body.size(), BinaryenTypeNone());
 
-  auto loop = BinaryenLoop(
-      this->mod, "loop", BinaryenIf(this->mod, condition, loop_block, nullptr));
+  auto loop = BinaryenLoop(this->mod, "LOOP", loop_block);
 
   body_block.push_back(loop);
 
-  stack.push(BinaryenBlock(this->mod, nullptr, body_block.data(),
+  stack.push(BinaryenBlock(this->mod, "EXIT", body_block.data(),
                            body_block.size(), BinaryenTypeNone()));
 
   environment.pop_env();
