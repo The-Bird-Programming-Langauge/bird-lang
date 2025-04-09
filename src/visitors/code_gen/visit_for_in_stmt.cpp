@@ -21,7 +21,6 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   auto iter_local = function_locals[this->current_function_name].size();
   function_locals[this->current_function_name].push_back(BinaryenTypeInt32());
 
-  // set local for iterator
   std::vector<BinaryenExpressionRef> body_block;
   auto set_iter_local = BinaryenLocalSet(this->mod, iter_local, iterable.value);
   body_block.push_back(set_iter_local);
@@ -29,21 +28,19 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   auto iter = BinaryenLocalGet(this->mod, iter_local, BinaryenTypeInt32());
 
   std::vector<BinaryenExpressionRef> body_and_children;
-  // get pointer to arrray in iter at offset 0
+
   std::vector<BinaryenExpressionRef> mem_get_ref{
       iter, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
 
   auto get_ref = BinaryenCall(this->mod, "mem_get_32", mem_get_ref.data(),
                               mem_get_ref.size(), BinaryenTypeInt32());
 
-  // get length of array in iter at offset 4
   std::vector<BinaryenExpressionRef> mem_get_length{
       iter, BinaryenConst(this->mod, BinaryenLiteralInt32(4))};
 
   auto get_length = BinaryenCall(this->mod, "mem_get_32", mem_get_length.data(),
                                  mem_get_length.size(), BinaryenTypeInt32());
 
-  // get current index in iter at index 8
   std::vector<BinaryenExpressionRef> mem_get_idx{
       iter, BinaryenConst(this->mod, BinaryenLiteralInt32(8))};
 
@@ -60,7 +57,6 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   auto value = BinaryenCall(this->mod, get_mem_get_for_type(type->get_tag()),
                             args.data(), args.size(), binaryen_type);
 
-  // declare identifier
   auto var_index = function_locals[this->current_function_name].size();
   function_locals[this->current_function_name].push_back(binaryen_type);
 
@@ -69,7 +65,6 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   this->environment.declare(for_in->identifier.lexeme,
                             TaggedIndex(var_index, type));
 
-  // bind to identifier
   body_and_children.push_back(
       this->binaryen_set(for_in->identifier.lexeme, value).value);
 
@@ -83,7 +78,6 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   body.push_back(BinaryenBlock(this->mod, "BODY", body_and_children.data(),
                                body_and_children.size(), BinaryenTypeNone()));
 
-  // increment the index by 1
   std::vector<BinaryenExpressionRef> increment_args{
       iter, BinaryenConst(this->mod, BinaryenLiteralInt32(8)),
       BinaryenBinary(this->mod, BinaryenAddInt32(), get_index,

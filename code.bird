@@ -1,3 +1,10 @@
+print "nested iteration of 2d array";
+var marr = [ [ 1, 2, 3 ], [ 4, 5, 6 ] ];
+for col in iter(marr) {
+    for row in iter(col) {
+        print row;
+    }
+}
 print "[ 1, 2, 3 ] continue at 2";
 var arr = [ 1, 2, 3 ];
 for x in iter(arr) {
