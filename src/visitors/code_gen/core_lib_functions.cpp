@@ -40,6 +40,7 @@ void CodeGen::generate_array_length_fn() {
   BinaryenAddFunction(this->mod, func_name.c_str(), params,
                       binaryen_return_type, nullptr, 0, body);
 }
+
 void CodeGen::generate_iter_fn() {
   std::string func_name = "iter";
   auto return_type =
@@ -113,7 +114,7 @@ void CodeGen::generate_iter_fn() {
       BinaryenCall(this->mod, "mem_set_32", mem_set_idx_args.data(),
                    mem_set_idx_args.size(), BinaryenTypeNone()));
 
-  function_body.push_back(get_iter_ptr);
+  function_body.push_back(BinaryenReturn(this->mod, get_iter_ptr));
 
   std::vector<BinaryenType> var_types{BinaryenTypeInt32()};
 

@@ -24,3 +24,7 @@ for x in iter(str_arr) {
 for x in iter([ "hello", "goodbye" ]) {
     print x;
 }
+
+for x in iter([ 1.1, 2.2, 3.3 ]) {
+    print x;
+}

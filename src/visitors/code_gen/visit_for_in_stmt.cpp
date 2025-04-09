@@ -7,10 +7,20 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   environment.push_env();
 
   for_in->iterable->accept(this);
+
   auto iterable = stack.pop();
 
-  auto iter_local = function_locals["main"].size();
-  function_locals["main"].push_back(BinaryenTypeInt32());
+  auto iter_type = safe_dynamic_pointer_cast<IteratorType>(iterable.type);
+
+  auto array_type =
+      safe_dynamic_pointer_cast<ArrayType>(iter_type->element_type);
+
+  auto type = array_type->element_type;
+
+  auto binaryen_type = bird_type_to_binaryen_type(type);
+
+  auto iter_local = function_locals[this->current_function_name].size();
+  function_locals[this->current_function_name].push_back(BinaryenTypeInt32());
 
   // set local for iterator
   std::vector<BinaryenExpressionRef> body_block;
@@ -44,44 +54,29 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   auto condition =
       BinaryenBinary(this->mod, BinaryenLtUInt32(), get_index, get_length);
 
-  // increment offset, shouldnt hardcode 4 (will fix)
-  auto offset =
-      BinaryenBinary(this->mod, BinaryenMulInt32(), get_index,
-                     BinaryenConst(this->mod, BinaryenLiteralInt32(4)));
+  auto offset = BinaryenBinary(
+      this->mod, BinaryenMulInt32(), get_index,
+      BinaryenConst(this->mod,
+                    BinaryenLiteralInt32(bird_type_byte_size(type))));
 
-  auto addr = BinaryenBinary(this->mod, BinaryenAddInt32(), get_ref, offset);
+  std::vector<BinaryenExpressionRef> args{get_ref, offset};
 
-  // get value at current offset
-  std::vector<BinaryenExpressionRef> args{
-      addr, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
-
-  auto value = BinaryenCall(this->mod, "mem_get_32", args.data(), args.size(),
-                            BinaryenTypeInt32());
+  auto value = BinaryenCall(this->mod, get_mem_get_for_type(type->get_tag()),
+                            args.data(), args.size(), binaryen_type);
 
   // declare identifier
-  auto var_index = function_locals["main"].size();
-  function_locals["main"].push_back(BinaryenTypeInt32());
+  auto var_index = function_locals[this->current_function_name].size();
+  function_locals[this->current_function_name].push_back(binaryen_type);
 
   std::vector<BinaryenExpressionRef> loop_body;
 
+  this->environment.declare(for_in->identifier.lexeme,
+                            TaggedIndex(var_index, type));
+
   // bind to identifier
-  auto set_loop_var =
-      BinaryenGlobalSet(this->mod, std::to_string(var_index).c_str(), value);
+  auto set_loop_var = this->binaryen_set(for_in->identifier.lexeme, value);
 
-  loop_body.push_back(set_loop_var);
-
-  auto iter_type = safe_dynamic_pointer_cast<IteratorType>(iterable.type);
-
-  auto array_type =
-      safe_dynamic_pointer_cast<ArrayType>(iter_type->element_type);
-
-  if (!array_type) {
-    throw std::runtime_error("expected iterable in for-in loop");
-  }
-
-  auto type = array_type->element_type;
-
-  environment.declare(for_in->identifier.lexeme, TaggedIndex(var_index, type));
+  loop_body.push_back(set_loop_var.value);
 
   for_in->body->accept(this);
 
@@ -110,8 +105,8 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
 
   body_block.push_back(loop);
 
-  stack.push(BinaryenBlock(this->mod, nullptr, body_block.data(), 2,
-                           BinaryenTypeNone()));
+  stack.push(BinaryenBlock(this->mod, nullptr, body_block.data(),
+                           body_block.size(), BinaryenTypeNone()));
 
   environment.pop_env();
 }
