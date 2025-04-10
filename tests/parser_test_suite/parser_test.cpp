@@ -1,7 +1,4 @@
 #include "../helpers/compile_helper.hpp"
-#include "ast_node/expr/array_init.h"
-#include "ast_node/expr/as_cast.h"
-#include <gtest/gtest.h>
 
 TEST(ParserTest, ParseBlockStmt) {
   BirdTest::TestOptions options;
