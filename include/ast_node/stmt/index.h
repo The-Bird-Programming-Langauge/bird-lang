@@ -6,6 +6,7 @@
 #include "continue_stmt.h"
 #include "decl_stmt.h"
 #include "expr_stmt.h"
+#include "for_in_stmt.h"
 #include "for_stmt.h"
 #include "func.h"
 #include "if_stmt.h"

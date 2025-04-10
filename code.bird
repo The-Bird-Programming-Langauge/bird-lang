@@ -1,45 +1,54 @@
-
-
-namespace Loop {
-    struct Counter {
-        val: int;
-        fn count_down() {
-            if self.val <= 0 { return; }
-            self.val -= 1;
-            print self.val;
-            // self.count_down();
-        }
-    };
-
-    var c = Counter { val = 3 };
+print "nested iteration of 2d array";
+var marr = [ [ 1, 2, 3 ], [ 4, 5, 6 ] ];
+for col in iter(marr) {
+    for row in iter(col) {
+        print row;
+    }
+}
+print "[ 1, 2, 3 ] continue at 2";
+var arr = [ 1, 2, 3 ];
+for x in iter(arr) {
+    if x == 2 {
+        continue;
+    }
+    print x;
+}
+print "[ 1, 2, 3 ] break at 2";
+for x in iter(arr) {
+    if x == 2 {
+        break;
+    }
+    print x;
 }
 
-Loop::c.count_down();
+print "iter([ 1, 2 , 3 ])";
+for x in iter([ 1, 2, 3 ]) {
+    print x;
+}
 
-struct Foo {
-    val: int;
-};
+var s = "hi";
+print "chars in str: ", s;
+for x in iter(s) {
+    print x;
+}
 
-const foo = Foo {
-    val = 1
-};
+print "chars in str: iter(bye)";
+for x in iter("bye") {
+    print x;
+}
 
-print foo.val;
-foo.val += 1;
-print foo.val;
+var str_arr = [ "hello", "goodbye" ];
+print "strs in arr: [ hello, goodbye ]";
+for x in iter(str_arr) {
+    print x;
+}
 
+print "strs in arr: iter([ hi, bye ])";
+for x in iter([ "hi", "bye" ]) {
+    print x;
+}
 
-struct Data {
-    val: int[];
-    fn increment() {
-        self.val[0] += 1;
-    }
-};
-
-const bar = Data {
-    val = [1,2,3],
-};
-
-print bar.val[0];
-bar.increment();
-print bar.val[0];
+print "floats in iter([ 1.1, 2.2, 3.3 ])";
+for x in iter([ 1.1, 2.2, 3.3 ]) {
+    print x;
+}

@@ -22,7 +22,8 @@ enum class TypeTag {
   FUNCTION,
   PLACEHOLDER,
   CHAR,
-  GENERIC // TODO: figure out a way to remove this
+  GENERIC, // TODO: figure out a way to remove this
+  ITERATOR
 };
 
 struct BirdType {
@@ -203,6 +204,30 @@ struct BirdFunction : BirdType {
     result += params.back()->to_string();
     result += ")";
     return result;
+  }
+};
+
+struct IteratorType : BirdType {
+  std::shared_ptr<BirdType> element_type;
+
+  IteratorType(std::shared_ptr<BirdType> element_type)
+      : element_type(std::move(element_type)) {}
+  ~IteratorType() {}
+
+  bool operator==(BirdType &other) const {
+    if (other.get_tag() != TypeTag::ITERATOR) {
+      return false;
+    }
+    auto other_iterator = dynamic_cast<IteratorType *>(&other);
+    return *this->element_type == *other_iterator->element_type;
+  }
+
+  bool operator!=(BirdType &other) const { return !(*this == other); }
+
+  TypeTag get_tag() const { return TypeTag::ITERATOR; }
+
+  std::string to_string() const {
+    return "iterator " + element_type->to_string();
   }
 };
 
