@@ -93,13 +93,28 @@ struct Vec3 {
         };
     }
 
-    fn show() -> void {
+    fn show_v3() -> void {
         for var i = 0; i < 3; i += 1 {
             print self.vec[i];
         }
     }
 };
 
+struct Vec4 {
+    vec: float[];
+
+    fn show_v4() -> void {
+        for var i = 0; i < 4; i += 1 {
+            print self.vec[i];
+        }
+    }
+};
+
+fn v4_from_v3(v: Vec3, w: float) -> Vec4 {
+    return Vec4 {
+        vec = [v.vec[0], v.vec[1], v.vec[2], w]
+    };
+}
 
 print sqrt(4.5);
 print cos(-3.0 * PI / 4.0);
@@ -107,6 +122,12 @@ print cos(-3.0 * PI / 4.0);
 
 const v1 = Vec3 {vec = [1.0, 2.0, 3.0]};
 const v2 = Vec3 {vec = [3.0, 2.0, 1.0]};
+
+v1.show_v3();
+v2.show_v3();
+
+const v4 = v4_from_v3(v1, 1.0);
+v4.show_v4();
 
 
 
