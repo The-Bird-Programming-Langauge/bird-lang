@@ -116,6 +116,110 @@ fn v4_from_v3(v: Vec3, w: float) -> Vec4 {
     };
 }
 
+struct Mat3 {
+    matrix: float[][];
+
+    fn adjugate() -> Mat3 {
+        const adj: float[][] = [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ];
+
+        adj[0][0] = (self.matrix[1][1] * self.matrix[2][2] - self.matrix[1][2] * self.matrix[2][1]);
+        adj[0][1] = -(self.matrix[0][1] * self.matrix[2][2] - self.matrix[0][2] * self.matrix[2][1]);
+        adj[0][2] = (self.matrix[0][1] * self.matrix[1][2] - self.matrix[0][2] * self.matrix[1][1]);
+        adj[1][0] = -(self.matrix[1][0] * self.matrix[2][2] - self.matrix[1][2] * self.matrix[2][0]);
+        adj[1][1] = (self.matrix[0][0] * self.matrix[2][2] - self.matrix[0][2] * self.matrix[2][0]);
+        adj[1][2] = -(self.matrix[0][0] * self.matrix[1][2] - self.matrix[0][2] * self.matrix[1][0]);
+        adj[2][0] = (self.matrix[1][0] * self.matrix[2][1] - self.matrix[1][1] * self.matrix[2][0]);
+        adj[2][1] = -(self.matrix[0][0] * self.matrix[2][1] - self.matrix[0][1] * self.matrix[2][0]);
+        adj[2][2] = (self.matrix[0][0] * self.matrix[1][1] - self.matrix[0][1] * self.matrix[1][0]);
+
+        return Mat3 {
+            matrix = adj
+        };
+    }
+
+    fn determinant() -> float {
+        return self.matrix[0][0] * (self.matrix[1][1] * self.matrix[2][2] - self.matrix[1][2] * self.matrix[2][1]) -
+            self.matrix[0][1] * (self.matrix[1][0] * self.matrix[2][2] - self.matrix[1][2] * self.matrix[2][0]) +
+            self.matrix[0][2] * (self.matrix[1][0] * self.matrix[2][1] - self.matrix[1][1] * self.matrix[2][0]);
+    }
+
+    fn invert() -> Mat3 {
+        const det: float = self.determinant();
+        if det == 0.0 {
+            return Mat3 {
+                matrix = [
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0]
+                ]
+            };
+        }
+
+        const adj: Mat3 = self.adjugate();
+        const inverse = [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ];
+
+        for var i = 0; i < 3; i += 1 {
+            for var j = 0; j < 3; j += 1 {
+                inverse[i][j] = adj.matrix[i][j] / det;
+            }
+        }
+
+        return Mat3 {
+            matrix = inverse
+        };
+    }
+
+    fn mulVec(v: Vec3) -> Vec3 {
+        const result = [0.0, 0.0, 0.0];
+
+        for var i = 0; i < 3; i += 1 {
+            for var j = 0; j < 3; j += 1 {
+                result[i] += self.matrix[j][i] * v.vec[j];
+            }
+        }
+
+        return Vec3 {
+            vec = result
+        };
+    }
+
+    fn mul(m: Mat3) -> Mat3 {
+        const result = [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0]
+        ];
+
+        for var i = 0; i < 3; i += 1 {
+            for var j = 0; j < 3; j += 1 {
+                for var k = 0; k < 3; k += 1 {
+                    result[i][j] += self.matrix[i][k] * m.matrix[k][j];
+                }
+            }
+        }
+
+        return Mat3 {
+            matrix = result
+        };
+    }
+
+    fn show_m3() -> void {
+        for var i = 0; i < 3; i += 1 {
+            for var j = 0; j < 3; j += 1 {
+                print self.matrix[i][j];
+            }
+        }
+    }
+};
+
 print sqrt(4.5);
 print cos(-3.0 * PI / 4.0);
 
@@ -123,14 +227,35 @@ print cos(-3.0 * PI / 4.0);
 const v1 = Vec3 {vec = [1.0, 2.0, 3.0]};
 const v2 = Vec3 {vec = [3.0, 2.0, 1.0]};
 
-v1.show_v3();
-v2.show_v3();
+// v1.show_v3();
+// v2.show_v3();
 
 const v4 = v4_from_v3(v1, 1.0);
-v4.show_v4();
+// v4.show_v4();
+
+const m = Mat3 {
+    matrix = [
+        [7.0, -4.0, 2.0],
+        [3.0, 1.0, -5.0],
+        [2.0, 2.0, -5.0]
+    ],
+};
+
+const m2 = Mat3 {
+    matrix = [
+        [7.0, -4.0, 2.0],
+        [3.0, 1.0, -5.0],
+        [2.0, 2.0, -5.0]
+    ],
+};
 
 
 
+// m.adjugate().show_m3();
 
+// print m.determinant();
 
+// m.invert().show_m3();
 
+// m.mul(m2).show_m3();
+// m.mulVec(v1).show_v3();
