@@ -53,6 +53,28 @@ fn pow(x: float, y: int) -> float {
     return result;
 }
 
+fn bitwise_lshift(x: int, n: int) -> int {
+    var result: int = x;
+    for var i = 0; i < n; i += 1 {
+        result = result * 2;
+    }
+
+    return result;
+}
+
+fn bitwise_or(a: int, b: int) -> int {
+    var result: int = 0;
+    var n: int = 1;
+    while ((a > 0) or (b > 0)) {
+        if (((a % 2) == 1) or ((b % 2) == 1)) {
+            result += n;    
+        }
+        a = a / 2;
+        b = b / 2;
+        n = n * 2;
+    }
+    return result;
+}
 
 struct Vec3 {
     vec: float[];
@@ -375,8 +397,8 @@ fn create_cube() -> Cube {
     };
 }
 
-const sWidth = 400;
-const sHeight = 300;
+const sWidth = 200;
+const sHeight = 150;
 
 fn to_raster(v: Vec4) -> Vec4 {
     return Vec4 {
@@ -389,7 +411,7 @@ fn to_raster(v: Vec4) -> Vec4 {
     };
 }
 
-fn raster() -> float[] {
+fn raster() -> int[] {
     const eye: Mat4 = Mat4 {
         matrix = [
             [1.0, 0.0, 0.0, 0.0],
@@ -403,21 +425,31 @@ fn raster() -> float[] {
     eye.translate(Vec3{vec = [0.0, 0.0, 0.2]});
     push(objs, eye.rotate(45.0, Vec3{vec = [0.0, 1.0, 0.0]}));
 
-    const frameBuffer: float[] = [];
+    const frameBuffer: int[] = [];
     for var i = 0; i < sHeight * sWidth; i += 1 {
-        push(frameBuffer, 0.0);
+        push(frameBuffer, 0);
     }
 
     const cube: Cube = create_cube();
-    // for var i = 0; i < 1; i += 1 {
-    //     for var j = 0; j < length(cube.indices) / 3; j += 1 {
-    //         const v0 = cube.vertices[cube.indices[i * 3]];
-    //         const v1 = cube.vertices[cube.indices[i * 3 + 1]];
-    //         const v2 = cube.vertices[cube.indices[i * 3 + 2]];
+    for var i = 0; i < 1; i += 1 {
+        for var j = 0; j < length(cube.indices) / 3; j += 1 {
+            const v0 = cube.vertices[cube.indices[i * 3]];
+            const v1 = cube.vertices[cube.indices[i * 3 + 1]];
+            const v2 = cube.vertices[cube.indices[i * 3 + 2]];
 
-    //         const color = cube.colors[cube.indices[i * 3] % 6];
-    //     }
-    // }
+            const color = cube.colors[cube.indices[i * 3] % 6];
+            const ff: float = 255.0;
+            const hex = bitwise_or(
+                            bitwise_or(
+                                bitwise_or(
+                                    bitwise_lshift(ff as int, 24), 
+                                    bitwise_lshift(( color.vec[2] * ff) as int, 16)), 
+                                bitwise_lshift(( color.vec[1] * ff) as int, 8)), 
+                            (color.vec[0] * ff) as int);
+        }
+    }
 
     return frameBuffer;
 }
+
+raster();
