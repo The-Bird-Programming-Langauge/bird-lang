@@ -177,7 +177,7 @@ struct Mat3 {
         };
     }
 
-    fn mulVec(v: Vec3) -> Vec3 {
+    fn mul_vec3(v: Vec3) -> Vec3 {
         const result = [0.0, 0.0, 0.0];
 
         for var i = 0; i < 3; i += 1 {
@@ -191,7 +191,7 @@ struct Mat3 {
         };
     }
 
-    fn mul(m: Mat3) -> Mat3 {
+    fn mul3(m: Mat3) -> Mat3 {
         const result = [
             [0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0],
@@ -219,6 +219,126 @@ struct Mat3 {
         }
     }
 };
+
+
+
+struct Mat4 {
+    matrix: float[][];
+
+    fn mul_vec4(v: Vec4) -> Vec4 {
+        const result = [0.0, 0.0, 0.0, 0.0];
+
+        for var i = 0; i < 4; i += 1 {
+            for var j = 0; j < 4; j += 1 {
+                result[i] += self.matrix[j][i] * v.vec[j];
+            }
+        }
+
+        return Vec4 {
+            vec = result
+        };
+    }
+
+    fn mul4(m: Mat4) -> Mat4 {
+        const result = [
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0]
+        ];
+
+        for var i = 0; i < 4; i += 1 {
+            for var j = 0; j < 4; j += 1 {
+                for var k = 0; k < 4; k += 1 {
+                    result[i][j] += self.matrix[i][k] * m.matrix[k][j];
+                }
+            }
+        }
+
+        return Mat4 {
+            matrix = result
+        }; 
+    }
+
+    fn translate(v: Vec3) -> Mat4 {
+        const transMat = Mat4 {
+            matrix = [
+                [1.0, 0.0, 0.0, v.vec[0]],
+                [0.0, 1.0, 0.0, v.vec[1]],
+                [0.0, 0.0, 1.0, v.vec[2]],
+                [0.0, 0.0, 0.0, 1.0]
+            ]
+        };
+
+        return self.mul4(transMat.T());
+    }
+
+    fn rotate(angle: float, vaxis: Vec3) -> Mat4 {
+        const angleRad: float = (angle * PI) / 180.0;
+        const result = Mat4 {
+            matrix = [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0]
+            ]
+        };
+
+        const cos = cos(angleRad);
+        const sin = sin(angleRad);
+
+        if (vaxis.vec[0] > 0.0 or vaxis.vec[0] < 0.0) {
+            result.matrix[1][1] = cos;
+            result.matrix[1][2] = -sin;
+            result.matrix[2][1] = sin;
+            result.matrix[2][2] = cos;
+        }
+
+        if (vaxis.vec[1] > 0.0 or vaxis.vec[1] < 0.0) {
+            result.matrix[0][0] = cos;
+            result.matrix[0][2] = -sin;
+            result.matrix[2][0] = sin;
+            result.matrix[2][2] = cos;
+        }
+
+        if (vaxis.vec[2] > 0.0 or vaxis.vec[2] < 0.0) {
+            result.matrix[0][0] = cos;
+            result.matrix[0][1] = -sin;
+            result.matrix[1][0] = sin;
+            result.matrix[1][1] = cos;
+        }
+
+        return result.mul4(self);
+    }
+
+    fn T() -> Mat4 {
+        const new: float[][] = [
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0]
+        ];
+
+        for var i = 0; i < 4; i += 1 {
+            for var j = 0; j < 4; j += 1 {
+                new[i][j] = self.matrix[j][i];
+            }
+        }
+
+        return Mat4 {
+            matrix = new
+        };
+    }
+
+    fn show_m4() {
+        for var i = 0; i < 4; i += 1 {
+            for var j = 0; j < 4; j += 1 {
+                print self.matrix[i][j];
+            }
+        }
+    }
+};
+
 
 print sqrt(4.5);
 print cos(-3.0 * PI / 4.0);
@@ -259,3 +379,23 @@ const m2 = Mat3 {
 
 // m.mul(m2).show_m3();
 // m.mulVec(v1).show_v3();
+
+const m3 = Mat4 {
+    matrix = [
+        [1.0, 2.0, 3.0, 4.0],
+        [1.0, 2.0, 3.0, 4.0],
+        [1.0, 2.0, 3.0, 4.0],
+        [1.0, 2.0, 3.0, 4.0]
+    ]
+};
+
+const m4 = Mat4 {
+    matrix = [
+        [1.0, 2.0, 3.0, 4.0],
+        [1.0, 2.0, 3.0, 4.0],
+        [1.0, 2.0, 3.0, 4.0],
+        [1.0, 2.0, 3.0, 4.0]
+    ]
+};
+
+// m3.mul4(m4).show_m4();
