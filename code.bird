@@ -44,6 +44,10 @@ fn sin(x: float) -> float {
     return cos(x - PI);
 }
 
+fn tan(x: float) -> float {
+    return sin(x) / cos(x);
+}
+
 fn pow(x: float, y: int) -> float {
     var result = 1.0;
     for var i = 0; i < y; i += 1 {
@@ -361,6 +365,62 @@ struct Mat4 {
     }
 };
 
+fn look_at(eye: Vec3, center: Vec3, up: Vec3) -> Mat4{
+    const result = [
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0]
+    ];
+
+    const f = (center.minus(eye)).normalize();
+    var u = up.normalize();
+    const s = f.cross(u).normalize();
+    u = s.cross(f);
+
+    result[0][0] = s.vec[0];
+    result[1][0] = s.vec[1];
+    result[2][0] = s.vec[2];
+
+    result[0][1] = u.vec[0];
+    result[1][1] = u.vec[1];
+    result[2][1] = u.vec[2];
+
+    result[0][2] = -f.vec[0];
+    result[1][2] = -f.vec[1];
+    result[2][2] = -f.vec[2];
+
+    result[3][0] = -s.dot(eye);
+    result[3][1] = -u.dot(eye);
+    result[3][2] = f.dot(eye);
+
+    return Mat4 {
+        matrix = result
+    };
+}
+
+fn perspective(fovy: float, aspect: float, near: float, far: float) -> Mat4 {
+    const result = [
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0]
+    ];
+
+    const angle_rad = (fovy * PI) / 180.0;
+    const tan_half_fovy = tan(angle_rad / 2.0);
+
+    result[0][0] = 1.0 / (aspect * tan_half_fovy);
+    result[1][1] = 1.0 / tan_half_fovy;
+    result[2][2] = -(far + near) / (far - near);
+    result[2][3] = -1.0;
+    result[3][2] = -(2.0 * far * near) / (far - near);
+
+    return Mat4 {
+        matrix = result
+    };
+}
+
 struct Cube {
     vertices: Vec3[];
     indices: int[];
@@ -411,6 +471,9 @@ fn to_raster(v: Vec4) -> Vec4 {
     };
 }
 
+const view = look_at(Vec3{ vec = [0.9, 3.75, 6.5] }, Vec3{ vec = [0.0, 0.0, 0.0] }, Vec3{ vec = [0.0, 1.0, 0.0] });
+const proj = perspective(60.0, sWidth as float / sHeight as float, 0.1, 100.0);
+
 fn raster() -> int[] {
     const eye: Mat4 = Mat4 {
         matrix = [
@@ -425,9 +488,9 @@ fn raster() -> int[] {
     eye.translate(Vec3{vec = [0.0, 0.0, 0.2]});
     push(objs, eye.rotate(45.0, Vec3{vec = [0.0, 1.0, 0.0]}));
 
-    const frameBuffer: int[] = [];
+    const frame_buffer: int[] = [];
     for var i = 0; i < sHeight * sWidth; i += 1 {
-        push(frameBuffer, 0);
+        push(frame_buffer, 0);
     }
 
     const cube: Cube = create_cube();
@@ -446,10 +509,52 @@ fn raster() -> int[] {
                                     bitwise_lshift(( color.vec[2] * ff) as int, 16)), 
                                 bitwise_lshift(( color.vec[1] * ff) as int, 8)), 
                             (color.vec[0] * ff) as int);
+
+            const v0clip = proj.mul_vec4(view.mul_vec4(objs[i].mul_vec4(v4_from_v3(v0, 1.0))));
+            const v1clip = proj.mul_vec4(view.mul_vec4(objs[i].mul_vec4(v4_from_v3(v1, 1.0))));
+            const v2clip = proj.mul_vec4(view.mul_vec4(objs[i].mul_vec4(v4_from_v3(v2, 1.0))));
+
+            const v0Homo = to_raster(v0clip);
+            const v1Homo = to_raster(v1clip);
+            const v2Homo = to_raster(v2clip);
+
+            const m = Mat3 {
+                matrix = [
+                    [v0Homo.vec[0], v1Homo.vec[0], v2Homo.vec[0]],
+                    [v0Homo.vec[1], v1Homo.vec[1], v2Homo.vec[1]],
+                    [v0Homo.vec[3], v1Homo.vec[3], v2Homo.vec[2]]
+                ]
+            };
+
+            const det = m.determinant();
+            if (det >= 0.0) {
+                continue;
+            }
+
+            const inv = m.invert();
+            const e0 = inv.mul_vec3(Vec3 {vec = [1.0, 0.0, 0.0]});
+            const e1 = inv.mul_vec3(Vec3 {vec = [0.0, 1.0, 0.0]});
+            const e2 = inv.mul_vec3(Vec3 {vec = [0.0, 0.0, 1.0]});
+
+            const c = inv.mul_vec3(Vec3 {vec = [1.0, 1.0, 1.0]});
+
+            for var k = 0; k < sHeight; k += 1 {
+                for var l = 0; l < sWidth; l += 1 {
+                    const sample = Vec3 {vec = [l as float + 0.5, k as float + 0.5, 1.0]};
+
+                    const alpha = e0.dot(sample);
+                    const beta = e1.dot(sample);
+                    const gamma = e2.dot(sample);
+
+                    if (alpha >= 0.0) and (beta >= 0.0) and (gamma >= 0.0) {
+                        frame_buffer[l + k * sWidth] = hex;
+                    }
+                }
+            }
         }
     }
 
-    return frameBuffer;
+    print length(frame_buffer);
+    return frame_buffer;
 }
 
-raster();

@@ -351,7 +351,7 @@ const result = fs.readFileSync("output.wasm");
 WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
     instance = wasmInstatiatedSource.instance;
     memory = new DataView(instance.exports.memory.buffer);
-    wasmMemory = instance.exports.memory;
+    // wasmMemory = instance.exports.memory;
     mem = new Memory(memory);
     instance.exports.main();
 });
