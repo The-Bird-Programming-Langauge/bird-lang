@@ -44,10 +44,6 @@ fn sin(x: float) -> float {
     return cos(x - PI);
 }
 
-fn tan(x: float) -> float {
-    return sin(x) / cos(x);
-}
-
 fn pow(x: float, y: int) -> float {
     var result = 1.0;
     for var i = 0; i < y; i += 1 {
@@ -57,27 +53,8 @@ fn pow(x: float, y: int) -> float {
     return result;
 }
 
-fn bitwise_lshift(x: int, n: int) -> int {
-    var result: int = x;
-    for var i = 0; i < n; i += 1 {
-        result = result * 2;
-    }
-
-    return result;
-}
-
-fn bitwise_or(a: int, b: int) -> int {
-    var result: int = 0;
-    var n: int = 1;
-    while ((a > 0) or (b > 0)) {
-        if (((a % 2) == 1) or ((b % 2) == 1)) {
-            result += n;    
-        }
-        a = a / 2;
-        b = b / 2;
-        n = n * 2;
-    }
-    return result;
+fn tan(x: float) -> float {
+    return x + pow(x, 3)/3.0 + (2.0*pow(x, 5))/15.0;
 }
 
 struct Vec3 {
@@ -108,9 +85,11 @@ struct Vec3 {
             push(new_vec, self.vec[i] / magnitude);
         }
 
-        return Vec3 {
+        const result = Vec3 {
             vec = new_vec
         };
+
+        return result;
     }
 
     fn minus(v2: Vec3) -> Vec3 {
@@ -381,15 +360,12 @@ fn look_at(eye: Vec3, center: Vec3, up: Vec3) -> Mat4{
     result[0][0] = s.vec[0];
     result[1][0] = s.vec[1];
     result[2][0] = s.vec[2];
-
     result[0][1] = u.vec[0];
     result[1][1] = u.vec[1];
     result[2][1] = u.vec[2];
-
     result[0][2] = -f.vec[0];
     result[1][2] = -f.vec[1];
     result[2][2] = -f.vec[2];
-
     result[3][0] = -s.dot(eye);
     result[3][1] = -u.dot(eye);
     result[3][2] = f.dot(eye);
@@ -424,7 +400,7 @@ fn perspective(fovy: float, aspect: float, near: float, far: float) -> Mat4 {
 struct Cube {
     vertices: Vec3[];
     indices: int[];
-    colors: Vec3[];
+    colors: int[];
 };
 
 fn create_cube() -> Cube {
@@ -442,12 +418,12 @@ fn create_cube() -> Cube {
     const indices: int[] = [1, 3, 0, 7, 5, 4, 4, 1, 0, 5, 2, 1, 2, 7, 3, 0, 7, 4, 1, 2, 3, 7, 6, 5, 4, 5, 1, 5, 6, 2, 2, 6, 7, 0, 3, 7];
 
     const colors = [
-        Vec3 {vec = [0.0, 0.0, 1.0]},
-        Vec3 {vec = [0.0, 1.0, 0.0]},
-        Vec3 {vec = [0.0, 1.0, 1.0]},
-        Vec3 {vec = [1.0, 1.0, 1.0]},
-        Vec3 {vec = [1.0, 0.0, 1.0]},
-        Vec3 {vec = [1.0, 1.0, 0.0]}
+        -65536,
+        -16711936,
+        -256,
+        -1,
+        -65281,
+        -16711681
     ];
 
     return Cube {
@@ -471,90 +447,81 @@ fn to_raster(v: Vec4) -> Vec4 {
     };
 }
 
-const view = look_at(Vec3{ vec = [0.9, 3.75, 6.5] }, Vec3{ vec = [0.0, 0.0, 0.0] }, Vec3{ vec = [0.0, 1.0, 0.0] });
-const proj = perspective(60.0, sWidth as float / sHeight as float, 0.1, 100.0);
+const view = look_at(Vec3{ vec = [0.0, 3.75, 6.5] }, Vec3{ vec = [0.0, 0.0, 0.0] }, Vec3{ vec = [0.0, 1.0, 0.0] });
+const proj = perspective(60.0, ( sWidth as float ) / ( sHeight as float ), 0.1, 100.0);
+
+const eye: Mat4 = Mat4 {
+    matrix = [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0]
+    ]
+};
+
+eye.translate(Vec3{vec = [0.0, 0.0, 0.2]});
+var obj: Mat4 = eye.rotate(45.0, Vec3{vec = [0.0, 1.0, 0.0]});
+const frame_buffer: int[] = [];
+for var i = 0; i < sHeight * sWidth; i += 1 {
+    push(frame_buffer, 0);
+}
 
 fn raster() -> int[] {
-    const eye: Mat4 = Mat4 {
-        matrix = [
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0]
-        ]
-    };
-
-    var objs: Mat4[] = [];
-    eye.translate(Vec3{vec = [0.0, 0.0, 0.2]});
-    push(objs, eye.rotate(45.0, Vec3{vec = [0.0, 1.0, 0.0]}));
-
-    const frame_buffer: int[] = [];
     for var i = 0; i < sHeight * sWidth; i += 1 {
-        push(frame_buffer, 0);
+        frame_buffer[i] = 0;
     }
 
     const cube: Cube = create_cube();
-    for var i = 0; i < 1; i += 1 {
-        for var j = 0; j < length(cube.indices) / 3; j += 1 {
-            const v0 = cube.vertices[cube.indices[i * 3]];
-            const v1 = cube.vertices[cube.indices[i * 3 + 1]];
-            const v2 = cube.vertices[cube.indices[i * 3 + 2]];
+    for var j = 0; j < length(cube.indices) / 3; j += 1 {
+        const v0 = cube.vertices[cube.indices[j * 3]];
+        const v1 = cube.vertices[cube.indices[j * 3 + 1]];
+        const v2 = cube.vertices[cube.indices[j * 3 + 2]];
 
-            const color = cube.colors[cube.indices[i * 3] % 6];
-            const ff: float = 255.0;
-            const hex = bitwise_or(
-                            bitwise_or(
-                                bitwise_or(
-                                    bitwise_lshift(ff as int, 24), 
-                                    bitwise_lshift(( color.vec[2] * ff) as int, 16)), 
-                                bitwise_lshift(( color.vec[1] * ff) as int, 8)), 
-                            (color.vec[0] * ff) as int);
+        const color = cube.colors[cube.indices[j * 3] % 6];
 
-            const v0clip = proj.mul_vec4(view.mul_vec4(objs[i].mul_vec4(v4_from_v3(v0, 1.0))));
-            const v1clip = proj.mul_vec4(view.mul_vec4(objs[i].mul_vec4(v4_from_v3(v1, 1.0))));
-            const v2clip = proj.mul_vec4(view.mul_vec4(objs[i].mul_vec4(v4_from_v3(v2, 1.0))));
+        const v0clip = proj.mul_vec4(view.mul_vec4(obj.mul_vec4(v4_from_v3(v0, 1.0))));
+        const v1clip = proj.mul_vec4(view.mul_vec4(obj.mul_vec4(v4_from_v3(v1, 1.0))));
+        const v2clip = proj.mul_vec4(view.mul_vec4(obj.mul_vec4(v4_from_v3(v2, 1.0))));
 
-            const v0Homo = to_raster(v0clip);
-            const v1Homo = to_raster(v1clip);
-            const v2Homo = to_raster(v2clip);
+        const v0Homo = to_raster(v0clip);
+        const v1Homo = to_raster(v1clip);
+        const v2Homo = to_raster(v2clip);
+                
+        const m = Mat3 {
+            matrix = [
+                [v0Homo.vec[0], v1Homo.vec[0], v2Homo.vec[0]],
+                [v0Homo.vec[1], v1Homo.vec[1], v2Homo.vec[1]],
+                [v0Homo.vec[3], v1Homo.vec[3], v2Homo.vec[3]]
+            ]
+        };
 
-            const m = Mat3 {
-                matrix = [
-                    [v0Homo.vec[0], v1Homo.vec[0], v2Homo.vec[0]],
-                    [v0Homo.vec[1], v1Homo.vec[1], v2Homo.vec[1]],
-                    [v0Homo.vec[3], v1Homo.vec[3], v2Homo.vec[2]]
-                ]
-            };
+        const det = m.determinant();
+        if (det >= 0.0) {
+            continue;
+        }
 
-            const det = m.determinant();
-            if (det >= 0.0) {
-                continue;
-            }
+        const inv = m.invert();
+        const e0 = inv.mul_vec3(Vec3 {vec = [1.0, 0.0, 0.0]});
+        const e1 = inv.mul_vec3(Vec3 {vec = [0.0, 1.0, 0.0]});
+        const e2 = inv.mul_vec3(Vec3 {vec = [0.0, 0.0, 1.0]});
 
-            const inv = m.invert();
-            const e0 = inv.mul_vec3(Vec3 {vec = [1.0, 0.0, 0.0]});
-            const e1 = inv.mul_vec3(Vec3 {vec = [0.0, 1.0, 0.0]});
-            const e2 = inv.mul_vec3(Vec3 {vec = [0.0, 0.0, 1.0]});
+        const c = inv.mul_vec3(Vec3 {vec = [1.0, 1.0, 1.0]});
 
-            const c = inv.mul_vec3(Vec3 {vec = [1.0, 1.0, 1.0]});
+        for var k = 0; k < sHeight; k += 1 {
+            for var l = 0; l < sWidth; l += 1 {
+                const sample = Vec3 {vec = [l as float + 0.5, k as float + 0.5, 1.0]};
 
-            for var k = 0; k < sHeight; k += 1 {
-                for var l = 0; l < sWidth; l += 1 {
-                    const sample = Vec3 {vec = [l as float + 0.5, k as float + 0.5, 1.0]};
+                const alpha = e0.dot(sample);
+                const beta = e1.dot(sample);
+                const gamma = e2.dot(sample);
 
-                    const alpha = e0.dot(sample);
-                    const beta = e1.dot(sample);
-                    const gamma = e2.dot(sample);
-
-                    if (alpha >= 0.0) and (beta >= 0.0) and (gamma >= 0.0) {
-                        frame_buffer[l + k * sWidth] = hex;
-                    }
+                if (alpha >= 0.0) and (beta >= 0.0) and (gamma >= 0.0) {
+                    frame_buffer[l + k * sWidth] = color;
                 }
             }
         }
     }
-
-    print length(frame_buffer);
+    
     return frame_buffer;
 }
 

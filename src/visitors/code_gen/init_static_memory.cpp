@@ -1,10 +1,10 @@
 #include "../../../include/visitors/code_gen.h"
 
 void CodeGen::init_static_memory() {
-  BinaryenIndex max_pages = 10;
+  BinaryenIndex max_pages = 1000;
 
   BinaryenSetMemory(mod,
-                    10,        // initial pages
+                    1000,      // initial pages
                     max_pages, // maximum pages
                     "memory", nullptr, nullptr, nullptr, nullptr, 0, 0);
 }
