@@ -1,8 +1,8 @@
 print "nested iteration of 2d array";
-var marr = [ [ 1, 2, 3 ], [ 4, 5, 6 ] ];
-for col in iter(marr) {
-    for row in iter(col) {
-        print row;
+var mat = [ [ 1, 2, 3 ], [ 4, 5, 6 ] ];
+for row in iter(mat) {
+    for el in iter(row) {
+        print el;
     }
 }
 print "[ 1, 2, 3 ] continue at 2";
@@ -52,3 +52,20 @@ print "floats in iter([ 1.1, 2.2, 3.3 ])";
 for x in iter([ 1.1, 2.2, 3.3 ]) {
     print x;
 }
+
+namespace A {
+    struct B {
+        arr: int[];
+        fn print_arr() -> void {
+            for x in iter(self.arr) {
+                print x;
+            }
+        }
+    };
+}
+
+var x: A::B = A::B {
+    arr = [ 1, 2, 3 ]
+};
+
+x.print_arr();

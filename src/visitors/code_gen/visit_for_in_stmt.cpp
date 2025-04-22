@@ -2,6 +2,10 @@
 #include <binaryen-c.h>
 #include <vector>
 
+#define ITERABLE_OFFSET 0
+#define LENGTH_OFFSET 4
+#define INCREMENT_OFFSET 8
+
 void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   environment.push_env();
 
@@ -30,19 +34,19 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   std::vector<BinaryenExpressionRef> body_and_children;
 
   std::vector<BinaryenExpressionRef> mem_get_ref{
-      iter, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+      iter, BinaryenConst(this->mod, BinaryenLiteralInt32(ITERABLE_OFFSET))};
 
   auto get_ref = BinaryenCall(this->mod, "mem_get_32", mem_get_ref.data(),
                               mem_get_ref.size(), BinaryenTypeInt32());
 
   std::vector<BinaryenExpressionRef> mem_get_length{
-      iter, BinaryenConst(this->mod, BinaryenLiteralInt32(4))};
+      iter, BinaryenConst(this->mod, BinaryenLiteralInt32(LENGTH_OFFSET))};
 
   auto get_length = BinaryenCall(this->mod, "mem_get_32", mem_get_length.data(),
                                  mem_get_length.size(), BinaryenTypeInt32());
 
   std::vector<BinaryenExpressionRef> mem_get_idx{
-      iter, BinaryenConst(this->mod, BinaryenLiteralInt32(8))};
+      iter, BinaryenConst(this->mod, BinaryenLiteralInt32(INCREMENT_OFFSET))};
 
   auto get_index = BinaryenCall(this->mod, "mem_get_32", mem_get_idx.data(),
                                 mem_get_idx.size(), BinaryenTypeInt32());
@@ -79,7 +83,7 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
                                body_and_children.size(), BinaryenTypeNone()));
 
   std::vector<BinaryenExpressionRef> increment_args{
-      iter, BinaryenConst(this->mod, BinaryenLiteralInt32(8)),
+      iter, BinaryenConst(this->mod, BinaryenLiteralInt32(INCREMENT_OFFSET)),
       BinaryenBinary(this->mod, BinaryenAddInt32(), get_index,
                      BinaryenConst(this->mod, BinaryenLiteralInt32(1)))};
 
@@ -97,6 +101,15 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   auto loop = BinaryenLoop(this->mod, "LOOP", loop_block);
 
   body_block.push_back(loop);
+
+  for (auto &[string, env_index] : this->environment.envs.back()) {
+    auto get_result = this->binaryen_get(string);
+    if (type_is_on_heap(get_result.type->get_tag())) {
+      auto unregister = BinaryenCall(this->mod, "unregister_root",
+                                     &get_result.value, 1, BinaryenTypeNone());
+      body_block.push_back(unregister);
+    }
+  }
 
   stack.push(BinaryenBlock(this->mod, "EXIT", body_block.data(),
                            body_block.size(), BinaryenTypeNone()));
