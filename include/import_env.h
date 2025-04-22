@@ -11,9 +11,9 @@
 #include <iostream>
 
 class ImportItem {
-  public:
-    virtual ~ImportItem() {}
-  };
+public:
+  virtual ~ImportItem() {}
+};
   
 class ImportNamespace : public ImportItem {
 public:
