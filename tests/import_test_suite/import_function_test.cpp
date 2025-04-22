@@ -4,7 +4,7 @@
 TEST(ImportTest, ImportFunction) {
   BirdTest::TestOptions options;
   options.code =
-  "import Math::Trig::sin"
+  "import Math::Trig::sin\n"
   "print Math::Trig::sin(2.0,1.0);";
 
   options.after_compile = [&](std::string &output, CodeGen &codegen) {

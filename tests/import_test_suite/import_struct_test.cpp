@@ -4,7 +4,7 @@
 TEST(ImportTest, ImportStruct) {
   BirdTest::TestOptions options;
   options.code =
-  "import Math::Trig::Triangle"
+  "import Math::Trig::Triangle\n"
   "var x = Math::Trig::Triangle{a=1.0,b=2.0,c=3.0};"
   "print x.a;";
 

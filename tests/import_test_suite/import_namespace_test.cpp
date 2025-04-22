@@ -4,7 +4,7 @@
 TEST(ImportTest, ImportNamespace) {
   BirdTest::TestOptions options;
   options.code =
-  "import Math"
+  "import Math\n"
   "print Math::Trig::sin(2.0,1.0);"
   "print Math::Trig::cos(2.0,1.0);";
 
