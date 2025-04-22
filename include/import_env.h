@@ -129,20 +129,4 @@ public:
     dfs(import_path, current_item);
     return std::make_tuple(paths, items);
   }
-  
-  void debug_print(const ImportNamespace& namespace_item, const std::string& indent = "") const {
-    for (const auto& [key, value] : namespace_item.import_items) {
-      std::cout << indent << "- '" << key << "'" << std::endl;
-
-      ImportNamespace* sub_namespace = dynamic_cast<ImportNamespace*>(value);
-      if (sub_namespace) {
-        debug_print(*sub_namespace, indent + "  ");
-      }
-    }
-  }
-
-  void debug() const {
-    std::cout << "Import Environment Debug Output:\n";
-    debug_print(namespace_item);
-  }
 };
