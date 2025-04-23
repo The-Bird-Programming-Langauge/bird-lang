@@ -267,9 +267,9 @@ class Memory {
     }
 
     sweep() {
-        this.print_registered_blocks();
-        this.print_allocated_list();
-        this.print_free_list();
+        // this.print_registered_blocks();
+        // this.print_allocated_list();
+        // this.print_free_list();
         // go through allocated list
         // if block isn't marked, free it
         const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
@@ -301,9 +301,9 @@ class Memory {
             }
         }
 
-        this.print_free_list();
-        this.print_allocated_list();
-        this.print_registered_blocks();
+        // this.print_free_list();
+        // this.print_allocated_list();
+        // this.print_registered_blocks();
     }
 }
 

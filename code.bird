@@ -7,11 +7,19 @@ fn exp(x: float) -> float {
 
     var result = 1.0;
     var term = 1.0;
-    for var i = 1; i < 15; i += 1 {
+    for var i = 1; i < 30; i += 1 {
         term = term * x / i as float;
         result += term;
     }
     return result;
+}
+
+fn sqrt(x: float) -> float {
+    var z: float = 1.0;
+    for var i = 1; i <= 30; i += 1 {
+        z -= (z*z - x) / (2.0 *z); // MAGIC LINE!!
+    }
+    return z;
 }
 
 fn log(x: float) -> float {
@@ -19,7 +27,7 @@ fn log(x: float) -> float {
     var y_squared = y * y;
     var result = 0.0;
 
-    for var i = 1; i < 50; i += 2 {
+    for var i = 1; i < 30; i += 2 {
         var x = 1.0 / i as float;
         for var j = 1; j < i; j += 1 {
             x *= y_squared;
@@ -32,6 +40,10 @@ fn log(x: float) -> float {
 
 fn sigmoid(x: float) -> float {
     return 1.0 / (1.0 + exp(-x));
+}
+
+fn abs(x: float) ->  float {
+ return (x < 0.0) ? (-x) : x;
 }
 
 fn predict(x: float[], weights: float[], n: int) -> float {
@@ -103,6 +115,45 @@ fn gradient_decent(X: float[], y: int[], weights: float[], m: int,
     }
 }
 
+fn normalize(X: float[], m: int, n: int) -> float[] {
+    var means: float[] = [];
+    var stds: float[] = [];
+
+    push(means, 0.0);
+    push(stds, 1.0);
+
+    for var j = 1; j < n; j += 1 {
+        var sum = 0.0;
+        for var i = 0; i < m; i += 1 {
+            sum += X[i * n + j];
+        }
+        var mean = sum / m as float;
+        push(means, mean);
+
+        var sq_sum = 0.0;
+        for var i = 0; i < m; i += 1 {
+            var diff = X[i * n + j] - mean;
+            sq_sum += diff * diff;
+        }
+        var std = sqrt(sq_sum / m as float);
+        if std == 0.0 {
+            std = 1.0;
+        }
+        push(stds, std);
+    }
+
+    var X_norm: float[] = [];
+    for var i = 0; i < m; i += 1 {
+        for var j = 0; j < n; j += 1 {
+            var val = X[i * n + j];
+            var normalized = (j == 0) ? 1.0 : (val - means[j]) / stds[j];
+            push(X_norm, normalized);
+        }
+    }
+
+    return X_norm;
+}
+
 var X: float[] = [
     1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.0, 2.0, 1.0, 1.0, 1.0, 2.0,
     1.0, 1.3, 2.2, 1.0, 2.2, 1.5, 1.0, 1.5, 2.0, 1.0, 2.0, 2.0,
@@ -122,10 +173,12 @@ var y: int[] = [
 ];
 
 var weights = [0.0, 0.0, 0.0];
-var learning_rate = 0.15;
-var iterations = 1000;
-var m = 32;
-var n = 3;
+var learning_rate = 0.5;
+var iterations = 500;
+var m = length(X) / length(weights);
+var n = length(weights);
+
+// X = normalize(X, m, n);
 
 gradient_decent(X, y, weights, m, n, learning_rate, iterations);
 

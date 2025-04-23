@@ -637,13 +637,35 @@ public:
     index_assign->rhs->accept(this);
     auto rhs = this->stack.pop();
 
-    if (is_type<std::shared_ptr<std::vector<Value>>>(lhs)) {
-      auto arr = as_type<std::shared_ptr<std::vector<Value>>>(lhs);
-      int idx = as_type<int>(index);
-
-      (*arr)[idx] = rhs;
-    } else {
+    if (!is_type<std::shared_ptr<std::vector<Value>>>(lhs)) {
       throw BirdException("expected array");
+    }
+
+    auto arr = as_type<std::shared_ptr<std::vector<Value>>>(lhs);
+    int idx = as_type<int>(index);
+
+    switch (index_assign->op.token_type) {
+    case Token::Type::EQUAL:
+      (*arr)[idx] = rhs;
+      break;
+    case Token::Type::PLUS_EQUAL:
+      (*arr)[idx] = (*arr)[idx] + rhs;
+      break;
+    case Token::Type::MINUS_EQUAL:
+      (*arr)[idx] = (*arr)[idx] - rhs;
+      break;
+    case Token::Type::STAR_EQUAL:
+      (*arr)[idx] = (*arr)[idx] * rhs;
+      break;
+    case Token::Type::SLASH_EQUAL:
+      (*arr)[idx] = (*arr)[idx] / rhs;
+      break;
+    case Token::Type::PERCENT_EQUAL:
+      (*arr)[idx] = (*arr)[idx] % rhs;
+      break;
+    default:
+      throw std::runtime_error("Unidentified assignment operator " +
+                               index_assign->op.lexeme);
     }
   }
 
@@ -708,10 +730,10 @@ public:
 
       try {
         for_in->body->accept(this);
-      } catch (const ContinueException &) {
+      } catch (ContinueException &) {
         this->env.pop_env();
         continue;
-      } catch (const BreakException &) {
+      } catch (BreakException &) {
         this->env.pop_env();
         break;
       }
