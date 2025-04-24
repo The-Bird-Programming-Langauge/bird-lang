@@ -1171,6 +1171,8 @@ public:
     this->stack.push(method->ret);
   }
 
+  void visit_import_stmt(ImportStmt *import_stmt) {}
+
   void visit_namespace(NamespaceStmt *_namespace) {
     for (auto &member : _namespace->members) {
       member->accept(this);

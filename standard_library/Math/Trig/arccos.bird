@@ -1,0 +1,19 @@
+fn arccos(x: float) -> float {
+  var sum: float = x;
+  var term: float = x;
+  var n: int = 1;
+  var prev_sum: float = sum;
+
+  while n < 10 {
+    term *= (x * x) * ((2.0 * n as float - 1.0) / (2.0 * n as float));
+    sum += term / (2.0 * n as float + 1.0);
+
+    if (sum == prev_sum) {
+      break;
+    }
+
+    prev_sum = sum;
+    n += 1;
+  }
+  return 3.1415926 / 2.0 - sum;
+}

@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <tuple>
 
 #include "../ast_node/index.h"
 
@@ -25,7 +26,6 @@ class SemanticAnalyzer : public Visitor {
 
 public:
   CoreCallTable core_call_table;
-
   Environment<SemanticValue> env;
   Environment<SemanticType> type_table;
   UserErrorTracker &user_error_tracker;
@@ -336,6 +336,8 @@ public:
       arg->accept(this);
     }
   }
+
+  void visit_import_stmt(ImportStmt *import_stmt) {}
 
   void visit_namespace(NamespaceStmt *_namespace) {
     for (auto &member : _namespace->members) {

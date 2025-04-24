@@ -27,6 +27,8 @@ public:
     OR,
     NOT,
     MATCH,
+    IMPORT,
+    FROM,
     NAMESPACE,
 
     // types
