@@ -404,7 +404,7 @@ function push_64(arr_ptr, value) {
     const length = array.get_32(4);
     const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 8;
 
-    if (capacity + 1 >= length) {
+    if (length + 1 >= capacity) {
         const new_data = mem.get(mem.alloc(Math.max(length * 2 * 8, Block.BLOCK_HEADER_SIZE * 4), 0));
         for (let i = 0; i < length; i++) {
             new_data.set_64(i * 8, data.get_64(i * 8));

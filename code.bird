@@ -91,10 +91,6 @@ fn gradient_decent(X: float[], y: int[], weights: float[], m: int,
                 }
 
                 var h = sigmoid(z);
-                if iter % 50 == 0 and i == 0 {
-                    print "z: ", z, ", sigmoid(z): ", h;
-                }
-
                 gradient += (h - y[i] as float) * X[i * n + j];
             }
 
@@ -102,11 +98,9 @@ fn gradient_decent(X: float[], y: int[], weights: float[], m: int,
         }
 
         if iter % 50 == 0 {
-            print "iteration: ", iter, ", weights[0]: ", weights[0], 
-                  ", weights[1]: ", weights[1], ", weights[2]: ", weights[2];
-
             var acc = evaluate(X, y, weights, m, n);
-            print "accuracy: ", acc;
+            var percent = 100.0 * acc;
+            print "accuracy: ", percent, "%";
             if acc == 1.0 {
                 print "converged at: ", iter, " iterations";
                 return;
@@ -188,9 +182,13 @@ for var i = 0; i < m; i += 1 {
         push(x, X[i * n + j]);
     }
     var p: float = predict(x, weights, n);
-    print "x[", i, "] = (", x[1], ", ", x[2], 
-          ") predicted: ", p, " actual: ", y[i];
 }
 
 var acc = evaluate(X, y, weights, m, n);
-print "accuracy: ", acc;
+var percent = 100.0 * acc;
+
+print "w0 = ", weights[0];
+print "w1 = ", weights[1];
+print "w2 = ", weights[2];
+
+print "final accuracy: ", percent, "%";
