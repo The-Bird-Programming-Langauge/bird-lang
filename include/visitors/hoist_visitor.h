@@ -46,4 +46,6 @@ public:
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
     scope_resolution->identifier->accept(this);
   }
+
+  void visit_for_in_stmt(ForInStmt *for_in) {}
 };

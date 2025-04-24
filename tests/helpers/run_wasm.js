@@ -267,9 +267,9 @@ class Memory {
     }
 
     sweep() {
-        this.print_registered_blocks();
-        this.print_allocated_list();
-        this.print_free_list();
+        // this.print_registered_blocks();
+        // this.print_allocated_list();
+        // this.print_free_list();
         // go through allocated list
         // if block isn't marked, free it
         const allocated_list_head_ptr = this.get(Memory.ALLOCATED_LIST_HEAD_PTR).get_32(0);
@@ -301,9 +301,9 @@ class Memory {
             }
         }
 
-        this.print_free_list();
-        this.print_allocated_list();
-        this.print_registered_blocks();
+        // this.print_free_list();
+        // this.print_allocated_list();
+        // this.print_registered_blocks();
     }
 }
 
@@ -320,6 +320,7 @@ const moduleOptions = {
         push_64,
         strcat,
         strcmp,
+        str_to_array,
         print_i32: value => printer.print_i32(value),
         print_char: value => printer.print_char(value),
         print_f64: value => printer.print_f64(value),
@@ -355,6 +356,10 @@ WebAssembly.instantiate(result, moduleOptions).then((wasmInstatiatedSource) => {
     mem = new Memory(memory);
     instance.exports.main();
 });
+
+function str_to_array(str_ptr) {
+    return str_ptr;
+}
 
 function push_ptr(arr_ptr, value) {
     const ref = mem.get(arr_ptr);
@@ -399,7 +404,7 @@ function push_64(arr_ptr, value) {
     const length = array.get_32(4);
     const capacity = (data.get_size() - Block.BLOCK_HEADER_SIZE) / 8;
 
-    if (capacity + 1 >= length) {
+    if (length + 1 >= capacity) {
         const new_data = mem.get(mem.alloc(Math.max(length * 2 * 8, Block.BLOCK_HEADER_SIZE * 4), 0));
         for (let i = 0; i < length; i++) {
             new_data.set_64(i * 8, data.get_64(i * 8));

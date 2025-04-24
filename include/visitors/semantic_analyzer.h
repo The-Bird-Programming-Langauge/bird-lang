@@ -348,4 +348,18 @@ public:
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
     scope_resolution->identifier->accept(this);
   }
+
+  void visit_for_in_stmt(ForInStmt *for_in) {
+    this->loop_depth += 1;
+    this->env.push_env();
+
+    for_in->iterable->accept(this);
+
+    this->env.declare(for_in->identifier.lexeme, SemanticValue(true));
+
+    for_in->body->accept(this);
+
+    this->env.pop_env();
+    this->loop_depth -= 1;
+  }
 };

@@ -108,6 +108,9 @@ IDENT           [a-zA-Z_][a-zA-Z0-9_\-]*
 "match"                 {yylval->emplace<Token>() = make_token(T::MATCH);
                           return token::MATCH; }
 
+"in"                    {yylval->emplace<Token>() = make_token(T::IN);
+                          return token::IN; }
+
 "import"                 {yylval->emplace<Token>() = make_token(T::IMPORT);
                           return token::IMPORT; }
 

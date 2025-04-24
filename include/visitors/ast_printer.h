@@ -13,7 +13,6 @@
 class AstPrinter : public Visitor {
 public:
   void print_ast(std::vector<std::unique_ptr<Stmt>> *stmts) {
-
     for (auto &stmt : *stmts) {
       stmt->accept(this);
       std::cout << std::endl;
@@ -300,12 +299,19 @@ public:
     this->visit_call(method_call);
   }
 
+  void visit_for_in_stmt(ForInStmt *for_in) {
+    std::cout << "for " << for_in->identifier.lexeme << " in ";
+    for_in->iterable->accept(this);
+    std::cout << " ";
+    for_in->body->accept(this);
+  }
+
   void visit_import_stmt(ImportStmt *import_stmt) {
     std::cout << "import ";
 
     for (int i = 0; i < import_stmt->import_paths.size(); i += 1) {
       std::cout << import_stmt->import_paths[i].string_path;
-      
+
       if (i != import_stmt->import_paths.size() - 1) {
         std::cout << ", ";
       }

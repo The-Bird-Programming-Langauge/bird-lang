@@ -439,6 +439,28 @@ public:
       auto array = as_type<std::shared_ptr<std::vector<Value>>>(result);
       array->push_back(new_value);
     }
+    if (call->identifier.lexeme == "iter") {
+      call->args[0]->accept(this);
+      auto result = std::move(this->stack.pop());
+
+      if (is_type<std::shared_ptr<std::vector<Value>>>(result)) {
+        this->stack.push(result);
+      } else if (is_type<std::string>(result)) {
+        auto str = as_type<std::string>(result);
+        auto chars = std::make_shared<std::vector<Value>>();
+        for (char &c : str) {
+          chars->push_back(Value(std::string(1, c)));
+        }
+        this->stack.push(Value(chars));
+      } else if (is_type<Struct>(result)) {
+        auto struct_val = as_type<Struct>(result);
+        auto vals = std::make_shared<std::vector<Value>>();
+        for (auto &field : *struct_val.fields) {
+          vals->push_back(field.second);
+        }
+        this->stack.push(Value(vals));
+      }
+    }
   }
 
   void visit_return_stmt(ReturnStmt *return_stmt) {
@@ -614,13 +636,35 @@ public:
     index_assign->rhs->accept(this);
     auto rhs = this->stack.pop();
 
-    if (is_type<std::shared_ptr<std::vector<Value>>>(lhs)) {
-      auto arr = as_type<std::shared_ptr<std::vector<Value>>>(lhs);
-      int idx = as_type<int>(index);
-
-      (*arr)[idx] = rhs;
-    } else {
+    if (!is_type<std::shared_ptr<std::vector<Value>>>(lhs)) {
       throw BirdException("expected array");
+    }
+
+    auto arr = as_type<std::shared_ptr<std::vector<Value>>>(lhs);
+    int idx = as_type<int>(index);
+
+    switch (index_assign->op.token_type) {
+    case Token::Type::EQUAL:
+      (*arr)[idx] = rhs;
+      break;
+    case Token::Type::PLUS_EQUAL:
+      (*arr)[idx] = (*arr)[idx] + rhs;
+      break;
+    case Token::Type::MINUS_EQUAL:
+      (*arr)[idx] = (*arr)[idx] - rhs;
+      break;
+    case Token::Type::STAR_EQUAL:
+      (*arr)[idx] = (*arr)[idx] * rhs;
+      break;
+    case Token::Type::SLASH_EQUAL:
+      (*arr)[idx] = (*arr)[idx] / rhs;
+      break;
+    case Token::Type::PERCENT_EQUAL:
+      (*arr)[idx] = (*arr)[idx] % rhs;
+      break;
+    default:
+      throw std::runtime_error("Unidentified assignment operator " +
+                               index_assign->op.lexeme);
     }
   }
 
@@ -672,5 +716,30 @@ public:
 
   void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
     scope_resolution->identifier->accept(this);
+  }
+
+  void visit_for_in_stmt(ForInStmt *for_in) {
+    for_in->iterable->accept(this);
+    auto iterable = std::move(stack.pop());
+
+    std::vector<Value> vals =
+        *as_type<std::shared_ptr<std::vector<Value>>>(iterable);
+
+    for (auto &item : vals) {
+      this->env.push_env();
+      this->env.declare(for_in->identifier.lexeme, item);
+
+      try {
+        for_in->body->accept(this);
+      } catch (ContinueException &) {
+        this->env.pop_env();
+        continue;
+      } catch (BreakException &) {
+        this->env.pop_env();
+        break;
+      }
+
+      this->env.pop_env();
+    }
   }
 };
