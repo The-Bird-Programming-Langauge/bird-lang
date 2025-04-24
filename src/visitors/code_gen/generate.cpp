@@ -44,6 +44,12 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
       continue;
     }
 
+    if (auto import_stmt = dynamic_cast<ImportStmt *>(stmt.get())) {
+      import_stmt->accept(this);
+      // no stack push here
+      continue;
+    }
+
     if (auto return_stmt = dynamic_cast<ReturnStmt *>(stmt.get())) {
       throw BirdException("return statement not allowed in main function");
     }

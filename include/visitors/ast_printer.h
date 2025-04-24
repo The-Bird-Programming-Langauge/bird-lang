@@ -306,6 +306,18 @@ public:
     for_in->body->accept(this);
   }
 
+  void visit_import_stmt(ImportStmt *import_stmt) {
+    std::cout << "import ";
+
+    for (int i = 0; i < import_stmt->import_paths.size(); i += 1) {
+      std::cout << import_stmt->import_paths[i].string_path;
+
+      if (i != import_stmt->import_paths.size() - 1) {
+        std::cout << ", ";
+      }
+    }
+  }
+
   void visit_namespace(NamespaceStmt *_namespace) {
     std::cout << "namespace " << _namespace->identifier.lexeme << " { ";
     for (auto &member : _namespace->members) {

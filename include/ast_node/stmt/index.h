@@ -18,3 +18,4 @@
 #include "struct_decl.h"
 #include "type_stmt.h"
 #include "while_stmt.h"
+#include "import_stmt.h"

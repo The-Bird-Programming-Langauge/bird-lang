@@ -28,6 +28,8 @@ public:
     NOT,
     MATCH,
     IN,
+    IMPORT,
+    FROM,
     NAMESPACE,
 
     // types

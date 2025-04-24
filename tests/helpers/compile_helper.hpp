@@ -3,6 +3,7 @@
 #include "../../include/exceptions/user_error_tracker.h"
 #include "../../include/parser.h"
 #include "../../include/visitors/interpreter.h"
+#include "../../include/visitors/import_visitor.h"
 #include "../../include/visitors/name_decorator.h"
 #include "../../include/visitors/semantic_analyzer.h"
 #include "../../include/visitors/type_checker.h"
@@ -21,6 +22,7 @@ struct TestOptions {
   std::string code;
   // bool lex = true;
   bool parse = true;
+  bool import = true;
   bool type_check = true;
   bool semantic_analyze = true;
   bool interpret = true;
@@ -29,6 +31,8 @@ struct TestOptions {
   std::optional<std::function<void(UserErrorTracker &, Parser &,
                                    const std::vector<std::unique_ptr<Stmt>> &)>>
       after_parse;
+  std::optional<std::function<void(UserErrorTracker &, ImportVisitor &)>>
+      after_import;
   std::optional<std::function<void(UserErrorTracker &, SemanticAnalyzer &)>>
       after_semantic_analyze;
   std::optional<std::function<void(UserErrorTracker &, TypeChecker &)>>

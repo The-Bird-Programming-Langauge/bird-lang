@@ -124,6 +124,13 @@ public:
         this->format_message(message, line_num, char_num), token));
   }
 
+  void import_error(std::string message, Token token) {
+    this->errors.push_back(
+        std::make_tuple(this->format_message("import error: " + message,
+                                             token.line_num, token.char_num),
+                        token));
+  }
+
   void type_mismatch(std::string where, Token token) {
     this->errors.push_back(
         std::make_tuple(this->format_message("type mismatch: " + where,
