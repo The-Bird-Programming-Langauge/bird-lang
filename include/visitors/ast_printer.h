@@ -3,7 +3,6 @@
 #include "../ast_node/index.h"
 #include "../bird_type.h"
 #include <iostream>
-#include <map>
 #include <memory>
 #include <vector>
 
@@ -14,7 +13,6 @@
 class AstPrinter : public Visitor {
 public:
   void print_ast(std::vector<std::unique_ptr<Stmt>> *stmts) {
-
     for (auto &stmt : *stmts) {
       stmt->accept(this);
       std::cout << std::endl;
@@ -194,10 +192,15 @@ public:
   void visit_struct_decl(StructDecl *struct_decl) {
     std::cout << "struct " << struct_decl->identifier.lexeme;
     std::cout << "{";
-    for (auto it = struct_decl->fields.begin(); it != struct_decl->fields.end();
-         it++) {
-      std::cout << it->first << ": " << it->second->get_token().lexeme << ", ";
+    for (auto &prop_decl : struct_decl->fields) {
+      std::cout << prop_decl.first.lexeme << ": "
+                << prop_decl.second->get_token().lexeme << ";";
     }
+
+    for (auto &fn : struct_decl->fns) {
+      this->visit_func(dynamic_cast<Func *>(fn.get()));
+    }
+
     std::cout << "}";
   }
 
@@ -288,5 +291,44 @@ public:
     std::cout << "else" << " => ";
     match_expr->else_arm->accept(this);
     std::cout << "}";
+  }
+
+  void visit_method(Method *method) { this->visit_func(method); }
+
+  void visit_method_call(MethodCall *method_call) {
+    this->visit_call(method_call);
+  }
+
+  void visit_for_in_stmt(ForInStmt *for_in) {
+    std::cout << "for " << for_in->identifier.lexeme << " in ";
+    for_in->iterable->accept(this);
+    std::cout << " ";
+    for_in->body->accept(this);
+  }
+
+  void visit_import_stmt(ImportStmt *import_stmt) {
+    std::cout << "import ";
+
+    for (int i = 0; i < import_stmt->import_paths.size(); i += 1) {
+      std::cout << import_stmt->import_paths[i].string_path;
+
+      if (i != import_stmt->import_paths.size() - 1) {
+        std::cout << ", ";
+      }
+    }
+  }
+
+  void visit_namespace(NamespaceStmt *_namespace) {
+    std::cout << "namespace " << _namespace->identifier.lexeme << " { ";
+    for (auto &member : _namespace->members) {
+      member->accept(this);
+      std::cout << " ";
+    }
+    std::cout << " }";
+  }
+
+  void visit_scope_resolution(ScopeResolutionExpr *scope_resolution) {
+    std::cout << scope_resolution->_namespace.lexeme << "::";
+    scope_resolution->identifier->accept(this);
   }
 };

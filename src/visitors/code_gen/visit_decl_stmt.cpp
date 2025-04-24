@@ -9,7 +9,7 @@ void CodeGen::visit_decl_stmt(DeclStmt *decl_stmt) {
   {
     type = this->type_converter.convert(decl_stmt->type.value());
   } else {
-    if (initializer_value.type->type != BirdTypeType::VOID) {
+    if (initializer_value.type->get_tag() != TypeTag::VOID) {
       type = initializer_value.type;
     } else {
       BinaryenType binaryen_type =
@@ -27,8 +27,19 @@ void CodeGen::visit_decl_stmt(DeclStmt *decl_stmt) {
 
   environment.declare(decl_stmt->identifier.lexeme, TaggedIndex(index, type));
 
-  BinaryenExpressionRef set_local =
+  TaggedExpression set_local =
       this->binaryen_set(decl_stmt->identifier.lexeme, initializer_value.value);
 
-  this->stack.push(TaggedExpression(set_local, type));
+  if (type_is_on_heap(initializer_value.type->get_tag())) {
+    auto block = BinaryenBlock(this->mod, nullptr, &set_local.value, 1,
+                               BinaryenTypeNone());
+    auto get_ref = this->binaryen_get(decl_stmt->identifier.lexeme);
+    auto register_root = BinaryenCall(this->mod, "register_root",
+                                      &get_ref.value, 1, BinaryenTypeNone());
+    BinaryenBlockInsertChildAt(block, 1, register_root);
+    this->stack.push(TaggedExpression(block, type));
+    return;
+  }
+
+  this->stack.push(TaggedExpression(set_local.value, type));
 }

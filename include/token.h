@@ -27,9 +27,18 @@ public:
     OR,
     NOT,
     MATCH,
+    IN,
+    IMPORT,
+    FROM,
+    NAMESPACE,
 
     // types
-    TYPE_LITERAL,
+    INT,
+    FLOAT,
+    BOOL,
+    STR,
+    CHAR,
+    VOID,
 
     // single character
     BANG,
@@ -65,14 +74,17 @@ public:
     PLUS_EQUAL,
     SLASH_EQUAL,
     STAR_EQUAL,
+    COLON_COLON,
 
     // values
-    BOOL_LITERAL,
+    TRUE,
+    FALSE,
     FLOAT_LITERAL,
     IDENTIFIER,
     INT_LITERAL,
     NUMBER,
     STR_LITERAL,
+    CHAR_LITERAL,
 
     // end
     END

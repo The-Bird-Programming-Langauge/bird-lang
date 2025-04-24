@@ -3,7 +3,7 @@
 // INT
 TEST(MiscProgramsTestSuite, BinaryPreorder) {
   BirdTest::TestOptions options;
-  options.code = "struct Node { val: int, left: Node, right: Node };\n"
+  options.code = "struct Node { val: int; left: Node; right: Node; };\n"
                  "const tree : Node = Node{val = 1,\n"
                  "                     left = Node{val = 2,\n"
                  "                                    left = Node{val = 3},\n"
@@ -24,5 +24,3 @@ TEST(MiscProgramsTestSuite, BinaryPreorder) {
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
-
-TEST(MiscProgramsTestSuite, BinaryTreePreorderSearch) {}

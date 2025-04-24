@@ -1,9 +1,13 @@
 #include "../../../include/visitors/code_gen.h"
+#include <binaryen-c.h>
 #include <memory>
 
 void CodeGen::visit_func(Func *func) {
   auto func_name = func->identifier.lexeme;
+  this->add_func_with_name(func, func_name);
+}
 
+void CodeGen::add_func_with_name(Func *func, std::string func_name) {
   if (func->return_type.has_value()) {
     auto bird_return_type =
         this->type_converter.convert(func->return_type.value());
@@ -15,6 +19,8 @@ void CodeGen::visit_func(Func *func) {
     this->function_return_types[func_name] = TaggedType(
         BinaryenTypeNone(), std::shared_ptr<BirdType>(new VoidType()));
   }
+
+  this->function_param_count[func_name] = func->param_list.size();
 
   auto old_function_name = this->current_function_name;
 
@@ -53,27 +59,24 @@ void CodeGen::visit_func(Func *func) {
     stmt->accept(this);
     auto result = this->stack.pop();
 
-    if (result.type->type != BirdTypeType::VOID) {
+    if (result.type->get_tag() != TypeTag::VOID) {
       current_function_body.push_back(BinaryenDrop(this->mod, result.value));
     } else {
       current_function_body.push_back(result.value);
     }
+  }
 
-    if (this->must_garbage_collect) {
-      this->garbage_collect();
-      current_function_body.push_back(this->stack.pop().value);
-      this->must_garbage_collect = false;
+  for (auto &[string, env_index] : this->environment.envs.back()) {
+    auto get_result = this->binaryen_get(string);
+    if (env_index.value >= index &&
+        type_is_on_heap(get_result.type->get_tag())) {
+      auto unregister = BinaryenCall(this->mod, "unregister_root",
+                                     &get_result.value, 1, BinaryenTypeNone());
+      current_function_body.push_back(unregister);
     }
   }
 
-  // perform garbage collection at the end of a function by popping the
-  // javascript calls off the stack in a block and executing the block
-
   this->environment.pop_env();
-
-  // this->garbage_collect();
-  // auto calls_block = this->stack.pop();
-  // current_function_body.push_back(calls_block.value);
 
   BinaryenExpressionRef body =
       BinaryenBlock(this->mod, nullptr, current_function_body.data(),

@@ -14,6 +14,10 @@ template <typename T> class Environment {
 public:
   std::vector<std::map<std::string, T>> envs;
 
+  Environment() = default;
+
+  Environment(std::map<std::string, T> env) : envs(env) {}
+
   void push_env() { envs.push_back(std::map<std::string, T>()); }
 
   void pop_env() { envs.pop_back(); }

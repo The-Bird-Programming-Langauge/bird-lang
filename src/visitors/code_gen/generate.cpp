@@ -1,30 +1,24 @@
 #include "../../../include/visitors/code_gen.h"
 #include "../../../include/visitors/hoist_visitor.h"
-#include "../../../include/visitors/static_visitor.h"
+#include <binaryen-c.h>
 #include <fstream>
 
 void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
   this->init_std_lib();
+  this->init_array_constructor();
+  this->init_ref_constructor();
+  BinaryenAddTag(this->mod, "RuntimeBirdError", BinaryenTypeNone(),
+                 BinaryenTypeNone());
 
   HoistVisitor hoist_visitor(this->struct_names);
   hoist_visitor.hoist(stmts);
 
-  std::vector<std::string> static_strings;
-  StaticVisitor static_visitor(static_strings);
-  static_visitor.static_pass(stmts);
-
-  this->init_static_memory(static_strings);
-
-  BinaryenExpressionRef offset =
-      BinaryenConst(this->mod, BinaryenLiteralInt32(this->current_offset));
+  this->init_static_memory();
 
   this->current_function_name = "main";
   auto main_function_body = std::vector<BinaryenExpressionRef>();
   this->function_locals[this->current_function_name] =
       std::vector<BinaryenType>();
-
-  main_function_body.push_back(BinaryenCall(this->mod, "initialize_memory",
-                                            &offset, 1, BinaryenTypeInt32()));
 
   for (auto &stmt : *stmts) {
     if (auto func_stmt = dynamic_cast<Func *>(stmt.get())) {
@@ -32,6 +26,12 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
       // no stack push here, automatically added
       continue;
     }
+
+    if (auto method_stmt = dynamic_cast<Method *>(stmt.get())) {
+      method_stmt->accept(this);
+      continue;
+    }
+
     if (auto type_stmt = dynamic_cast<TypeStmt *>(stmt.get())) {
       type_stmt->accept(this);
       // no stack push here, only type table
@@ -41,6 +41,12 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
     if (auto struct_decl = dynamic_cast<StructDecl *>(stmt.get())) {
       struct_decl->accept(this);
       // no stack push here, only type table
+      continue;
+    }
+
+    if (auto import_stmt = dynamic_cast<ImportStmt *>(stmt.get())) {
+      import_stmt->accept(this);
+      // no stack push here
       continue;
     }
 
@@ -58,16 +64,11 @@ void CodeGen::generate(std::vector<std::unique_ptr<Stmt>> *stmts) {
 
     stmt->accept(this);
     auto result = this->stack.pop();
-    if (result.type->type != BirdTypeType::VOID) {
+    if (result.type->get_tag() != TypeTag::VOID) {
       result = TaggedExpression(BinaryenDrop(this->mod, result.value));
     }
-    main_function_body.push_back(result.value);
 
-    if (this->must_garbage_collect) {
-      this->garbage_collect();
-      main_function_body.push_back(stack.pop().value);
-      this->must_garbage_collect = false;
-    }
+    main_function_body.push_back(result.value);
   }
 
   auto count = 0;

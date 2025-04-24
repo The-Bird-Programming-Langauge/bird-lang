@@ -95,7 +95,8 @@
                 "user_error_tracker.h": "c",
                 "bird_exception.h": "c",
                 "parse_type.h": "c",
-                "filesystem": "cpp"
+                "filesystem": "cpp",
+                "__availability": "cpp"
         },
         "C_Cpp.errorSquiggles": "enabled"
 }

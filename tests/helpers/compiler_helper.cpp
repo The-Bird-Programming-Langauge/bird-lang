@@ -1,4 +1,5 @@
 #include "compile_helper.hpp"
+#include <cstdlib>
 #include <fstream>
 
 bool BirdTest::compile(const TestOptions options) {
@@ -17,6 +18,23 @@ bool BirdTest::compile(const TestOptions options) {
       options.after_parse.value()(error_tracker, parser, ast);
     }
   }
+
+  if (options.import) {
+    ImportVisitor import_visitor(error_tracker);
+    import_visitor.import(&ast);
+
+    if (options.after_import.has_value()) {
+      options.after_import.value()(error_tracker, import_visitor);
+    }
+
+    if (error_tracker.has_errors()) {
+      error_tracker.print_errors();
+      return false;
+    }
+  }
+
+  NameDecorator name_decorator;
+  name_decorator.decorate(&ast);
 
   if (options.semantic_analyze) {
     SemanticAnalyzer analyze_semantics(error_tracker);

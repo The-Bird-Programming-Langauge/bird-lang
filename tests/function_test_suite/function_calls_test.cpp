@@ -83,16 +83,13 @@ TEST(FunctionTest, ArityFail) {
   options.code = "fn function(i: int, j: str) {}"
                  "function(4, 6, 7);";
 
-  options.after_semantic_analyze = [&](UserErrorTracker &error_tracker,
-                                       SemanticAnalyzer &analyzer) {
+  options.after_type_check = [&](auto &error_tracker, auto &analyzer) {
     ASSERT_TRUE(error_tracker.has_errors());
     auto tup = error_tracker.get_errors()[0];
 
     ASSERT_EQ(std::get<1>(tup).lexeme, "function");
-    ASSERT_EQ(
-        std::get<0>(tup),
-        ">>[ERROR] semantic error: Function call identifer 'function' does not "
-        "use the correct number of arguments. (line 1, character 31)");
+    ASSERT_EQ(std::get<0>(tup), ">>[ERROR] type error: Invalid number of "
+                                "arguments to function (line 1, character 31)");
   };
 
   ASSERT_FALSE(BirdTest::compile(options));
@@ -133,7 +130,7 @@ TEST(FunctionTest, FunctionIdentityCall) {
 
   options.after_compile = [&](std::string &output, CodeGen &codegen) {
     ASSERT_TRUE(codegen.get_environment().contains("x"));
-    ASSERT_EQ(codegen.get_environment().get("x").type->type, BirdTypeType::INT);
+    ASSERT_EQ(codegen.get_environment().get("x").type->get_tag(), TypeTag::INT);
     ASSERT_EQ(output, "2\n\n");
   };
 }

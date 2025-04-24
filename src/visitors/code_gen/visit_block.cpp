@@ -9,13 +9,20 @@ void CodeGen::visit_block(Block *block) {
     auto result = this->stack.pop();
 
     if (result.value) {
-      children.push_back(result.value);
+      if (result.type->get_tag() != TypeTag::VOID) {
+        children.push_back(BinaryenDrop(this->mod, result.value));
+      } else {
+        children.push_back(result.value);
+      }
     }
+  }
 
-    if (this->must_garbage_collect) {
-      this->garbage_collect();
-      children.push_back(this->stack.pop().value);
-      this->must_garbage_collect = false;
+  for (auto &[string, env_index] : this->environment.envs.back()) {
+    auto get_result = this->binaryen_get(string);
+    if (type_is_on_heap(get_result.type->get_tag())) {
+      auto unregister = BinaryenCall(this->mod, "unregister_root",
+                                     &get_result.value, 1, BinaryenTypeNone());
+      children.push_back(unregister);
     }
   }
 
