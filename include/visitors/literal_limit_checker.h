@@ -2,7 +2,11 @@
 #include "../exceptions/user_error_tracker.h"
 #include "visitor.h"
 #include "visitor_adapter.h"
+#include <cfloat>
+#include <float.h>
+#include <limits>
 #include <stdexcept>
+#include <stdint.h>
 
 class LiteralLimitChecker : VisitorAdapter {
   UserErrorTracker &user_error_tracker;
@@ -22,7 +26,11 @@ public:
     case Token::Type::FLOAT_LITERAL: {
       // max double size
       try {
-        std::stod(primary->value.lexeme);
+        auto d = std::stod(primary->value.lexeme);
+        if (d > std::numeric_limits<double>::max() ||
+            d < std::numeric_limits<double>::min()) {
+          throw std::out_of_range("out of range");
+        }
       } catch (std::out_of_range e) {
         this->user_error_tracker.semantic_error("Float literal out of range",
                                                 primary->value);
@@ -30,7 +38,11 @@ public:
     }
     case Token::Type::INT_LITERAL: {
       try {
-        std::stoi(primary->value.lexeme);
+        auto i = std::stoi(primary->value.lexeme);
+        if (i > std::numeric_limits<int32_t>::max() ||
+            i < std::numeric_limits<int32_t>::min()) {
+          throw std::out_of_range("out of range");
+        }
       } catch (std::out_of_range e) {
         this->user_error_tracker.semantic_error("Int literal out of range",
                                                 primary->value);
