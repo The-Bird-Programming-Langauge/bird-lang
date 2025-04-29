@@ -104,43 +104,6 @@ TEST(StructTest, AllPrimitiveTypesStructInitialization) {
   ASSERT_TRUE(BirdTest::compile(options));
 }
 
-TEST(StructTest, HoistedStructInitialization) {
-  BirdTest::TestOptions options;
-  options.code = "var t = Test { a = 1, b = 2.0, c = \"hello\", d = true };"
-                 "print t.a;"
-                 "print t.b;"
-                 "print t.c;"
-                 "print t.d;"
-                 "struct Test { a: int; b: float; c: str; d: bool; };";
-
-  options.after_interpret = [&](Interpreter &interpreter) {
-    ASSERT_TRUE(interpreter.env.contains("t"));
-    bool is_correct_type = is_type<STRUCT_TYPE>(interpreter.env.get("t"));
-    ASSERT_TRUE(is_correct_type);
-    auto instance = as_type<STRUCT_TYPE>(interpreter.env.get("t"));
-    ASSERT_TRUE(instance.fields->find("a") != instance.fields->end());
-    ASSERT_TRUE(instance.fields->find("b") != instance.fields->end());
-    ASSERT_TRUE(instance.fields->find("c") != instance.fields->end());
-    ASSERT_TRUE(instance.fields->find("d") != instance.fields->end());
-
-    ASSERT_TRUE(is_type<int>((*instance.fields)["a"]));
-    ASSERT_TRUE(is_type<double>((*instance.fields)["b"]));
-    ASSERT_TRUE(is_type<std::string>((*instance.fields)["c"]));
-    ASSERT_TRUE(is_type<bool>((*instance.fields)["d"]));
-
-    ASSERT_EQ(as_type<int>((*instance.fields)["a"]), 1);
-    ASSERT_EQ(as_type<double>((*instance.fields)["b"]), 2.0);
-    ASSERT_EQ(as_type<std::string>((*instance.fields)["c"]), "hello");
-    ASSERT_EQ(as_type<bool>((*instance.fields)["d"]), true);
-  };
-
-  options.after_compile = [&](std::string &output, CodeGen &codegen) {
-    ASSERT_EQ(output == "1\n2\nhello\ntrue\n\n", true);
-  };
-
-  ASSERT_TRUE(BirdTest::compile(options));
-}
-
 TEST(StructTest, ParamsOutOfOrderStructInitialization) {
   BirdTest::TestOptions options;
   options.code = "struct Test { a: int; b: float; c: str; d: bool; };"

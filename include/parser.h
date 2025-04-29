@@ -7,7 +7,6 @@
 #include "./exceptions/user_error_tracker.h"
 
 #include "../build/parser.tab.hh"
-#include "reorder_ast.h"
 
 struct yy_buffer_state;
 extern yy_buffer_state *yy_scan_string(const char *yy_str);
@@ -27,7 +26,6 @@ public:
     yy::yyParser parser(stmts, this->error_tracker);
     parser.parse();
 
-    reorder_ast(stmts);
     return stmts;
   }
 };
