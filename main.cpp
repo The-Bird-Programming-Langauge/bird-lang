@@ -6,8 +6,9 @@
 #include "include/parser.h"
 #include "include/visitors/ast_printer.h"
 #include "include/visitors/code_gen.h"
-#include "include/visitors/interpreter.h"
 #include "include/visitors/import_visitor.h"
+#include "include/visitors/interpreter.h"
+#include "include/visitors/literal_limit_checker.h"
 #include "include/visitors/name_decorator.h"
 #include "include/visitors/semantic_analyzer.h"
 #include "include/visitors/type_checker.h"
@@ -63,6 +64,13 @@ void repl() {
     printer.print_ast(&ast);
 #endif
 
+    LiteralLimitChecker limit_checker(error_tracker);
+    limit_checker.check_literal_limits(&ast);
+
+    if (error_tracker.has_errors()) {
+      error_tracker.print_errors_and_exit();
+    }
+
     import_visitor.import(&ast);
     if (error_tracker.has_errors()) {
       error_tracker.print_errors_and_exit();
@@ -104,13 +112,20 @@ void compile(std::string filename) {
   printer.print_ast(&ast);
 #endif
 
+  LiteralLimitChecker limit_checker(error_tracker);
+  limit_checker.check_literal_limits(&ast);
+
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
+
   ImportVisitor import_visitor(error_tracker);
   import_visitor.import(&ast);
 
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
   }
-  
+
   NameDecorator name_decorator;
   name_decorator.decorate(&ast);
 
@@ -147,6 +162,13 @@ void interpret(std::string filename) {
   AstPrinter printer;
   printer.print_ast(&ast);
 #endif
+
+  LiteralLimitChecker limit_checker(error_tracker);
+  limit_checker.check_literal_limits(&ast);
+
+  if (error_tracker.has_errors()) {
+    error_tracker.print_errors_and_exit();
+  }
 
   ImportVisitor import_visitor(error_tracker);
   import_visitor.import(&ast);
