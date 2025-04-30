@@ -490,6 +490,7 @@ import_path:
 maybe_arg_list: 
    %empty { $$ = (std::vector<std::shared_ptr<Expr>>()); }
    | arg_list { $$ = std::move($1); }
+   | arg_list COMMA { $$ = std::move($1); }  // allows for a trailing comma
 
 arg_list: 
    expr 
@@ -552,7 +553,7 @@ assign_expr:
 
 index_assign:
    subscript_expr ASSIGN_OP expr %prec ASSIGN 
-   { $$ = std::make_unique<IndexAssign>(std::move($1), std::move($3), $2); }
+      { $$ = std::make_unique<IndexAssign>(std::move($1), std::move($3), $2); }
 
 type_cast:
    expr AS type_identifier %prec CAST {$$ = std::make_unique<AsCast>(std::move($1), $3);}
@@ -609,7 +610,7 @@ struct_initialization:
 maybe_struct_initialization_list:
    %empty { $$ = std::vector<std::pair<std::string, std::unique_ptr<Expr>>>(); }
    | struct_initialization_list { $$ = std::move($1); }
-   | struct_initialization_list COMMA { $$ = std::move($1); }
+   | struct_initialization_list COMMA { $$ = std::move($1); }  // allows a trailing comma
 
 struct_initialization_list:
    IDENTIFIER EQUAL expr 
@@ -620,9 +621,8 @@ struct_initialization_list:
         $$.push_back(std::make_pair($3.lexeme, std::move($5))); }
 
 array_initialization: 
-   LBRACKET maybe_arg_list RBRACKET %prec ARRAY_INITIALIZATION {
-      $$ = std::make_unique<ArrayInit>($2);
-   }
+   LBRACKET maybe_arg_list RBRACKET %prec ARRAY_INITIALIZATION 
+      { $$ = std::make_unique<ArrayInit>($2); }
 
 subscript_expr:
    expr LBRACKET expr RBRACKET %prec SUBSCRIPT
