@@ -30,6 +30,7 @@ public:
         double d = std::stod(primary->value.lexeme);
         std::cout << "IS IEEE: " << std::numeric_limits<double>::is_iec559
                   << std::endl;
+        std::cout << "size of double: " << sizeof(double) << std::endl;
         int64_t i = reinterpret_cast<int64_t &>(d);
         if (i > std::numeric_limits<int64_t>::max() ||
             i < std::numeric_limits<int64_t>::min()) {
