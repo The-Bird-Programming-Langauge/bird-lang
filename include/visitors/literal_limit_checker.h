@@ -27,15 +27,7 @@ public:
     case Token::Type::FLOAT_LITERAL: {
       // max double size
       try {
-        double d = std::stod(primary->value.lexeme);
-        std::cout << "IS IEEE: " << std::numeric_limits<double>::is_iec559
-                  << std::endl;
-        std::cout << "size of double: " << sizeof(double) << std::endl;
-        int64_t i = reinterpret_cast<int64_t &>(d);
-        if (i > std::numeric_limits<int64_t>::max() ||
-            i < std::numeric_limits<int64_t>::min()) {
-          throw std::out_of_range("out of range");
-        }
+        std::stod(primary->value.lexeme);
       } catch (std::out_of_range e) {
         this->user_error_tracker.semantic_error("Float literal out of range",
                                                 primary->value);
