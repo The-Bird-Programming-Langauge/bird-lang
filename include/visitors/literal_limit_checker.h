@@ -3,15 +3,11 @@
 #include "visitor.h"
 #include "visitor_adapter.h"
 #include <cfloat>
+#include <cstdint>
 #include <float.h>
 #include <limits>
 #include <stdexcept>
 #include <stdint.h>
-
-#define IEEE754_DBL_MAX 1.7976931348623157e+308
-#define IEEE754_DBL_MIN -1.7976931348623157e+308
-#define IEEE754_DBL_MIN_POS 2.2250738585072014e-308
-#define IEEE754_DBL_MIN_NEG -2.2250738585072014e-308
 
 class LiteralLimitChecker : VisitorAdapter {
   UserErrorTracker &user_error_tracker;
@@ -32,9 +28,11 @@ public:
       // max double size
       try {
         double d = std::stod(primary->value.lexeme);
-        if (d > IEEE754_DBL_MAX || d < IEEE754_DBL_MIN ||
-            (d > 0 && d < IEEE754_DBL_MIN_POS) ||
-            (d < 0 && d > IEEE754_DBL_MIN_NEG)) {
+        std::cout << "IS IEEE: " << std::numeric_limits<double>::is_iec559
+                  << std::endl;
+        int64_t i = reinterpret_cast<int64_t &>(d);
+        if (i > std::numeric_limits<int64_t>::max() ||
+            i < std::numeric_limits<int64_t>::min()) {
           throw std::out_of_range("out of range");
         }
       } catch (std::out_of_range e) {
