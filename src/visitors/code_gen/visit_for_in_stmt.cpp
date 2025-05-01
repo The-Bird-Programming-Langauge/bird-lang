@@ -51,10 +51,10 @@ void CodeGen::visit_for_in_stmt(ForInStmt *for_in) {
   auto get_index = BinaryenCall(this->mod, "mem_get_32", mem_get_idx.data(),
                                 mem_get_idx.size(), BinaryenTypeInt32());
 
-  body_block.push_back(BinaryenBreak(
-      this->mod, "EXIT",
-      BinaryenBinary(this->mod, BinaryenGeUInt32(), get_index, get_length),
-      nullptr));
+  auto early_exit =
+      BinaryenBinary(this->mod, BinaryenGeUInt32(), get_index, get_length);
+
+  body_block.push_back(BinaryenBreak(this->mod, "EXIT", early_exit, nullptr));
 
   auto offset = BinaryenBinary(
       this->mod, BinaryenMulInt32(), get_index,
