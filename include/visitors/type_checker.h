@@ -778,8 +778,9 @@ public:
 
     if (subscriptable->get_tag() != TypeTag::STRING &&
         subscriptable->get_tag() != TypeTag::ARRAY) {
-      this->user_error_tracker.type_error("expected string in subscriptable",
-                                          subscript->subscript_token);
+      this->user_error_tracker.type_error(
+          "expected string or array in subscriptable",
+          subscript->subscript_token);
 
       this->stack.push(std::make_shared<ErrorType>());
       return;
