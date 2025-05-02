@@ -2,13 +2,12 @@
 
 #include "../../include/exceptions/user_error_tracker.h"
 #include "../../include/parser.h"
-#include "../../include/visitors/interpreter.h"
+#include "../../include/visitors/code_gen.h"
 #include "../../include/visitors/import_visitor.h"
+#include "../../include/visitors/interpreter.h"
 #include "../../include/visitors/name_decorator.h"
 #include "../../include/visitors/semantic_analyzer.h"
 #include "../../include/visitors/type_checker.h"
-
-#include "../../include/visitors/code_gen.h"
 
 #include <functional>
 #include <gtest/gtest.h>
@@ -20,7 +19,6 @@
 namespace BirdTest {
 struct TestOptions {
   std::string code;
-  // bool lex = true;
   bool parse = true;
   bool import = true;
   bool type_check = true;

@@ -6,8 +6,8 @@
 #include "include/parser.h"
 #include "include/visitors/ast_printer.h"
 #include "include/visitors/code_gen.h"
-#include "include/visitors/interpreter.h"
 #include "include/visitors/import_visitor.h"
+#include "include/visitors/interpreter.h"
 #include "include/visitors/name_decorator.h"
 #include "include/visitors/semantic_analyzer.h"
 #include "include/visitors/type_checker.h"
@@ -110,7 +110,7 @@ void compile(std::string filename) {
   if (error_tracker.has_errors()) {
     error_tracker.print_errors_and_exit();
   }
-  
+
   NameDecorator name_decorator;
   name_decorator.decorate(&ast);
 
