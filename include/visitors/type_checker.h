@@ -488,6 +488,15 @@ public:
       break;
     }
     case Token::Type::IDENTIFIER: {
+      if (!this->env.contains(primary->value.lexeme)) {
+        if (this->call_table.contains(primary->value.lexeme)) {
+          this->user_error_tracker.semantic_error(
+              "expected " + primary->value.lexeme + "() for function call",
+              primary->value);
+          this->stack.push(std::make_shared<ErrorType>());
+          break;
+        }
+      }
       this->stack.push(this->env.get(primary->value.lexeme));
       break;
     }
@@ -796,8 +805,9 @@ public:
 
     if (subscriptable->get_tag() != TypeTag::STRING &&
         subscriptable->get_tag() != TypeTag::ARRAY) {
-      this->user_error_tracker.type_error("expected string in subscriptable",
-                                          subscript->subscript_token);
+      this->user_error_tracker.type_error(
+          "expected string or array in subscriptable",
+          subscript->subscript_token);
 
       this->stack.push(std::make_shared<ErrorType>());
       return;

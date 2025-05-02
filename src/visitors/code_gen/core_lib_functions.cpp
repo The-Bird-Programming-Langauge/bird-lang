@@ -41,6 +41,11 @@ void CodeGen::generate_array_length_fn() {
                       binaryen_return_type, nullptr, 0, body);
 }
 
+#define ITERABLE_OFFSET 0
+#define LENGTH_OFFSET 4
+#define INDEX_OFFSET 8
+#define SIZE_OF_ITERATOR 12
+
 void CodeGen::generate_iter_fn() {
   std::string func_name = "iter";
   auto return_type =
@@ -61,26 +66,27 @@ void CodeGen::generate_iter_fn() {
   auto ref = BinaryenLocalGet(this->mod, 0, BinaryenTypeInt32());
 
   std::vector<BinaryenExpressionRef> mem_get_array_args{
-      ref, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+      ref, BinaryenConst(this->mod, BinaryenLiteralInt32(ITERABLE_OFFSET))};
 
   auto array_ptr =
       BinaryenCall(this->mod, "mem_get_32", mem_get_array_args.data(),
                    mem_get_array_args.size(), BinaryenTypeInt32());
 
   std::vector<BinaryenExpressionRef> mem_get_args{
-      array_ptr, BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
+      array_ptr,
+      BinaryenConst(this->mod, BinaryenLiteralInt32(ITERABLE_OFFSET))};
 
   auto array = BinaryenCall(this->mod, "mem_get_32", mem_get_args.data(),
                             mem_get_args.size(), BinaryenTypeInt32());
 
   std::vector<BinaryenExpressionRef> length_args{
-      array_ptr, BinaryenConst(this->mod, BinaryenLiteralInt32(4))};
+      array_ptr, BinaryenConst(this->mod, BinaryenLiteralInt32(LENGTH_OFFSET))};
 
   auto length = BinaryenCall(this->mod, "mem_get_32", length_args.data(),
                              length_args.size(), BinaryenTypeInt32());
 
   std::vector<BinaryenExpressionRef> mem_alloc_args{
-      BinaryenConst(this->mod, BinaryenLiteralInt32(12)),
+      BinaryenConst(this->mod, BinaryenLiteralInt32(SIZE_OF_ITERATOR)),
       BinaryenConst(this->mod, BinaryenLiteralInt32(1))};
 
   auto iter = BinaryenLocalSet(
@@ -93,21 +99,24 @@ void CodeGen::generate_iter_fn() {
   function_body.push_back(iter);
 
   std::vector<BinaryenExpressionRef> mem_set_ptr{
-      get_iter_ptr, BinaryenConst(this->mod, BinaryenLiteralInt32(0)), array};
+      get_iter_ptr,
+      BinaryenConst(this->mod, BinaryenLiteralInt32(ITERABLE_OFFSET)), array};
 
   function_body.push_back(BinaryenCall(this->mod, "mem_set_32",
                                        mem_set_ptr.data(), mem_set_ptr.size(),
                                        BinaryenTypeNone()));
 
   std::vector<BinaryenExpressionRef> mem_set_len{
-      get_iter_ptr, BinaryenConst(this->mod, BinaryenLiteralInt32(4)), length};
+      get_iter_ptr,
+      BinaryenConst(this->mod, BinaryenLiteralInt32(LENGTH_OFFSET)), length};
 
   function_body.push_back(BinaryenCall(this->mod, "mem_set_32",
                                        mem_set_len.data(), mem_set_len.size(),
                                        BinaryenTypeNone()));
 
   std::vector<BinaryenExpressionRef> mem_set_idx_args{
-      get_iter_ptr, BinaryenConst(this->mod, BinaryenLiteralInt32(8)),
+      get_iter_ptr,
+      BinaryenConst(this->mod, BinaryenLiteralInt32(INDEX_OFFSET)),
       BinaryenConst(this->mod, BinaryenLiteralInt32(0))};
 
   function_body.push_back(
