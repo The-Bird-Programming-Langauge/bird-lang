@@ -145,3 +145,17 @@ TEST(ForInTest, IterWithStringArg) {
 
   ASSERT_TRUE(BirdTest::compile(options));
 }
+
+TEST(ForInTest, IterWithEmptyArray) {
+  BirdTest::TestOptions options;
+  options.code = "const foo: int[] = [];"
+                 "for x in iter(foo) {"
+                 "    print x;"
+                 "}";
+
+  options.after_compile = [&](std::string &output, CodeGen &code_gen) {
+    ASSERT_EQ(output, "\n");
+  };
+
+  ASSERT_TRUE(BirdTest::compile(options));
+}

@@ -154,8 +154,16 @@ struct ArrayType : BirdType {
       return false;
     }
 
-    return *dynamic_cast<ArrayType *>(&other)->element_type ==
-           *this->element_type;
+    auto this_element_type = this->element_type->get_tag();
+    auto other_element_type =
+        dynamic_cast<ArrayType *>(&other)->element_type->get_tag();
+
+    if (this_element_type == TypeTag::VOID ||
+        other_element_type == TypeTag::VOID) {
+      return true;
+    }
+
+    return this_element_type == other_element_type;
   }
   bool operator!=(BirdType &other) const { return !(*this == other); }
   TypeTag get_tag() const { return TypeTag::ARRAY; }
