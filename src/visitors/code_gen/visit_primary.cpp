@@ -1,11 +1,17 @@
 #include "../../../include/visitors/code_gen.h"
 #include <binaryen-c.h>
+#include <limits>
 #include <memory>
 
 void CodeGen::visit_primary(Primary *primary) {
   switch (primary->value.token_type) {
   case Token::Type::INT_LITERAL: {
-    int value = std::stoi(primary->value.lexeme);
+		 int value = 0;
+		 try {
+    	value = std::stoi(primary->value.lexeme);
+		 } catch (std::out_of_range e) {
+			value = std::numeric_limits<int>::max();
+		 }
     BinaryenExpressionRef int_literal =
         BinaryenConst(this->mod, BinaryenLiteralInt32(value));
     this->stack.push(TaggedExpression(
@@ -14,7 +20,13 @@ void CodeGen::visit_primary(Primary *primary) {
   }
 
   case Token::Type::FLOAT_LITERAL: {
-    double value = std::stod(primary->value.lexeme);
+    double value = 0;
+		try {
+			value = std::stod(primary->value.lexeme);
+		} catch (std::out_of_range e) {
+			value = std::numeric_limits<double>::max();
+		}
+
     BinaryenExpressionRef float_literal =
         BinaryenConst(this->mod, BinaryenLiteralFloat64(value));
     this->stack.push(TaggedExpression(

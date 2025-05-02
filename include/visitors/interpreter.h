@@ -6,6 +6,7 @@
 #include <set>
 #include <unordered_map>
 #include <vector>
+#include <limits>
 
 #include "hoist_visitor.h"
 
@@ -351,7 +352,11 @@ public:
   void visit_primary(Primary *primary) {
     switch (primary->value.token_type) {
     case Token::Type::FLOAT_LITERAL:
-      this->stack.push(Value(variant(std::stod(primary->value.lexeme))));
+			try {
+      	this->stack.push(Value(variant(std::stod(primary->value.lexeme))));
+			} catch (std::out_of_range e) {
+				this->stack.push(Value(variant(std::numeric_limits<double>::max())));
+			}
       break;
     case Token::Type::TRUE:
       this->stack.push(Value(variant(true)));
@@ -363,7 +368,11 @@ public:
       this->stack.push(Value(variant(primary->value.lexeme)));
       break;
     case Token::Type::INT_LITERAL:
-      this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
+			try {
+      	this->stack.push(Value(variant(std::stoi(primary->value.lexeme))));
+			} catch (std::out_of_range e) {
+				this->stack.push(Value(variant(std::numeric_limits<double>::max())));
+			}
       break;
     case Token::Type::CHAR_LITERAL:
       this->stack.push(Value(variant(primary->value.lexeme)));

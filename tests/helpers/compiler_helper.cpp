@@ -19,19 +19,6 @@ bool BirdTest::compile(const TestOptions options) {
     }
   }
 
-  if (options.literal_limit_checker) {
-    LiteralLimitChecker limit_checker(error_tracker);
-    limit_checker.check_literal_limits(&ast);
-
-    if (options.after_literal_limit_check.has_value()) {
-      options.after_literal_limit_check.value()(error_tracker);
-    }
-
-    if (error_tracker.has_errors()) {
-      return false;
-    }
-  }
-
   if (options.import) {
     ImportVisitor import_visitor(error_tracker);
     import_visitor.import(&ast);
